@@ -1,26 +1,25 @@
 name: Compiler l'APK
 
 # Quand la compilation se déclenche :
-#  - à chaque envoi de code sur main
-#  - manuellement, depuis l'onglet Actions (bouton « Run workflow »)
-#  - à la publication d'une Release (les fichiers y sont alors attachés)
+#  - à chaque envoi de code sur main        -> APK de test dans les Artifacts
+#  - à chaque tag « v… » (ex : v1.0.0)      -> Release avec l'APK téléchargeable
+#  - manuellement depuis l'onglet Actions   -> APK de test
 on:
   push:
     branches: [main]
+    tags: ['v*']
   workflow_dispatch:
-  release:
-    types: [published]
 
 permissions:
   contents: write
 
 jobs:
 
-  # ---------------------------------------------------------------------
-  # APK de test — toujours compilé, aucun secret nécessaire.
+  # =====================================================================
+  # APK de test — à chaque envoi de code. Aucun secret nécessaire.
   # Récupérable dans Actions > (le run) > Artifacts.
-  # ---------------------------------------------------------------------
-  debug:
+  # =====================================================================
+  apk:
     name: APK de test
     runs-on: ubuntu-latest
 
@@ -61,13 +60,15 @@ jobs:
           path: artefacts/*.apk
           retention-days: 90
 
-  # ---------------------------------------------------------------------
-  # APK + AAB signés — uniquement si les secrets de signature existent.
-  # Sans eux, ce job réussit en ne faisant rien : le dépôt reste utilisable
-  # par quelqu'un qui n'a pas la clé.
-  # ---------------------------------------------------------------------
-  release:
-    name: APK + AAB signés
+  # =====================================================================
+  # Release — uniquement sur un tag « v… ».
+  # Produit TOUJOURS un APK installable et l'attache à la Release GitHub.
+  # Si les secrets de signature existent, l'APK est signé avec la vraie
+  # clé et l'AAB pour le Play Store est ajouté.
+  # =====================================================================
+  publier:
+    name: Publier la Release
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
 
     steps:
@@ -95,8 +96,8 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
           if [ -z "$KEYSTORE_BASE64" ]; then
-            echo "pret=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Secret KEYSTORE_BASE64 absent — build signé ignoré."
+            echo "signee=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Aucun secret de signature : l'APK sera signé avec une clé de debug jetable."
             exit 0
           fi
           mkdir -p cles
@@ -107,10 +108,9 @@ jobs:
             echo "keyAlias=$KEY_ALIAS"
             echo "keyPassword=$KEYSTORE_PASSWORD"
           } > SankaiLife/keystore.properties
-          echo "pret=true" >> "$GITHUB_OUTPUT"
+          echo "signee=true" >> "$GITHUB_OUTPUT"
 
       - name: Injecter les identifiants AdMob
-        if: steps.signature.outputs.pret == 'true'
         env:
           ADMOB_APP_ID: ${{ secrets.ADMOB_APP_ID }}
           ADMOB_REWARDED_UNIT_ID: ${{ secrets.ADMOB_REWARDED_UNIT_ID }}
@@ -125,37 +125,80 @@ jobs:
           } > SankaiLife/admob.properties
 
       - name: Rendre gradlew exécutable
-        if: steps.signature.outputs.pret == 'true'
         run: chmod +x SankaiLife/gradlew
 
-      - name: Compiler l'APK et l'AAB signés
-        if: steps.signature.outputs.pret == 'true'
+      # assembleRelease fonctionne dans les deux cas : sans keystore, le
+      # build.gradle.kts retombe sur la clé de debug. L'APK reste installable.
+      - name: Compiler l'APK de release
         working-directory: SankaiLife
-        run: ./gradlew assembleRelease bundleRelease --no-daemon --stacktrace
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
 
-      - name: Préparer les artefacts
-        if: steps.signature.outputs.pret == 'true'
+      - name: Compiler l'AAB pour le Play Store
+        if: steps.signature.outputs.signee == 'true'
+        working-directory: SankaiLife
+        run: ./gradlew bundleRelease --no-daemon
+
+      - name: Rassembler les fichiers
         run: |
           mkdir -p artefacts
-          VERSION="${GITHUB_REF_NAME//\//-}"
           cp SankaiLife/app/build/outputs/apk/release/*.apk \
-             "artefacts/SankaiLife-$VERSION.apk"
-          cp SankaiLife/app/build/outputs/bundle/release/*.aab \
-             "artefacts/SankaiLife-$VERSION-playstore.aab"
+             "artefacts/SankaiLife-${GITHUB_REF_NAME}.apk"
+          if [ -d SankaiLife/app/build/outputs/bundle/release ]; then
+            cp SankaiLife/app/build/outputs/bundle/release/*.aab \
+               "artefacts/SankaiLife-${GITHUB_REF_NAME}-playstore.aab" || true
+          fi
+          ls -lh artefacts
 
-      - name: Publier les fichiers signés
-        if: steps.signature.outputs.pret == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: SankaiLife-signe
-          path: artefacts/*
-          retention-days: 90
+      - name: Rédiger les notes de version
+        env:
+          SIGNEE: ${{ steps.signature.outputs.signee }}
+        run: |
+          TAILLE=$(du -h artefacts/SankaiLife-${GITHUB_REF_NAME}.apk | cut -f1)
+          {
+            echo "## Installation"
+            echo ""
+            echo "1. Télécharge \`SankaiLife-${GITHUB_REF_NAME}.apk\` ci-dessous, depuis ton téléphone"
+            echo "2. Ouvre le fichier téléchargé"
+            echo "3. Autorise l'installation depuis cette source si Android le demande"
+            echo ""
+            echo "Taille : $TAILLE • Android 8.0 minimum"
+            echo ""
+            echo "## Ce que fait l'application"
+            echo ""
+            echo "Productivité gamifiée, **100 % hors ligne** : mémos intelligents à partir"
+            echo "de textes collés, minuteur de concentration, objectifs, défis quotidiens,"
+            echo "coffres et progression par niveaux."
+            echo ""
+            if [ "$SIGNEE" = "true" ]; then
+              echo "## Signature"
+              echo ""
+              echo "APK signé avec la clé de production. Les mises à jour s'installeront"
+              echo "par-dessus les versions précédentes."
+            else
+              echo "## ⚠️ Signature de test"
+              echo ""
+              echo "Cet APK est signé avec une clé jetable générée par GitHub. Il"
+              echo "s'installe et fonctionne normalement, mais **chaque version aura une"
+              echo "signature différente** : il faudra désinstaller l'ancienne avant"
+              echo "d'installer la suivante."
+              echo ""
+              echo "Pour des versions signées durablement, ajoute les secrets décrits dans"
+              echo "\`exemple/guides/GITHUB-RECUPERER-APK.md\`."
+            fi
+          } > notes.md
+          cat notes.md
 
-      - name: Joindre les fichiers à la Release
-        if: github.event_name == 'release' && steps.signature.outputs.pret == 'true'
+      - name: Créer la Release et y attacher les fichiers
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" artefacts/*
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          if ! gh release view "$TAG" > /dev/null 2>&1; then
+            gh release create "$TAG" --title "Sankai Life $TAG" --notes-file notes.md
+          else
+            gh release edit "$TAG" --notes-file notes.md
+          fi
+          gh release upload "$TAG" artefacts/* --clobber
 
       - name: Effacer les secrets reconstitués
         if: always()
