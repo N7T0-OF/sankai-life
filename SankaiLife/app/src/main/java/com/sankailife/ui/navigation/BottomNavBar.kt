@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sankailife.core.haptics.LocalHaptics
 import com.sankailife.ui.theme.sankaiColors
 
 data class NavItem(
@@ -46,6 +47,7 @@ fun SankaiBottomNavBar(
     onNavigate: (String) -> Unit
 ) {
     val c = MaterialTheme.sankaiColors
+    val haptics = LocalHaptics.current
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -74,7 +76,10 @@ fun SankaiBottomNavBar(
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
-                        ) { onNavigate(item.route) }
+                        ) {
+                            if (!isSelected) haptics.click()
+                            onNavigate(item.route)
+                        }
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {

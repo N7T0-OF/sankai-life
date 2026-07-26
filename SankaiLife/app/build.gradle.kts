@@ -8,19 +8,29 @@ plugins {
 }
 
 // ---------------------------------------------------------------------------
-// AdMob : les identifiants réels vivent dans admob.properties (non versionné).
-// Sans ce fichier, on compile avec les IDs de TEST officiels de Google, ce qui
-// permet de lancer l'app et de voir des pubs sans compte AdMob.
+// AdMob.
+//
+// Les builds DEBUG utilisent toujours les identifiants de TEST officiels de
+// Google. Ce n'est pas une commodité, c'est une protection : cliquer sur ses
+// propres publicités de production fait bannir le compte AdMob, définitivement
+// et sans recours.
+//
+// Les builds RELEASE utilisent les identifiants de production. Ce ne sont pas
+// des secrets — ils sont extractibles de n'importe quel APK distribué — mais
+// admob.properties permet de les surcharger sans toucher au code.
 // ---------------------------------------------------------------------------
 val admobProps = Properties().apply {
     val f = rootProject.file("admob.properties")
     if (f.exists()) f.inputStream().use { load(it) }
 }
-val admobAppId: String = admobProps.getProperty("ADMOB_APP_ID")
-    ?: "ca-app-pub-3940256099942544~3347511713"
-val admobRewardedId: String = admobProps.getProperty("ADMOB_REWARDED_UNIT_ID")
-    ?: "ca-app-pub-3940256099942544/5224354917"
-val admobIsReal: Boolean = admobProps.getProperty("ADMOB_APP_ID") != null
+
+val admobTestAppId = "ca-app-pub-3940256099942544~3347511713"
+val admobTestRewardedId = "ca-app-pub-3940256099942544/5224354917"
+
+val admobProdAppId: String = admobProps.getProperty("ADMOB_APP_ID")
+    ?: "ca-app-pub-9004438844977083~6279544832"
+val admobProdRewardedId: String = admobProps.getProperty("ADMOB_REWARDED_UNIT_ID")
+    ?: "ca-app-pub-9004438844977083/8842249130"
 
 // ---------------------------------------------------------------------------
 // Signature release : keystore.properties (non versionné). Absent => on signe
@@ -44,10 +54,6 @@ android {
         versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
-
-        manifestPlaceholders["admobAppId"] = admobAppId
-        buildConfigField("String", "ADMOB_REWARDED_UNIT_ID", "\"$admobRewardedId\"")
-        buildConfigField("boolean", "ADMOB_IS_REAL", admobIsReal.toString())
     }
 
     signingConfigs {
@@ -66,10 +72,18 @@ android {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
             isMinifyEnabled = false
+
+            manifestPlaceholders["admobAppId"] = admobTestAppId
+            buildConfigField("String", "ADMOB_REWARDED_UNIT_ID", "\"$admobTestRewardedId\"")
+            buildConfigField("boolean", "ADMOB_IS_REAL", "false")
         }
         release {
             isMinifyEnabled = false
             isShrinkResources = false
+
+            manifestPlaceholders["admobAppId"] = admobProdAppId
+            buildConfigField("String", "ADMOB_REWARDED_UNIT_ID", "\"$admobProdRewardedId\"")
+            buildConfigField("boolean", "ADMOB_IS_REAL", "true")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = if (hasReleaseKeystore) {
                 signingConfigs.getByName("release")

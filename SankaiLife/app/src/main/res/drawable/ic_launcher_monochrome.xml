@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Version monochrome pour les « themed icons » d'Android 13+.
+  Android n'en garde que la silhouette et la recolore selon le fond d'écran :
+  le dessin doit rester lisible sans aucune couleur.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M72,36 m-7,0 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0" />
+
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M27,74 L43,49 L59,74 Z" />
+
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M40,74 L58,43 L76,74 Z" />
+
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M28,74 L80,74 A3,3 0 0,1 80,80 L28,80 A3,3 0 0,1 28,74 Z" />
+</vector>

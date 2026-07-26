@@ -37,7 +37,20 @@ data class MemoProfileEntity(
     val scheduledMinute: Int = 0,
     val isActive: Boolean = false,
     val sentLineHistory: String = "",  // comma-separated IDs
-    val lastNotifiedAtMillis: Long = 0L
+    val lastNotifiedAtMillis: Long = 0L,
+
+    /** Mode aléatoire : l'heure est tirée dans une plage au lieu d'être fixe. */
+    val randomMode: Boolean = false,
+    val randomStartHour: Int = 9,
+    val randomStartMinute: Int = 0,
+    val randomEndHour: Int = 21,
+    val randomEndMinute: Int = 0,
+
+    /** Jours actifs au format ISO, 1 = lundi. Par défaut toute la semaine. */
+    val activeDays: String = "1,2,3,4,5,6,7",
+
+    /** Instant de la prochaine alarme programmée, pour l'écran de diagnostic. */
+    val nextTriggerAtMillis: Long = 0L
 )
 
 @Entity(tableName = "memo_line")

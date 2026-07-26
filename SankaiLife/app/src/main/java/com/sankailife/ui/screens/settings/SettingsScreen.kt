@@ -10,9 +10,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sankailife.core.notifications.QuietHours
 import com.sankailife.ui.components.SankaiButton
 import com.sankailife.ui.components.SectionTitle
 import com.sankailife.ui.theme.*
@@ -25,7 +27,16 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit) {
     val notifs      by viewModel.notifications.collectAsState()
     val battery     by viewModel.batterySaver.collectAsState()
     val streak      by viewModel.streakReminder.collectAsState()
+    val quietOn     by viewModel.quietEnabled.collectAsState()
+    val quietStart  by viewModel.quietStart.collectAsState()
+    val quietEnd    by viewModel.quietEnd.collectAsState()
+    val diag        by viewModel.diagnostic.collectAsState()
     val c = MaterialTheme.sankaiColors
+    val contexte = LocalContext.current
+
+    // Les permissions peuvent avoir changé pendant que l'utilisateur était
+    // dans les réglages Android : on relit l'état à chaque affichage.
+    LaunchedEffect(Unit) { viewModel.rafraichirDiagnostic() }
 
     var showReset by remember { mutableStateOf(false) }
     var resetCount by remember { mutableIntStateOf(0) }
@@ -83,6 +94,61 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit) {
                 SettingToggle("Vibrations interface",  vibrations) { viewModel.setVibrations(it) }
             }
 
+            SectionTitle("Heures silencieuses")
+            SettingsCard {
+                SettingToggle("Activer les heures silencieuses", quietOn) { viewModel.setQuietEnabled(it) }
+                Text(
+                    "Aucun mémo ni rappel pendant cette plage. L'application reste " +
+                    "utilisable : Android ne permet pas à une app de s'éteindre seule.",
+                    color = c.textSecondary, fontSize = 11.sp
+                )
+                if (quietOn) {
+                    Spacer(Modifier.height(12.dp))
+                    SelecteurHeure("Début", quietStart) { viewModel.setQuietStart(it) }
+                    Spacer(Modifier.height(8.dp))
+                    SelecteurHeure("Fin", quietEnd) { viewModel.setQuietEnd(it) }
+                    if (quietStart > quietEnd) {
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            "La plage traverse minuit : de ${QuietHours.formater(quietStart)} " +
+                            "à ${QuietHours.formater(quietEnd)} le lendemain.",
+                            color = c.textSecondary, fontSize = 11.sp
+                        )
+                    }
+                }
+            }
+
+            SectionTitle("Diagnostic des notifications")
+            SettingsCard {
+                LigneDiagnostic("Permission notifications", diag.notificationsAutorisees)
+                LigneDiagnostic("Alarmes exactes", diag.alarmesExactes)
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    if (diag.prochaine.isBlank()) "Aucune notification programmée"
+                    else "Prochaine : ${diag.prochaine}",
+                    color = c.textSecondary, fontSize = 12.sp
+                )
+                if (!diag.alarmesExactes) {
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        "Sans cette autorisation, un mémo prévu à 22h00 peut arriver " +
+                        "avec quelques minutes de retard.",
+                        color = WarningAmber, fontSize = 11.sp
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    SankaiButton("Autoriser les alarmes exactes",
+                        onClick = { viewModel.ouvrirReglageAlarmes(contexte) },
+                        small = true, modifier = Modifier.fillMaxWidth())
+                }
+                Spacer(Modifier.height(8.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SankaiButton("Notification test", onClick = { viewModel.envoyerNotificationTest(contexte) },
+                        small = true, secondary = true, modifier = Modifier.weight(1f))
+                    SankaiButton("Reprogrammer", onClick = { viewModel.reprogrammerTout(contexte) },
+                        small = true, secondary = true, modifier = Modifier.weight(1f))
+                }
+            }
+
             SectionTitle("Liens")
             SettingsCard {
                 SettingLink("🌐 haunt.gg/souanpt",    "Site Souanpt", enabled = true)
@@ -111,6 +177,44 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit) {
             }
             Spacer(Modifier.height(32.dp))
         }
+    }
+}
+
+/** Sélecteur d'heure et de minutes, par pas de 15 minutes. */
+@Composable
+private fun SelecteurHeure(libelle: String, minutes: Int, onChange: (Int) -> Unit) {
+    val c = MaterialTheme.sankaiColors
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(libelle, color = c.textPrimary, fontSize = 13.sp)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            SankaiButton("−", onClick = { onChange((minutes - 15 + 1440) % 1440) }, small = true, secondary = true)
+            Text(
+                QuietHours.formater(minutes),
+                color = c.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 12.dp)
+            )
+            SankaiButton("+", onClick = { onChange((minutes + 15) % 1440) }, small = true, secondary = true)
+        }
+    }
+}
+
+@Composable
+private fun LigneDiagnostic(libelle: String, ok: Boolean) {
+    val c = MaterialTheme.sankaiColors
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 3.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(libelle, color = c.textPrimary, fontSize = 13.sp)
+        Text(
+            if (ok) "✓ accordée" else "✗ refusée",
+            color = if (ok) SuccessGreen else DangerRed,
+            fontSize = 13.sp, fontWeight = FontWeight.SemiBold
+        )
     }
 }
 

@@ -18,6 +18,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.sankailife.core.haptics.LocalHaptics
 import com.sankailife.ui.theme.*
 
 @Composable
@@ -97,6 +98,7 @@ fun SankaiButton(
     small: Boolean = false
 ) {
     val c = MaterialTheme.sankaiColors
+    val haptics = LocalHaptics.current
     val bg = when {
         !enabled -> c.surface3
         secondary -> c.surface3
@@ -111,7 +113,9 @@ fun SankaiButton(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
             .background(bg)
-            .then(if (enabled) Modifier.clickable { onClick() } else Modifier)
+            // Tous les boutons de l'app passent par ici : c'est le seul endroit
+            // à modifier pour changer la sensation d'un appui.
+            .then(if (enabled) Modifier.clickable { haptics.click(); onClick() } else Modifier)
             .padding(horizontal = if (small) 14.dp else 20.dp, vertical = if (small) 8.dp else 14.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -182,6 +186,10 @@ fun SectionTitle(text: String) {
 
 @Composable
 fun LevelUpDialog(level: Int, coins: Int, onDismiss: () -> Unit) {
+    val haptics = LocalHaptics.current
+    // La vibration part à l'apparition du dialogue, pas au clic : c'est le
+    // moment où le joueur apprend la nouvelle.
+    LaunchedEffect(level) { haptics.levelUp() }
     Dialog(onDismissRequest = onDismiss) {
         val c = MaterialTheme.sankaiColors
         Box(
@@ -209,6 +217,8 @@ fun LevelUpDialog(level: Int, coins: Int, onDismiss: () -> Unit) {
 
 @Composable
 fun ChestRewardDialog(title: String, coins: Int, gems: Int, xp: Int, onDismiss: () -> Unit) {
+    val haptics = LocalHaptics.current
+    LaunchedEffect(Unit) { haptics.reward() }
     Dialog(onDismissRequest = onDismiss) {
         val c = MaterialTheme.sankaiColors
         Box(

@@ -10,11 +10,15 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.sankailife.core.ads.AdsManager
+import com.sankailife.core.haptics.AndroidHapticManager
+import com.sankailife.core.haptics.LocalHaptics
 import com.sankailife.ui.navigation.SankaiNavGraph
 import com.sankailife.ui.theme.SankaiTheme
 
@@ -31,9 +35,16 @@ class MainActivity : ComponentActivity() {
         demanderPermissionNotifications()
 
         val app = application as SankaiApplication
+        val haptics = AndroidHapticManager(this)
 
         setContent {
             val themeMode by app.preferences.themeMode.collectAsState(initial = "dark")
+            val vibrations by app.preferences.vibrations.collectAsState(initial = true)
+
+            // Le réglage est relu à chaque changement : couper les vibrations
+            // prend effet immédiatement, sans relancer l'application.
+            LaunchedEffect(vibrations) { haptics.enabled = vibrations }
+
             SankaiTheme(
                 darkTheme = when (themeMode) {
                     "light" -> false
@@ -41,8 +52,10 @@ class MainActivity : ComponentActivity() {
                     else -> true
                 }
             ) {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    SankaiNavGraph()
+                CompositionLocalProvider(LocalHaptics provides haptics) {
+                    Surface(modifier = Modifier.fillMaxSize()) {
+                        SankaiNavGraph()
+                    }
                 }
             }
         }

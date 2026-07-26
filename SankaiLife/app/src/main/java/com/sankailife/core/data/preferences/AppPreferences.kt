@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
+import com.sankailife.core.notifications.QuietHours
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
@@ -21,6 +22,12 @@ class AppPreferences(private val context: Context) {
         val STREAK_REMINDER  = booleanPreferencesKey("streak_reminder")
         val FOCUS_KEEP_SCREEN= booleanPreferencesKey("focus_keep_screen")
         val ONBOARDING_DONE  = booleanPreferencesKey("onboarding_done")
+
+        // Heures silencieuses, stockées en minutes depuis minuit : un seul
+        // entier évite les incohérences entre un champ heure et un champ minute.
+        val QUIET_ENABLED    = booleanPreferencesKey("quiet_enabled")
+        val QUIET_START      = intPreferencesKey("quiet_start_minutes")
+        val QUIET_END        = intPreferencesKey("quiet_end_minutes")
     }
 
     val themeMode: Flow<String>       = pref(Keys.THEME_MODE, "dark")
@@ -31,13 +38,22 @@ class AppPreferences(private val context: Context) {
     val streakReminder: Flow<Boolean> = pref(Keys.STREAK_REMINDER, true)
     val focusKeepScreen: Flow<Boolean> = pref(Keys.FOCUS_KEEP_SCREEN, true)
 
+    val quietEnabled: Flow<Boolean> = pref(Keys.QUIET_ENABLED, false)
+    val quietStartMinutes: Flow<Int> = pref(Keys.QUIET_START, 23 * 60)
+    val quietEndMinutes: Flow<Int> = pref(Keys.QUIET_END, 8 * 60)
+
+    /** Les trois réglages ci-dessus regroupés, tels que les consomme le planificateur. */
+    val heuresSilencieuses: Flow<QuietHours> =
+        context.dataStore.data.catch { emit(emptyPreferences()) }.map { p ->
+            QuietHours(
+                enabled = p[Keys.QUIET_ENABLED] ?: false,
+                startMinute = p[Keys.QUIET_START] ?: (23 * 60),
+                endMinute = p[Keys.QUIET_END] ?: (8 * 60)
+            )
+        }
+
     private fun <T> pref(key: Preferences.Key<T>, default: T): Flow<T> =
         context.dataStore.data.catch { emit(emptyPreferences()) }.map { it[key] ?: default }
-
-    suspend fun set(key: Preferences.Key<String>, value: String) =
-        context.dataStore.edit { it[key] = value }
-    suspend fun set(key: Preferences.Key<Boolean>, value: Boolean) =
-        context.dataStore.edit { it[key] = value }
 
     suspend fun setThemeMode(mode: String) = context.dataStore.edit { it[Keys.THEME_MODE] = mode }
     suspend fun setShowNavLabels(v: Boolean) = context.dataStore.edit { it[Keys.SHOW_NAV_LABELS] = v }
@@ -46,4 +62,10 @@ class AppPreferences(private val context: Context) {
     suspend fun setBatterySaver(v: Boolean) = context.dataStore.edit { it[Keys.BATTERY_SAVER] = v }
     suspend fun setStreakReminder(v: Boolean) = context.dataStore.edit { it[Keys.STREAK_REMINDER] = v }
     suspend fun setFocusKeepScreen(v: Boolean) = context.dataStore.edit { it[Keys.FOCUS_KEEP_SCREEN] = v }
+
+    suspend fun setQuietEnabled(v: Boolean) = context.dataStore.edit { it[Keys.QUIET_ENABLED] = v }
+    suspend fun setQuietStart(minutes: Int) =
+        context.dataStore.edit { it[Keys.QUIET_START] = minutes.coerceIn(0, 24 * 60 - 1) }
+    suspend fun setQuietEnd(minutes: Int) =
+        context.dataStore.edit { it[Keys.QUIET_END] = minutes.coerceIn(0, 24 * 60 - 1) }
 }

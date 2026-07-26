@@ -8,6 +8,16 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <!--
+      Alarmes exactes : indispensable pour qu'un mémo demandé à 22h00 parte à
+      22h00 et non vers 22h08. Sur Android 12+, l'utilisateur doit accorder
+      l'autorisation ; sans elle l'app retombe sur une alarme approximative et
+      le signale dans l'écran de diagnostic.
+      USE_EXACT_ALARM n'est volontairement PAS déclaré : il est réservé aux
+      réveils et agendas, et son usage ici ferait rejeter l'app du Play Store.
+    -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+
+    <!--
       INTERNET et ACCESS_NETWORK_STATE ne servent QU'AUX PUBS et aux liens
       externes (Ko-fi, site). Toute la progression, les mémos, le focus, les
       coffres et l'économie fonctionnent hors ligne.
@@ -62,6 +72,32 @@
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="${admobAppId}" />
+
+        <!-- Reçoit l'alarme d'un module mémo et envoie la phrase. -->
+        <receiver
+            android:name=".core.notifications.MemoAlarmReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.sankailife.action.MEMO_ALARM" />
+            </intent-filter>
+        </receiver>
+
+        <!--
+          Reprogramme toutes les alarmes après un redémarrage, une mise à jour
+          de l'app, ou un changement d'heure ou de fuseau horaire : Android
+          efface les alarmes au boot et les instants calculés deviendraient
+          faux après un changement de fuseau.
+        -->
+        <receiver
+            android:name=".core.notifications.SystemEventsReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
 
         <receiver
             android:name="androidx.work.impl.background.systemalarm.RescheduleReceiver"

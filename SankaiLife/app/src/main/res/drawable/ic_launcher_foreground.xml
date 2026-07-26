@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Marque Sankai Life : un anneau de progression + une flèche montante.
-  Format icône adaptative : 108x108dp, zone sûre centrale de 72dp.
+  Marque Sankai Life : deux sommets et un astre.
+
+  « Sankai » évoque la montagne ; le symbole raconte l'ascension par paliers,
+  qui est exactement la mécanique de l'app (arènes, niveaux, progression).
+
+  Format icône adaptative : 108x108dp. Tout le dessin tient dans un rayon de
+  36dp autour du centre pour survivre au masque circulaire des lanceurs.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
@@ -9,11 +14,28 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
+    <!-- Astre : le palier suivant, toujours visible au-dessus des sommets -->
     <path
-        android:fillColor="#F5A623"
-        android:pathData="M54,25 C70.02,25 83,37.98 83,54 C83,70.02 70.02,83 54,83 C37.98,83 25,70.02 25,54 C25,37.98 37.98,25 54,25 Z M54,33.5 C42.68,33.5 33.5,42.68 33.5,54 C33.5,65.32 42.68,74.5 54,74.5 C65.32,74.5 74.5,65.32 74.5,54 C74.5,42.68 65.32,33.5 54,33.5 Z" />
+        android:fillColor="#22D3EE"
+        android:pathData="M72,36 m-7,0 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0" />
 
+    <!-- Sommet secondaire, en retrait -->
+    <path
+        android:fillColor="#7B6CF6"
+        android:pathData="M27,74 L43,49 L59,74 Z" />
+
+    <!-- Sommet principal -->
     <path
         android:fillColor="#F5A623"
-        android:pathData="M54,39 L67.5,57 L59,57 L59,69 L49,69 L49,57 L40.5,57 Z" />
+        android:pathData="M40,74 L58,43 L76,74 Z" />
+
+    <!-- Arête éclairée du sommet principal -->
+    <path
+        android:fillColor="#FFD98A"
+        android:pathData="M58,43 L76,74 L64,74 Z" />
+
+    <!-- Socle -->
+    <path
+        android:fillColor="#F5A623"
+        android:pathData="M28,74 L80,74 A3,3 0 0,1 80,80 L28,80 A3,3 0 0,1 28,74 Z" />
 </vector>

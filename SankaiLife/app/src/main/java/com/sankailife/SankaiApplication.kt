@@ -8,8 +8,13 @@ import com.sankailife.core.ads.AdsManager
 import com.sankailife.core.connectivity.ConnectivityObserver
 import com.sankailife.core.data.db.SankaiDatabase
 import com.sankailife.core.data.preferences.AppPreferences
+import com.sankailife.core.notifications.MemoAlarmScheduler
 import com.sankailife.core.notifications.NotificationScheduler
 import com.sankailife.core.notifications.SankaiNotifications
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 class SankaiApplication : Application() {
 
@@ -17,11 +22,18 @@ class SankaiApplication : Application() {
     val preferences: AppPreferences by lazy { AppPreferences(this) }
     val connectivity: ConnectivityObserver by lazy { ConnectivityObserver(this) }
 
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     override fun onCreate() {
         super.onCreate()
         createNotificationChannels()
 
-        // Les mémos doivent tomber même sans réseau : c'est du WorkManager local.
+        // Les mémos partent via AlarmManager, à l'heure exacte. On reprogramme
+        // à chaque lancement : c'est ce qui rattrape une alarme perdue après un
+        // force stop ou un nettoyage agressif du constructeur.
+        scope.launch { runCatching { MemoAlarmScheduler.replanifierTout(this@SankaiApplication) } }
+
+        // Filet de sécurité périodique, qui replanifie sans jamais notifier.
         NotificationScheduler.programmer(this)
 
         // AdMob s'initialise en tâche de fond. S'il échoue (hors ligne, SDK

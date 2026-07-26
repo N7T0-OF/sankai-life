@@ -95,6 +95,12 @@ interface MemoDao {
 
     @Query("UPDATE memo_profile SET lastNotifiedAtMillis=:millis WHERE id=:id")
     suspend fun updateLastNotified(id: Long, millis: Long)
+
+    @Query("UPDATE memo_profile SET nextTriggerAtMillis=:millis WHERE id=:id")
+    suspend fun updateNextTrigger(id: Long, millis: Long)
+
+    @Query("SELECT * FROM memo_profile")
+    suspend fun getAllProfilesOnce(): List<MemoProfileEntity>
 }
 
 @Dao
