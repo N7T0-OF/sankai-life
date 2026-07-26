@@ -1,0 +1,21 @@
+# Chaîne de compilation téléchargée automatiquement (~1 Go, régénérable)
+outils/
+
+# Artefacts de build
+dist/
+
+# SECRETS — ne jamais versionner
+cles/
+*.jks
+*.keystore
+SankaiLife/keystore.properties
+SankaiLife/admob.properties
+SankaiLife/local.properties
+
+# Gradle / Android Studio
+SankaiLife/.gradle/
+SankaiLife/build/
+SankaiLife/app/build/
+.idea/
+*.iml
+.DS_Store

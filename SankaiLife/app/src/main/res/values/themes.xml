@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!--
+      Thème de la fenêtre Android (avant que Compose ne prenne la main).
+      Les vraies couleurs de l'app sont définies côté Compose dans ui/theme/.
+      Ici on se contente d'éviter le flash blanc au lancement.
+    -->
+    <style name="Theme.SANKAILIFE" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/sankai_background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
+    <!-- Écran de démarrage : c'est ce thème que porte l'activité. -->
+    <style name="Theme.SANKAILIFE.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/sankai_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.SANKAILIFE</item>
+    </style>
+
+</resources>

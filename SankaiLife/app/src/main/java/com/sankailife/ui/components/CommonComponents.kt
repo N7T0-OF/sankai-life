@@ -1,0 +1,240 @@
+package com.sankailife.ui.components
+
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Diamond
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import com.sankailife.ui.theme.*
+
+@Composable
+fun ResourceBar(level: Int, xp: Int, xpNext: Int, coins: Int, gems: Int) {
+    val c = MaterialTheme.sankaiColors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(c.surface1)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Level badge
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .background(c.accentSecondary)
+                .padding(horizontal = 10.dp, vertical = 4.dp)
+        ) {
+            Text("LVL $level", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        }
+        Spacer(Modifier.width(10.dp))
+        // XP bar
+        Column(modifier = Modifier.weight(1f)) {
+            LinearProgressIndicator(
+                progress = { if (xpNext > 0) xp.toFloat() / xpNext else 0f },
+                modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                color = c.accentSecondary,
+                trackColor = c.surface3
+            )
+            Text("$xp / $xpNext XP", color = c.textSecondary, fontSize = 9.sp,
+                modifier = Modifier.padding(top = 2.dp))
+        }
+        Spacer(Modifier.width(12.dp))
+        // Coins
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(10.dp).clip(CircleShape).background(CoinColor))
+            Spacer(Modifier.width(4.dp))
+            Text(formatNumber(coins), color = c.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        }
+        Spacer(Modifier.width(10.dp))
+        // Gems
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.Diamond, null, tint = GemColor, modifier = Modifier.size(12.dp))
+            Spacer(Modifier.width(4.dp))
+            Text("$gems", color = c.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+fun SankaiCard(
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val c = MaterialTheme.sankaiColors
+    val mod = if (onClick != null) modifier.clickable { onClick() } else modifier
+    Box(
+        modifier = mod
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(c.surface2)
+            .border(0.5.dp, c.border, RoundedCornerShape(16.dp))
+    ) {
+        Column(modifier = Modifier.padding(16.dp), content = content)
+    }
+}
+
+@Composable
+fun SankaiButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    secondary: Boolean = false,
+    small: Boolean = false
+) {
+    val c = MaterialTheme.sankaiColors
+    val bg = when {
+        !enabled -> c.surface3
+        secondary -> c.surface3
+        else -> c.accent
+    }
+    val textColor = when {
+        !enabled -> c.textDisabled
+        secondary -> c.textPrimary
+        else -> Color.Black
+    }
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(bg)
+            .then(if (enabled) Modifier.clickable { onClick() } else Modifier)
+            .padding(horizontal = if (small) 14.dp else 20.dp, vertical = if (small) 8.dp else 14.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text, color = textColor, fontWeight = FontWeight.Bold,
+            fontSize = if (small) 13.sp else 15.sp)
+    }
+}
+
+@Composable
+fun StatCard(value: String, label: String, valueColor: Color = MaterialTheme.sankaiColors.textPrimary) {
+    val c = MaterialTheme.sankaiColors
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(c.surface2)
+            .border(0.5.dp, c.border, RoundedCornerShape(12.dp))
+            .padding(12.dp)
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+            Text(value, color = valueColor, fontSize = 22.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            Spacer(Modifier.height(2.dp))
+            Text(label, color = c.textSecondary, fontSize = 10.sp, textAlign = TextAlign.Center)
+        }
+    }
+}
+
+@Composable
+fun XpBar(xp: Int, xpNext: Int, modifier: Modifier = Modifier) {
+    val c = MaterialTheme.sankaiColors
+    val progress = if (xpNext > 0) xp.toFloat() / xpNext else 0f
+    LinearProgressIndicator(
+        progress = { progress },
+        modifier = modifier.height(8.dp).clip(RoundedCornerShape(4.dp)),
+        color = c.accentSecondary,
+        trackColor = c.surface3
+    )
+}
+
+@Composable
+fun StreakBadge(streak: Int) {
+    val c = MaterialTheme.sankaiColors
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(c.surface2)
+            .border(1.dp, WarningAmber.copy(alpha = 0.4f), RoundedCornerShape(20.dp))
+            .padding(horizontal = 10.dp, vertical = 4.dp)
+    ) {
+        Text("🔥", fontSize = 13.sp)
+        Spacer(Modifier.width(4.dp))
+        Text("$streak j", color = WarningAmber, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+fun SectionTitle(text: String) {
+    val c = MaterialTheme.sankaiColors
+    Text(
+        text.uppercase(),
+        color = c.textSecondary,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.SemiBold,
+        letterSpacing = 1.2.sp,
+        modifier = Modifier.padding(top = 20.dp, bottom = 8.dp)
+    )
+}
+
+@Composable
+fun LevelUpDialog(level: Int, coins: Int, onDismiss: () -> Unit) {
+    Dialog(onDismissRequest = onDismiss) {
+        val c = MaterialTheme.sankaiColors
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(24.dp))
+                .background(c.surface2)
+                .border(1.dp, c.accentSecondary, RoundedCornerShape(24.dp))
+                .padding(28.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("✨", fontSize = 48.sp)
+                Spacer(Modifier.height(8.dp))
+                Text("NIVEAU $level !", color = c.accent, fontSize = 26.sp, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(16.dp))
+                Text("Récompenses", color = c.textSecondary, fontSize = 13.sp)
+                Spacer(Modifier.height(8.dp))
+                Text("+$coins 🪙", color = CoinColor, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(24.dp))
+                SankaiButton("OK !", onDismiss, modifier = Modifier.fillMaxWidth())
+            }
+        }
+    }
+}
+
+@Composable
+fun ChestRewardDialog(title: String, coins: Int, gems: Int, xp: Int, onDismiss: () -> Unit) {
+    Dialog(onDismissRequest = onDismiss) {
+        val c = MaterialTheme.sankaiColors
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(24.dp))
+                .background(c.surface2)
+                .border(1.dp, ChestEpic, RoundedCornerShape(24.dp))
+                .padding(28.dp)
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                Text("🎁", fontSize = 48.sp)
+                Spacer(Modifier.height(8.dp))
+                Text(title, color = c.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(16.dp))
+                if (coins > 0) Text("+$coins 🪙", color = CoinColor, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                if (gems > 0)  { Spacer(Modifier.height(4.dp)); Text("+$gems 💎", color = GemColor, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+                if (xp > 0)    { Spacer(Modifier.height(4.dp)); Text("+$xp XP", color = AccentViolet, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+                Spacer(Modifier.height(24.dp))
+                SankaiButton("Super !", onDismiss, modifier = Modifier.fillMaxWidth())
+            }
+        }
+    }
+}
+
+fun formatNumber(n: Int): String = when {
+    n >= 1_000_000 -> "${n / 1_000_000}M"
+    n >= 1_000     -> "${n / 1_000}k"
+    else           -> n.toString()
+}

@@ -1,0 +1,118 @@
+{
+  "_lisezMoi": [
+    "Référence de l'équilibrage réellement implémenté dans l'app.",
+    "Ce fichier n'est PAS lu par l'application : il documente les valeurs pour",
+    "que tu puisses les ajuster en connaissance de cause.",
+    "Source de vérité : SankaiLife/app/src/main/java/com/sankailife/core/domain/engine/Engines.kt"
+  ],
+
+  "xp": {
+    "_source": "objet XpEngine",
+    "_regleAbsolue": "L'XP n'est JAMAIS boostable. Les boosts n'agissent que sur les pièces et les coffres. La progression de niveau reste honnête.",
+    "formuleXpParNiveau": {
+      "niveau1": 0,
+      "niveaux2a5": "100 x niveau",
+      "niveaux6a10": "150 x niveau",
+      "niveaux11a20": "250 x niveau",
+      "niveaux21a30": "400 x niveau",
+      "niveaux31plus": "600 x niveau"
+    },
+    "exemplesCumules": {
+      "niveau2": 200,
+      "niveau5": 500,
+      "niveau10": 1500,
+      "niveau20": 5000,
+      "niveau30": 12000
+    },
+    "gains": {
+      "ouvrirApp": 5,
+      "streakQuotidien": 10,
+      "ouvrirNotifMemo": 15,
+      "focus25min": 50,
+      "focusLong": 80,
+      "objectifTermine": 30,
+      "defiQuotidien": 20,
+      "defiHebdomadaire": 80,
+      "ouvrirCoffre": 10
+    },
+    "recompenseMonteeDeNiveau": "niveau x 50 pieces"
+  },
+
+  "economie": {
+    "_source": "objet EconomyEngine",
+    "pubs": {
+      "piecesParPub": 5,
+      "bonusTous5Pubs": 10,
+      "coffreTous20Pubs": "COMMON",
+      "maxParJour": 50,
+      "cooldownSecondes": 25,
+      "_pourquoiUnPlafond": "Protège le compte AdMob d'une suspension pour trafic invalide et empêche l'app de devenir un farm simulator."
+    },
+    "prixBoutique": {
+      "coffreCommun": { "pieces": 200 },
+      "coffreRare": { "pieces": 500 },
+      "coffreEpique": { "gemmes": 3 },
+      "boostDoublePieces30min": { "pieces": 200 },
+      "boostSkipCooldown": { "gemmes": 1 },
+      "boostDoubleCoffre1h": { "gemmes": 2 },
+      "chanceCoffreRare": { "gemmes": 5 }
+    },
+    "prixSlotModule": {
+      "_regle": "Chaque slot supplémentaire coûte plus cher : objectif long terme.",
+      "de1a2": 1200,
+      "de2a3": 2500,
+      "de3plus": 5000
+    }
+  },
+
+  "coffres": {
+    "_source": "objet ChestEngine",
+    "slotsMax": 4,
+    "_regle": "4 coffres en attente maximum, comme Clash Royale. File pleine = plus d'ajout possible.",
+    "timers": {
+      "COMMON": "3 h",
+      "RARE": "6 h",
+      "EPIC": "12 h",
+      "LEGENDARY": "24 h",
+      "DAILY": "instantané"
+    },
+    "recompenses": {
+      "COMMON":    { "pieces": "10-50",   "gemmes": 0,               "xp": 5 },
+      "RARE":      { "pieces": "50-150",  "gemmes": "0-2 (60%)",     "xp": 20 },
+      "EPIC":      { "pieces": "100-300", "gemmes": "3-5",           "xp": 30, "boost": "50% de chance" },
+      "LEGENDARY": { "pieces": "500-1000","gemmes": "10-15",         "xp": 50 },
+      "DAILY":     { "pieces": "20-80",   "gemmes": "0-1 (20%)",     "xp": 10 }
+    }
+  },
+
+  "streak": {
+    "_source": "objet StreakEngine",
+    "bonusPieces": {
+      "jour1": 20,
+      "jour3": 50,
+      "jour7": 200,
+      "jour14": 400,
+      "jour30": 1000,
+      "autresMultiplesDe7": 100
+    },
+    "_regle": "Un jour sauté remet le streak à zéro. Un même jour ne compte qu'une fois."
+  },
+
+  "memo": {
+    "_source": "objets MemoEngine et MemoNotificationWorker",
+    "tailleHistorique": 10,
+    "_antiRepetition": "Les 10 dernières phrases envoyées sont exclues du tirage. Si toutes les phrases sont dans l'historique, le pool complet est réutilisé.",
+    "frequenceMaxParJour": 6,
+    "repartitionHoraire": "1re notification à l'heure choisie, suivantes espacées de (12 / fréquence) heures. Les créneaux après 22h sont repliés sur le matin.",
+    "intervalleVerification": "15 minutes (minimum imposé par WorkManager)"
+  },
+
+  "equilibrageGlobal": {
+    "_reglesDeConception": [
+      "1 amélioration ≈ 20 à 40 pubs : la progression doit rester lente.",
+      "L'XP ne s'achète pas et ne se booste pas.",
+      "Aucune fonctionnalité n'est bloquée derrière une pub ou un achat.",
+      "Tout doit rester jouable en mode avion, indéfiniment."
+    ]
+  }
+}

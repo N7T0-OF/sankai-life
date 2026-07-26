@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Marque Sankai Life : un anneau de progression + une flèche montante.
+  Format icône adaptative : 108x108dp, zone sûre centrale de 72dp.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path
+        android:fillColor="#F5A623"
+        android:pathData="M54,25 C70.02,25 83,37.98 83,54 C83,70.02 70.02,83 54,83 C37.98,83 25,70.02 25,54 C25,37.98 37.98,25 54,25 Z M54,33.5 C42.68,33.5 33.5,42.68 33.5,54 C33.5,65.32 42.68,74.5 54,74.5 C65.32,74.5 74.5,65.32 74.5,54 C74.5,42.68 65.32,33.5 54,33.5 Z" />
+
+    <path
+        android:fillColor="#F5A623"
+        android:pathData="M54,39 L67.5,57 L59,57 L59,69 L49,69 L49,57 L40.5,57 Z" />
+</vector>

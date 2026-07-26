@@ -1,0 +1,24 @@
+# Normalisation des fins de ligne.
+# Sans ce fichier, gradlew serait envoyé en CRLF depuis Windows et le runner
+# Linux de GitHub Actions échouerait avec « bad interpreter: /bin/sh^M ».
+
+* text=auto eol=lf
+
+# Scripts Windows : doivent rester en CRLF
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.ps1  text eol=crlf
+
+# Scripts Unix : LF obligatoire
+gradlew text eol=lf
+*.sh    text eol=lf
+
+# Binaires : aucune conversion
+*.jar   binary
+*.apk   binary
+*.aab   binary
+*.jks   binary
+*.keystore binary
+*.png   binary
+*.jpg   binary
+*.webp  binary
