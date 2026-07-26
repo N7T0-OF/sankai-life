@@ -92,16 +92,62 @@ Remove-Item cles\keystore-base64.txt
 
 ## Publier une version téléchargeable
 
-Créer une **Release** produit un lien de téléchargement permanent, plus pratique
-qu'un artefact qui expire.
+Une **Release** donne un lien de téléchargement permanent, bien plus pratique
+qu'un artefact qui expire au bout de 90 jours. C'est de là que tu installes
+l'app au quotidien.
+
+Tout est automatique : il suffit de poser un tag.
 
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.1.0
+git push origin v1.1.0
 ```
 
-Puis sur GitHub : **Releases → Draft a new release** → choisir le tag → publier.
-L'Action attache automatiquement l'APK et l'AAB signés à la Release.
+GitHub compile, crée la Release, y attache l'APK et rédige les notes
+d'installation. Rien à faire sur le site.
+
+> Avant de taguer, incrémente `versionCode` dans
+> `SankaiLife/app/build.gradle.kts`. Android refuse d'installer une mise à jour
+> dont le `versionCode` n'a pas augmenté.
+
+Le lien qui pointe toujours vers la dernière version :
+https://github.com/N7T0-OF/sankai-life/releases/latest
+
+---
+
+## ⚠️ Signature : pourquoi ça compte vraiment ici
+
+Sans secrets de signature configurés, GitHub compile l'APK avec une **clé de
+debug jetable, régénérée à chaque compilation**. Conséquence : deux Releases
+n'ont jamais la même signature, et Android refuse d'installer l'une par-dessus
+l'autre.
+
+Il faudrait alors **désinstaller avant chaque mise à jour** — et comme Sankai
+Life stocke tout en local, désinstaller efface la progression, les mémos, les
+statistiques. Il n'y a pas de serveur pour les récupérer.
+
+Configurer les secrets ci-dessous règle définitivement le problème : les mises
+à jour s'installent par-dessus, les données sont conservées.
+
+### Quelle clé confier à GitHub ?
+
+Deux approches :
+
+**La même clé que le Play Store.** Simple, mais si ton compte GitHub était
+compromis, l'attaquant pourrait signer une fausse mise à jour de ton app
+publiée. Acceptable pour un dépôt privé avec l'authentification à deux facteurs
+activée.
+
+**Une clé dédiée à GitHub**, distincte de celle du Play Store. Plus sûr :
+même en cas de fuite, ton identité Play Store reste intacte. Les APK GitHub et
+Play Store ont alors des signatures différentes, ce qui n'est pas gênant
+puisque ce sont deux canaux de distribution séparés.
+
+Pour générer une clé dédiée :
+
+```powershell
+.\scripts\03-generer-keystore.ps1 -Alias sankai-ci
+```
 
 ---
 
