@@ -140,6 +140,29 @@ copie de secours de la clé.
 
 ---
 
+## 🟢 PRIORITÉ 5 — Secrets GitHub (optionnel)
+
+Le dépôt privé **https://github.com/N7T0-OF/sankai-life** compile l'APK tout
+seul à chaque envoi de code. L'APK de test est produit sans rien configurer.
+
+Pour que GitHub produise aussi l'**APK et l'AAB signés**, il faut lui confier la
+clé de signature en secrets chiffrés :
+
+| Secret GitHub | Où le trouver |
+|---|---|
+| `KEYSTORE_BASE64` | généré par `scripts/05-preparer-secrets-github.ps1` |
+| `KEYSTORE_PASSWORD` | dans `SankaiLife/keystore.properties` |
+| `KEY_ALIAS` | `sankai` |
+| `ADMOB_APP_ID` | ta console AdMob (optionnel) |
+| `ADMOB_REWARDED_UNIT_ID` | ta console AdMob (optionnel) |
+
+Sans ces secrets, rien ne casse : le job signé se termine en vert sans produire
+de fichier.
+
+Guide : [`guides/GITHUB-RECUPERER-APK.md`](guides/GITHUB-RECUPERER-APK.md)
+
+---
+
 ## 📦 Ce qui est DÉJÀ fait — rien à fournir
 
 - ✅ Chaîne de compilation complète (JDK, Android SDK, Gradle) dans `outils/`
@@ -150,6 +173,7 @@ copie de secours de la clé.
 - ✅ Mode hors ligne intégral
 - ✅ Génération d'APK et d'AAB en un double-clic
 - ✅ Intégration AdMob prête, en mode test
+- ✅ Dépôt GitHub privé + compilation automatique de l'APK à chaque envoi
 
 ---
 

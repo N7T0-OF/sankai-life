@@ -51,6 +51,19 @@ INSTALLER-SUR-TELEPHONE.bat
 
 ---
 
+## 🐙 Ou sans rien installer du tout
+
+Le code est sur un dépôt **privé** : https://github.com/N7T0-OF/sankai-life
+
+À chaque `git push`, GitHub compile l'APK sur ses serveurs. Tu le récupères
+depuis n'importe quel appareil dans l'onglet
+[**Actions**](https://github.com/N7T0-OF/sankai-life/actions) → dernier run →
+section *Artifacts*.
+
+Détails : [`exemple/guides/GITHUB-RECUPERER-APK.md`](exemple/guides/GITHUB-RECUPERER-APK.md)
+
+---
+
 ## 📖 Par où continuer
 
 | Je veux… | Fichier |
@@ -59,6 +72,7 @@ INSTALLER-SUR-TELEPHONE.bat
 | Gagner de l'argent avec les pubs | [`exemple/guides/BRANCHER-GOOGLE-ADMOB.md`](exemple/guides/BRANCHER-GOOGLE-ADMOB.md) |
 | Publier sur le Play Store | [`exemple/guides/PUBLIER-SUR-PLAY-STORE.md`](exemple/guides/PUBLIER-SUR-PLAY-STORE.md) |
 | Modifier le code | [`exemple/guides/ANDROID-STUDIO-ET-CURSOR.md`](exemple/guides/ANDROID-STUDIO-ET-CURSOR.md) |
+| Récupérer l'APK depuis GitHub | [`exemple/guides/GITHUB-RECUPERER-APK.md`](exemple/guides/GITHUB-RECUPERER-APK.md) |
 | Régler un problème | [`exemple/guides/DEPANNAGE.md`](exemple/guides/DEPANNAGE.md) |
 | Ajuster l'équilibrage | [`exemple/config/equilibrage.json`](exemple/config/equilibrage.json) |
 | Relire la spec complète | [`exemple/SANKAI_LIFE_SPEC_COMPLETE.md`](exemple/SANKAI_LIFE_SPEC_COMPLETE.md) |

@@ -21,6 +21,7 @@ coût, le délai et l'endroit exact où le coller.
 |---|---|
 | [`guides/BRANCHER-GOOGLE-ADMOB.md`](guides/BRANCHER-GOOGLE-ADMOB.md) | Pour que les pubs rapportent réellement de l'argent |
 | [`guides/PUBLIER-SUR-PLAY-STORE.md`](guides/PUBLIER-SUR-PLAY-STORE.md) | Pour mettre l'app en ligne, de A à Z |
+| [`guides/GITHUB-RECUPERER-APK.md`](guides/GITHUB-RECUPERER-APK.md) | Pour télécharger l'APK compilé par GitHub, depuis n'importe où |
 | [`guides/ANDROID-STUDIO-ET-CURSOR.md`](guides/ANDROID-STUDIO-ET-CURSOR.md) | Pour modifier le code |
 | [`guides/DEPANNAGE.md`](guides/DEPANNAGE.md) | Quand quelque chose ne marche pas |
 
