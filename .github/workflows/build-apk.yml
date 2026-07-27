@@ -43,6 +43,20 @@ jobs:
       - name: Rendre gradlew exécutable
         run: chmod +x SankaiLife/gradlew
 
+      # Les tests avant la compilation : inutile de produire un APK dont la
+      # logique de progression est fausse.
+      - name: Lancer les tests unitaires
+        working-directory: SankaiLife
+        run: ./gradlew testDebugUnitTest --no-daemon
+
+      - name: Publier le rapport de tests en cas d'échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapport-tests
+          path: SankaiLife/app/build/reports/tests/
+          retention-days: 14
+
       - name: Compiler l'APK de debug
         working-directory: SankaiLife
         run: ./gradlew assembleDebug --no-daemon --stacktrace

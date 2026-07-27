@@ -1,7 +1,9 @@
 package com.sankailife.core.data.repository
 
 import com.sankailife.core.data.db.SankaiDatabase
+import com.sankailife.core.data.db.entities.DayRecordEntity
 import com.sankailife.core.data.db.entities.UserEntity
+import com.sankailife.core.domain.engine.RegularityEngine
 import com.sankailife.core.domain.engine.XpEngine
 import com.sankailife.core.domain.model.UserState
 import kotlinx.coroutines.flow.Flow
@@ -60,15 +62,65 @@ class UserRepository(private val db: SankaiDatabase) {
         return true
     }
 
-    suspend fun checkStreak() {
-        val u = dao.getUserOnce() ?: return
-        val today = LocalDate.now().toString()
-        if (u.lastLoginDate == today) return
-        val yesterday = LocalDate.now().minusDays(1).toString()
-        val newStreak = if (u.lastLoginDate == yesterday) u.streakDays + 1 else 1
-        dao.updateStreak(newStreak, today)
+    /**
+     * Met à jour la série au retour dans l'application.
+     *
+     * @return le détail de ce qui s'est passé, pour que l'interface puisse
+     *         expliquer un bouclier consommé ou une série cassée plutôt que
+     *         de laisser le compteur retomber sans un mot.
+     */
+    suspend fun checkStreak(): RegularityEngine.Resultat? {
+        val u = dao.getUserOnce() ?: return null
+        val aujourdhui = LocalDate.now()
+        val today = aujourdhui.toString()
+        if (u.lastLoginDate == today) return null
+
+        val resultat = RegularityEngine.evaluerRetour(
+            dernierJour = u.lastLoginDate,
+            serieActuelle = u.streakDays,
+            boucliers = u.streakShields,
+            aujourdhui = aujourdhui
+        )
+
+        // Les jours absorbés par un bouclier sont tracés comme protégés :
+        // sans ça le calendrier les montrerait comme des échecs.
+        if (resultat.boucliersUtilises > 0) {
+            val dernier = runCatching { LocalDate.parse(u.lastLoginDate) }.getOrNull()
+            if (dernier != null) {
+                for (i in 1..resultat.boucliersUtilises) {
+                    db.dayRecordDao().upsert(
+                        DayRecordEntity(
+                            date = dernier.plusDays(i.toLong()).toString(),
+                            status = RegularityEngine.Statut.PROTEGE
+                        )
+                    )
+                }
+            }
+        }
+
+        dao.updateStreak(resultat.nouvelleSerie, today)
+        db.dayRecordDao().upsert(
+            DayRecordEntity(date = today, status = RegularityEngine.Statut.SUCCES)
+        )
+
+        // Le record ne redescend jamais, même quand la série casse.
+        if (resultat.nouvelleSerie > u.bestStreak) {
+            dao.updateBestStreak(resultat.nouvelleSerie)
+        }
+
+        val gagnes = RegularityEngine.boucliersGagnes(resultat.nouvelleSerie, resultat.boucliersRestants)
+        dao.updateShields((resultat.boucliersRestants + gagnes).coerceAtMost(RegularityEngine.MAX_BOUCLIERS))
+
         addXp(XpEngine.XP_DAILY_STREAK)
-        addCoins(newStreak * 5)
+        addCoins(resultat.nouvelleSerie * 5)
+        return resultat
+    }
+
+    /** Régularité sur une fenêtre glissante, en pourcentage. */
+    suspend fun regularite(jours: Int): Int {
+        val depuis = LocalDate.now().minusDays(jours.toLong()).toString()
+        val records = runCatching { db.dayRecordDao().getDepuisOnce(depuis) }.getOrDefault(emptyList())
+        return RegularityEngine.pourcentage(records, jours)
     }
 
     suspend fun canWatchAd(): Boolean {
@@ -96,6 +148,7 @@ class UserRepository(private val db: SankaiDatabase) {
         coins = coins, gems = gems, streakDays = streakDays,
         totalFocusMinutes = totalFocusMinutes, totalAdsWatched = totalAdsWatched,
         totalChestsOpened = totalChestsOpened, adCountToday = adCountToday,
-        moduleSlots = moduleSlots, focusSlots = focusSlots
+        moduleSlots = moduleSlots, focusSlots = focusSlots,
+        bestStreak = bestStreak, streakShields = streakShields
     )
 }

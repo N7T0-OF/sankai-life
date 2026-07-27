@@ -30,7 +30,8 @@ Dernière mise à jour : build `assembleDebug` et `assembleRelease` verts.
 | 14 | Sécurité des mises à jour | ✅ terminé | `core/update/UpdateManager.kt` | Hôtes, SHA-256, package, versionCode, taille |
 | 15 | Optimisations | 🟠 partiel | `SankaiDatabase.kt` | Migrations explicites faites |
 | 16 | Monétisation | 🟠 partiel | `core/ads/` | Pubs récompensées faites, Premium et boutique cosmétique non |
-| 17 | Tests automatisés | ❌ à faire | — | Aucun test écrit |
+| 17 | Tests automatisés | 🟠 partiel | `app/src/test/.../RegularityEngineTest.kt` | 15 tests verts, lancés à chaque build CI |
+| 28 | Régularité sans punition | ✅ terminé | `core/domain/engine/RegularityEngine.kt`, `UserRepository.kt`, `ProfileScreen.kt` | Série + régularité + record + boucliers |
 | 18 | Liens externes cliquables | ✅ terminé | `SettingsScreen.kt` | Grisés hors connexion |
 | 19 | Slot module payant | ✅ terminé | `Models.kt`, `ShopViewModel.kt`, `LifeScreen.kt` | Prix progressif + remboursement si échec |
 | 20 | Bouton pub bloqué | ✅ terminé | `core/ads/AdsManager.kt` | Attente du chargement, 8 s max |

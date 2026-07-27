@@ -14,7 +14,11 @@ data class UserState(
     val adCountToday: Int = 0,
     /** Nombre de modules activables simultanément. S'achète en boutique. */
     val moduleSlots: Int = 1,
-    val focusSlots: Int = 1
+    val focusSlots: Int = 1,
+    /** Record personnel de série, jamais repris à la baisse. */
+    val bestStreak: Int = 0,
+    /** Boucliers absorbant un jour manqué sans casser la série. */
+    val streakShields: Int = 0
 )
 
 data class DayStats(

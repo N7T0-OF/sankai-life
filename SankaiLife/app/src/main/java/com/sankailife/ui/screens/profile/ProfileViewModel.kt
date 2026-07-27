@@ -34,6 +34,23 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             ArenaEngine.recompensesAReclamer(u.level, prises.toSet()).size
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
+    data class Regularite(val sept: Int = 0, val trente: Int = 0, val quatreVingtDix: Int = 0)
+
+    private val _regularite = MutableStateFlow(Regularite())
+    val regularite: StateFlow<Regularite> = _regularite
+
+    init {
+        // Recalculé à l'ouverture du profil : trois lectures ponctuelles
+        // suffisent, inutile d'observer la table en continu.
+        viewModelScope.launch {
+            _regularite.value = Regularite(
+                sept = userRepo.regularite(7),
+                trente = userRepo.regularite(30),
+                quatreVingtDix = userRepo.regularite(90)
+            )
+        }
+    }
+
     /**
      * Nom du thème équipé, pour la carte résumé.
      * La collection complète et l'équipement vivent dans CustomizationViewModel :

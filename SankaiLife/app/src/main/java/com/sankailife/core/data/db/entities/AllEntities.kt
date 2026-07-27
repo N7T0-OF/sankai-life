@@ -25,7 +25,29 @@ data class UserEntity(
     val adCountToday: Int = 0,
     val lastAdDate: String = "",
     val totalCoinsEarned: Int = 0,
-    val totalCoinsSpent: Int = 0
+    val totalCoinsSpent: Int = 0,
+
+    /** Record personnel, jamais remis à zéro même quand la série se casse. */
+    val bestStreak: Int = 0,
+    /** Boucliers disponibles : absorbent un jour manqué sans casser la série. */
+    val streakShields: Int = 1
+)
+
+/**
+ * État d'une journée, indépendant des compteurs de `daily_stats`.
+ *
+ * Table séparée parce que la question posée est différente : `daily_stats`
+ * mesure ce qui a été gagné, `day_record` dit si la journée compte comme
+ * tenue. Une journée en pause n'est ni un succès ni un échec, et aucun
+ * compteur ne saurait exprimer ça.
+ */
+@Entity(tableName = "day_record")
+data class DayRecordEntity(
+    @PrimaryKey val date: String = "",
+    /** SUCCESS / PARTIAL / MISSED / PAUSED / SHIELDED */
+    val status: String = "MISSED",
+    /** Note de contexte facultative, purement locale. */
+    val note: String = ""
 )
 
 @Entity(tableName = "memo_profile")

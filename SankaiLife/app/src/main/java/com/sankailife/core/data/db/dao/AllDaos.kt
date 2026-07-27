@@ -50,6 +50,12 @@ interface UserDao {
 
     @Query("UPDATE user SET moduleSlots=:slots WHERE id=1")
     suspend fun updateModuleSlots(slots: Int)
+
+    @Query("UPDATE user SET bestStreak=:best WHERE id=1")
+    suspend fun updateBestStreak(best: Int)
+
+    @Query("UPDATE user SET streakShields=:shields WHERE id=1")
+    suspend fun updateShields(shields: Int)
 }
 
 @Dao
@@ -159,6 +165,24 @@ interface ObjectiveDao {
 
     @Query("DELETE FROM objective WHERE isDone=1")
     suspend fun clearCompleted()
+}
+
+@Dao
+interface DayRecordDao {
+    @Query("SELECT * FROM day_record WHERE date >= :depuis ORDER BY date DESC")
+    fun getDepuis(depuis: String): Flow<List<DayRecordEntity>>
+
+    @Query("SELECT * FROM day_record WHERE date >= :depuis ORDER BY date DESC")
+    suspend fun getDepuisOnce(depuis: String): List<DayRecordEntity>
+
+    @Query("SELECT * FROM day_record WHERE date = :date LIMIT 1")
+    suspend fun getJour(date: String): DayRecordEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(record: DayRecordEntity)
+
+    @Query("UPDATE day_record SET note = :note WHERE date = :date")
+    suspend fun setNote(date: String, note: String)
 }
 
 @Dao

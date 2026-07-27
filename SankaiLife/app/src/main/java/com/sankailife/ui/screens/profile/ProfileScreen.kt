@@ -26,6 +26,7 @@ fun ProfileScreen(viewModel: ProfileViewModel, onNavigate: (String) -> Unit) {
     val rawUser by viewModel.rawUser.collectAsState()
     val arenesAReclamer by viewModel.arenesAReclamer.collectAsState()
     val nomThemeEquipe by viewModel.nomThemeEquipe.collectAsState()
+    val regularite by viewModel.regularite.collectAsState()
     val c = MaterialTheme.sankaiColors
 
     Column(Modifier.fillMaxSize().background(c.background)) {
@@ -63,6 +64,49 @@ fun ProfileScreen(viewModel: ProfileViewModel, onNavigate: (String) -> Unit) {
                 nombreAReclamer = arenesAReclamer,
                 onVoirParcours = { onNavigate(Screen.Arenas.route) }
             )
+
+            // Régularité : trois indicateurs plutôt qu'un compteur unique.
+            // Un jour manqué casse la série mais laisse la régularité et le
+            // record intacts — le sentiment de progression survit à l'accident.
+            SectionTitle("Régularité")
+            Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(c.surface2)
+                .border(1.dp, c.border, RoundedCornerShape(16.dp)).padding(14.dp)) {
+                Column {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Série actuelle", color = c.textSecondary, fontSize = 13.sp)
+                        Text("🔥 ${user.streakDays} jours", color = WarningAmber,
+                            fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Meilleure série", color = c.textSecondary, fontSize = 13.sp)
+                        Text("${user.bestStreak} jours", color = c.textPrimary,
+                            fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Régularité 30 jours", color = c.textSecondary, fontSize = 13.sp)
+                        Text("${regularite.trente} %", color = SuccessGreen,
+                            fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Boucliers", color = c.textSecondary, fontSize = 13.sp)
+                        Text(
+                            if (user.streakShields > 0) "🛡️ ".repeat(user.streakShields).trim()
+                            else "aucun",
+                            color = if (user.streakShields > 0) AccentViolet else c.textDisabled,
+                            fontSize = 13.sp, fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        "Un bouclier absorbe une journée manquée sans casser ta série. " +
+                        "Tu en gagnes un tous les 7 jours consécutifs.",
+                        color = c.textDisabled, fontSize = 11.sp
+                    )
+                }
+            }
 
             // Quatre statistiques seulement : au-delà, l'écran devient un
             // tableau de bord et on ne lit plus rien. Le reste est à un clic.
