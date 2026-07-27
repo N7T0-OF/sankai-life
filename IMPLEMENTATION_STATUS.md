@@ -33,7 +33,10 @@ Dernière mise à jour : build `assembleDebug` et `assembleRelease` verts.
 | 17 | Tests automatisés | 🟠 partiel | `app/src/test/.../RegularityEngineTest.kt` | 15 tests verts, lancés à chaque build CI |
 | 28 | Régularité sans punition | ✅ terminé | `core/domain/engine/RegularityEngine.kt`, `UserRepository.kt`, `ProfileScreen.kt` | Série + régularité + record + boucliers |
 | 29 | Parcours d'arènes inversé | ✅ terminé | `ui/screens/arenas/ArenasScreen.kt` | Bas = début, haut = sommet, 4 états, feuille de détail |
-| 30 | Refonte Boutique / Défis / Focus / Mémo / Coffres / Stats / Paramètres | ❌ à faire | — | Sections 9 à 16 du complément UI |
+| 30 | Système de cartes à états + tokens | ✅ terminé | `ui/components/SankaiCardState.kt` | 6 états partagés par tous les écrans |
+| 31 | États vides / erreur / chargement | ✅ terminé | `ui/components/StateCards.kt` | Erreur toujours accompagnée d'une action |
+| 32 | Défis en tableau de missions | ✅ terminé | `ChallengesScreen.kt`, `ChallengesViewModel.kt` | Bandeau, compte à rebours, tri par réclamable |
+| 33 | Refonte Boutique / Mode Vie / Focus / Mémo / Coffres / Stats / Paramètres | ❌ à faire | — | Sections 9, 10, 12 à 16 du complément UI |
 | 18 | Liens externes cliquables | ✅ terminé | `SettingsScreen.kt` | Grisés hors connexion |
 | 19 | Slot module payant | ✅ terminé | `Models.kt`, `ShopViewModel.kt`, `LifeScreen.kt` | Prix progressif + remboursement si échec |
 | 20 | Bouton pub bloqué | ✅ terminé | `core/ads/AdsManager.kt` | Attente du chargement, 8 s max |

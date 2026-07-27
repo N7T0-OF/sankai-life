@@ -35,7 +35,30 @@ fun ChallengesScreen(viewModel: ChallengesViewModel, onNavigate: (String) -> Uni
             ResourceBar(user.level, user.xp, user.xpNext, user.coins, user.gems)
             Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
                 Spacer(Modifier.height(16.dp))
-                Text("Défis", color = c.textPrimary, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+
+                // Bandeau de mission : ce qui reste à faire et le temps
+                // restant, lisibles avant même de parcourir la liste.
+                val tousDefis = if (selectedTab == 0) daily else weekly
+                val termines = tousDefis.count { it.isClaimed }
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Column {
+                        Text("Défis", color = c.textPrimary,
+                            fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            "$termines / ${tousDefis.size} " +
+                            if (selectedTab == 0) "quotidiens terminés" else "hebdo terminés",
+                            color = c.textSecondary, fontSize = 12.sp
+                        )
+                    }
+                    Text(
+                        "Reset ${viewModel.tempsAvantReset(selectedTab == 0)}",
+                        color = c.textSecondary, fontSize = 11.sp
+                    )
+                }
 
                 Spacer(Modifier.height(12.dp))
                 // Tabs
@@ -79,12 +102,42 @@ fun ChallengesScreen(viewModel: ChallengesViewModel, onNavigate: (String) -> Uni
                     Spacer(Modifier.height(8.dp))
                 }
 
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(list) { challenge ->
-                        ChallengeCard(challenge = challenge, onClaim = { viewModel.claimChallenge(challenge.id) },
-                            onNavigate = onNavigate)
+                if (list.isEmpty()) {
+                    EmptyStateCard(
+                        emoji = "🎯",
+                        titre = "Aucun défi disponible",
+                        message = if (selectedTab == 0)
+                            "De nouveaux défis arriveront demain."
+                        else "De nouveaux défis arriveront la semaine prochaine."
+                    )
+                } else if (list.all { it.isClaimed }) {
+                    // Tout réclamé : on félicite au lieu d'afficher une liste
+                    // grise sans plus rien à y faire.
+                    EmptyStateCard(
+                        emoji = "✅",
+                        titre = "Tous les défis sont terminés",
+                        message = "Reviens plus tard pour de nouveaux objectifs."
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(list) { challenge ->
+                            ChallengeCard(challenge, { viewModel.claimChallenge(challenge.id) }, onNavigate)
+                        }
+                        item { Spacer(Modifier.height(24.dp)) }
                     }
-                    item { Spacer(Modifier.height(24.dp)) }
+                } else {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        // Les défis réclamables remontent : ce sont les seuls
+                        // qui appellent une action immédiate.
+                        val tries = list.sortedWith(
+                            compareByDescending<ChallengeEntity> { it.isComplete && !it.isClaimed }
+                                .thenBy { it.isClaimed }
+                        )
+                        items(tries) { challenge ->
+                            ChallengeCard(challenge, { viewModel.claimChallenge(challenge.id) }, onNavigate)
+                        }
+                        item { Spacer(Modifier.height(24.dp)) }
+                    }
                 }
             }
         }

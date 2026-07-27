@@ -13,6 +13,30 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class ChallengesViewModel(application: Application) : AndroidViewModel(application) {
+
+    /**
+     * Temps avant la réinitialisation des défis.
+     *
+     * Calculé à l'affichage plutôt que stocké : la valeur ne sert qu'à
+     * informer, et un compteur persisté se désynchroniserait au changement
+     * d'heure ou de fuseau.
+     */
+    fun tempsAvantReset(quotidien: Boolean): String {
+        val maintenant = java.time.LocalDateTime.now()
+        val cible = if (quotidien) {
+            maintenant.toLocalDate().plusDays(1).atStartOfDay()
+        } else {
+            // Semaine suivante, lundi à minuit.
+            val joursAvantLundi = (8 - maintenant.dayOfWeek.value) % 7
+            maintenant.toLocalDate()
+                .plusDays(if (joursAvantLundi == 0) 7L else joursAvantLundi.toLong())
+                .atStartOfDay()
+        }
+        val minutes = java.time.Duration.between(maintenant, cible).toMinutes().coerceAtLeast(0)
+        val heures = minutes / 60
+        return if (heures >= 24) "dans ${heures / 24} j" else "dans ${heures} h ${minutes % 60} min"
+    }
+
     private val app = application as SankaiApplication
     val userRepo = UserRepository(app.database)
     val gameRepo = GameRepository(app.database)
