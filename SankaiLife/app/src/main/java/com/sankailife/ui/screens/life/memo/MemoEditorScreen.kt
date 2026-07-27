@@ -17,10 +17,48 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.sp
 import com.sankailife.ui.components.SankaiButton
 import com.sankailife.ui.components.SectionTitle
 import com.sankailife.ui.theme.*
+
+/** Ligne « libellé — valeur — moins/plus », utilisée par tous les réglages d'heure. */
+@Composable
+private fun ReglageValeur(
+    libelle: String,
+    valeur: String,
+    onMoins: () -> Unit,
+    onPlus: () -> Unit
+) {
+    val c = MaterialTheme.sankaiColors
+    Row(
+        Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(c.surface2)
+            .border(1.dp, c.border, RoundedCornerShape(12.dp))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(libelle, color = c.textSecondary, fontSize = 13.sp)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onMoins, modifier = Modifier.size(34.dp)) {
+                Icon(Icons.Filled.Remove, "Diminuer",
+                    modifier = Modifier.size(18.dp), tint = c.textPrimary)
+            }
+            Text(
+                valeur, color = c.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold,
+                modifier = Modifier.widthIn(min = 68.dp),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            IconButton(onClick = onPlus, modifier = Modifier.size(34.dp)) {
+                Icon(Icons.Filled.Add, "Augmenter",
+                    modifier = Modifier.size(18.dp), tint = c.textPrimary)
+            }
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,6 +72,10 @@ fun MemoEditorScreen(profileId: Long, viewModel: MemoViewModel, onBack: () -> Un
     val hour        by viewModel.hour.collectAsState()
     val minute      by viewModel.minute.collectAsState()
     val newLineText by viewModel.newLineText.collectAsState()
+    val jours       by viewModel.activeDays.collectAsState()
+    val aleatoire   by viewModel.randomMode.collectAsState()
+    val plageDebut  by viewModel.randomStart.collectAsState()
+    val plageFin    by viewModel.randomEnd.collectAsState()
     val context     = LocalContext.current
 
     var showPasteConfirm  by remember { mutableStateOf(false) }
@@ -119,28 +161,127 @@ fun MemoEditorScreen(profileId: Long, viewModel: MemoViewModel, onBack: () -> Un
                             }
                         }
                     }
-                    // Heure
+                    // Heure — désactivée en mode aléatoire, où elle n'a plus de sens
                     Column(Modifier.weight(1f)) {
-                        Text("Heure", color = c.textSecondary, fontSize = 12.sp)
+                        Text(
+                            if (aleatoire) "Heure (ignorée)" else "Heure",
+                            color = c.textSecondary, fontSize = 12.sp
+                        )
                         Spacer(Modifier.height(4.dp))
                         Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
-                            .background(c.surface2).border(1.dp, c.border, RoundedCornerShape(12.dp)).padding(12.dp)) {
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically) {
-                                Text("%02d:%02d".format(hour, minute), color = c.textPrimary,
-                                    fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                                Row {
-                                    IconButton(onClick = { viewModel.setHour((hour - 1 + 24) % 24) }, Modifier.size(32.dp)) {
-                                        Icon(Icons.Filled.Remove, null, modifier = Modifier.size(16.dp), tint = c.textPrimary)
-                                    }
-                                    IconButton(onClick = { viewModel.setHour((hour + 1) % 24) }, Modifier.size(32.dp)) {
-                                        Icon(Icons.Filled.Add, null, modifier = Modifier.size(16.dp), tint = c.textPrimary)
-                                    }
-                                }
-                            }
+                            .background(c.surface2).border(1.dp, c.border, RoundedCornerShape(12.dp))
+                            .alpha(if (aleatoire) 0.4f else 1f).padding(12.dp)) {
+                            Text("%02d:%02d".format(hour, minute), color = c.textPrimary,
+                                fontSize = 15.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
+
+                // Heures et minutes séparées : un pas de 5 minutes couvre les
+                // besoins réels sans imposer 60 appuis pour traverser une heure.
+                if (!aleatoire) {
+                    Spacer(Modifier.height(12.dp))
+                    ReglageValeur(
+                        libelle = "Heure",
+                        valeur = "%02d h".format(hour),
+                        onMoins = { viewModel.setHour(hour - 1) },
+                        onPlus = { viewModel.setHour(hour + 1) }
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    ReglageValeur(
+                        libelle = "Minutes",
+                        valeur = "%02d min".format(minute),
+                        onMoins = { viewModel.setMinute(minute - 5) },
+                        onPlus = { viewModel.setMinute(minute + 5) }
+                    )
+                }
+
+                // Jours de la semaine
+                Spacer(Modifier.height(16.dp))
+                Text("Jours actifs", color = c.textSecondary, fontSize = 12.sp)
+                Spacer(Modifier.height(6.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    val libelles = listOf("L", "M", "M", "J", "V", "S", "D")
+                    libelles.forEachIndexed { index, libelle ->
+                        val jour = index + 1
+                        val actif = jour in jours
+                        Box(
+                            Modifier.weight(1f).clip(RoundedCornerShape(10.dp))
+                                .background(if (actif) c.accent.copy(0.18f) else c.surface2)
+                                .border(
+                                    1.dp,
+                                    if (actif) c.accent else c.border,
+                                    RoundedCornerShape(10.dp)
+                                )
+                                .clickable { viewModel.toggleDay(jour) }
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                libelle,
+                                color = if (actif) c.accent else c.textSecondary,
+                                fontSize = 13.sp,
+                                fontWeight = if (actif) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    }
+                }
+
+                // Mode aléatoire
+                Spacer(Modifier.height(16.dp))
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Heure aléatoire", color = c.textPrimary,
+                            fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                        Text(
+                            "Une heure différente chaque jour, tirée dans la plage choisie",
+                            color = c.textSecondary, fontSize = 11.sp
+                        )
+                    }
+                    Switch(
+                        checked = aleatoire,
+                        onCheckedChange = { viewModel.setRandomMode(it) },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = c.accent,
+                            checkedTrackColor = c.accent.copy(0.3f)
+                        )
+                    )
+                }
+
+                if (aleatoire) {
+                    Spacer(Modifier.height(10.dp))
+                    ReglageValeur(
+                        libelle = "Début de plage",
+                        valeur = "%02dh%02d".format(plageDebut / 60, plageDebut % 60),
+                        onMoins = { viewModel.setRandomStart(plageDebut - 30) },
+                        onPlus = { viewModel.setRandomStart(plageDebut + 30) }
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    ReglageValeur(
+                        libelle = "Fin de plage",
+                        valeur = "%02dh%02d".format(plageFin / 60, plageFin % 60),
+                        onMoins = { viewModel.setRandomEnd(plageFin - 30) },
+                        onPlus = { viewModel.setRandomEnd(plageFin + 30) }
+                    )
+                    if (plageFin <= plageDebut) {
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            "La fin doit être après le début, sinon la plage est ignorée.",
+                            color = WarningAmber, fontSize = 11.sp
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Les heures silencieuses définies dans les paramètres " +
+                    "s'appliquent toujours, quel que soit le mode.",
+                    color = c.textDisabled, fontSize = 11.sp
+                )
             }
 
             // Import clipboard

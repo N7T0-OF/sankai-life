@@ -8,6 +8,7 @@ import com.sankailife.SankaiApplication
 import com.sankailife.core.data.db.entities.MemoLineEntity
 import com.sankailife.core.data.db.entities.MemoProfileEntity
 import com.sankailife.core.domain.engine.MemoEngine
+import com.sankailife.core.notifications.MemoAlarmScheduler
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -36,6 +37,20 @@ class MemoViewModel(application: Application) : AndroidViewModel(application) {
     private val _minute         = MutableStateFlow(0)
     val minute: StateFlow<Int> = _minute
 
+    /** Jours actifs au format ISO : 1 = lundi … 7 = dimanche. */
+    private val _activeDays     = MutableStateFlow(setOf(1, 2, 3, 4, 5, 6, 7))
+    val activeDays: StateFlow<Set<Int>> = _activeDays
+
+    private val _randomMode     = MutableStateFlow(false)
+    val randomMode: StateFlow<Boolean> = _randomMode
+
+    /** Plage aléatoire, en minutes depuis minuit. */
+    private val _randomStart    = MutableStateFlow(9 * 60)
+    val randomStart: StateFlow<Int> = _randomStart
+
+    private val _randomEnd      = MutableStateFlow(21 * 60)
+    val randomEnd: StateFlow<Int> = _randomEnd
+
     private val _newLineText    = MutableStateFlow("")
     val newLineText: StateFlow<String> = _newLineText
 
@@ -43,37 +58,69 @@ class MemoViewModel(application: Application) : AndroidViewModel(application) {
 
     fun loadProfile(profileId: Long) = viewModelScope.launch {
         _currentProfileId.value = profileId
-        if (profileId > 0) {
-            val p = dao.getProfile(profileId)
-            _profileName.value = p?.name ?: ""
-            _frequency.value   = p?.frequencyPerDay ?: 1
-            _hour.value        = p?.scheduledHour ?: 18
-            _minute.value      = p?.scheduledMinute ?: 0
-        } else {
-            _profileName.value = ""
-            _frequency.value   = 1
-            _hour.value        = 18
-            _minute.value      = 0
-        }
-        dao.getLinesOnce(profileId.coerceAtLeast(0)).let { _currentLines.value = it }
+        val p = if (profileId > 0) dao.getProfile(profileId) else null
+
+        _profileName.value = p?.name ?: ""
+        _frequency.value   = p?.frequencyPerDay ?: 1
+        _hour.value        = p?.scheduledHour ?: 18
+        _minute.value      = p?.scheduledMinute ?: 0
+        _randomMode.value  = p?.randomMode ?: false
+        _randomStart.value = ((p?.randomStartHour ?: 9) * 60) + (p?.randomStartMinute ?: 0)
+        _randomEnd.value   = ((p?.randomEndHour ?: 21) * 60) + (p?.randomEndMinute ?: 0)
+        _activeDays.value  = p?.activeDays
+            ?.split(",")?.mapNotNull { it.trim().toIntOrNull() }?.filter { it in 1..7 }?.toSet()
+            ?.ifEmpty { setOf(1, 2, 3, 4, 5, 6, 7) }
+            ?: setOf(1, 2, 3, 4, 5, 6, 7)
+
+        _currentLines.value = dao.getLinesOnce(profileId.coerceAtLeast(0))
     }
 
     fun setName(n: String)      { _profileName.value = n }
-    fun setFrequency(f: Int)    { _frequency.value = f }
-    fun setHour(h: Int)         { _hour.value = h }
-    fun setMinute(m: Int)       { _minute.value = m }
+    fun setFrequency(f: Int)    { _frequency.value = f.coerceIn(1, 6) }
+    fun setHour(h: Int)         { _hour.value = ((h % 24) + 24) % 24 }
+    fun setMinute(m: Int)       { _minute.value = ((m % 60) + 60) % 60 }
+    fun setRandomMode(v: Boolean) { _randomMode.value = v }
+    fun setRandomStart(minutes: Int) { _randomStart.value = ((minutes % 1440) + 1440) % 1440 }
+    fun setRandomEnd(minutes: Int)   { _randomEnd.value = ((minutes % 1440) + 1440) % 1440 }
 
+    fun toggleDay(jour: Int) {
+        val actuels = _activeDays.value.toMutableSet()
+        if (!actuels.remove(jour)) actuels.add(jour)
+        // Zéro jour actif rendrait le module muet sans l'expliquer : on refuse.
+        if (actuels.isNotEmpty()) _activeDays.value = actuels
+    }
+
+    /**
+     * Enregistre le profil et reprogramme ses alarmes.
+     *
+     * L'entité existante est relue puis copiée : la reconstruire de zéro
+     * remettrait `isActive` à false et effacerait l'historique anti-répétition
+     * à chaque modification d'horaire.
+     */
     fun saveProfile() = viewModelScope.launch {
-        val entity = MemoProfileEntity(
-            id = if (_currentProfileId.value > 0) _currentProfileId.value else 0L,
+        val id = _currentProfileId.value
+        val existant = if (id > 0) dao.getProfile(id) else null
+
+        val entity = (existant ?: MemoProfileEntity()).copy(
+            id = if (id > 0) id else 0L,
             name = _profileName.value.ifBlank { "Mémo" },
             frequencyPerDay = _frequency.value,
             scheduledHour = _hour.value,
             scheduledMinute = _minute.value,
-            isActive = false
+            randomMode = _randomMode.value,
+            randomStartHour = _randomStart.value / 60,
+            randomStartMinute = _randomStart.value % 60,
+            randomEndHour = _randomEnd.value / 60,
+            randomEndMinute = _randomEnd.value % 60,
+            activeDays = _activeDays.value.sorted().joinToString(",")
         )
+
         val newId = dao.upsertProfile(entity)
-        if (_currentProfileId.value <= 0) _currentProfileId.value = newId
+        if (id <= 0) _currentProfileId.value = newId
+
+        // Sans cette reprogrammation, un changement d'horaire ne prendrait
+        // effet qu'au prochain lancement de l'application.
+        replanifier()
     }
 
     fun createNewProfile() = viewModelScope.launch {
@@ -85,6 +132,7 @@ class MemoViewModel(application: Application) : AndroidViewModel(application) {
 
     fun deleteProfile(profileId: Long) = viewModelScope.launch {
         val p = dao.getProfile(profileId) ?: return@launch
+        MemoAlarmScheduler.annuler(app, profileId)
         dao.deleteAllLines(profileId)
         dao.deleteProfile(p)
     }
@@ -117,6 +165,11 @@ class MemoViewModel(application: Application) : AndroidViewModel(application) {
 
     fun toggleProfile(profileId: Long, active: Boolean) = viewModelScope.launch {
         dao.setActive(profileId, active)
+        replanifier()
+    }
+
+    private suspend fun replanifier() {
+        runCatching { MemoAlarmScheduler.replanifierTout(app) }
     }
 
     companion object {

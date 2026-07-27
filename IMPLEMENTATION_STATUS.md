@@ -14,8 +14,8 @@ Dernière mise à jour : build `assembleDebug` et `assembleRelease` verts.
 | 1 | Vibrations | ✅ terminé | `core/haptics/HapticManager.kt`, `MainActivity.kt`, `ui/components/CommonComponents.kt`, `ui/navigation/BottomNavBar.kt` | À tester sur appareil |
 | 2 | AdMob récompensé | ✅ terminé | `core/ads/AdsManager.kt`, `core/ads/RegarderPubUseCase.kt`, `app/build.gradle.kts` | IDs réels en release, test en debug |
 | 3 | Notifications exactes | ✅ terminé | `core/notifications/MemoAlarmScheduler.kt`, `MemoAlarmReceiver.kt`, `SystemEventsReceiver.kt`, `MemoScheduleEngine.kt` | **À tester sur appareil** |
-| 4 | Éditeur heure + minutes | 🟠 partiel | `MemoScheduleEngine.kt`, `AllEntities.kt` | Modèle et moteur prêts, **UI éditeur pas encore branchée** |
-| 5 | Notification aléatoire | 🟠 partiel | `MemoScheduleEngine.kt` | Moteur prêt, **UI pas encore branchée** |
+| 4 | Éditeur heure + minutes + jours | ✅ terminé | `MemoEditorScreen.kt`, `MemoViewModel.kt` | Pas de 5 min, 7 jours, au moins un jour obligatoire |
+| 5 | Notification aléatoire | ✅ terminé | `MemoEditorScreen.kt`, `MemoScheduleEngine.kt` | Plage début/fin par pas de 30 min |
 | 6 | Heures silencieuses | ✅ terminé | `core/notifications/QuietHours.kt`, `AppPreferences.kt`, `SettingsScreen.kt` | Gère les plages traversant minuit |
 | 7 | Parcours d'arènes | ✅ terminé | `core/domain/model/Arena.kt`, `core/domain/engine/ArenaEngine.kt`, `ui/screens/arenas/` | 8 paliers, graduation, recentrage auto |
 | 8 | Récompenses de paliers | ✅ terminé | `ArenaRewardEntity`, `ArenasViewModel.kt` | Clé primaire = verrou anti double crédit |
