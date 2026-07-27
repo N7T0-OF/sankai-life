@@ -9,15 +9,16 @@ import com.sankailife.core.data.db.entities.*
 
 @Database(
     entities = [UserEntity::class, MemoProfileEntity::class, MemoLineEntity::class,
-                ObjectiveEntity::class, ChestEntity::class, ChallengeEntity::class,
-                StatsEntity::class],
-    version = 5,
+                ObjectiveEntity::class, ArenaRewardEntity::class, ChestEntity::class,
+                ChallengeEntity::class, StatsEntity::class],
+    version = 6,
     exportSchema = false
 )
 abstract class SankaiDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
     abstract fun memoDao(): MemoDao
     abstract fun objectiveDao(): ObjectiveDao
+    abstract fun arenaRewardDao(): ArenaRewardDao
     abstract fun chestDao(): ChestDao
     abstract fun challengeDao(): ChallengeDao
     abstract fun statsDao(): StatsDao
@@ -82,7 +83,22 @@ abstract class SankaiDatabase : RoomDatabase() {
             }
         }
 
-        val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `arena_reward` (
+                        `arenaId` INTEGER PRIMARY KEY NOT NULL,
+                        `claimedAt` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
+        val MIGRATIONS = arrayOf(
+            MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6
+        )
 
         fun getDatabase(context: Context): SankaiDatabase {
             return INSTANCE ?: synchronized(this) {

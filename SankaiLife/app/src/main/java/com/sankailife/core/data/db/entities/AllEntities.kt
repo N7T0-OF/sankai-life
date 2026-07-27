@@ -78,6 +78,19 @@ data class ObjectiveEntity(
     val completedAt: Long = 0L
 )
 
+/**
+ * Trace des récompenses d'arène déjà réclamées.
+ *
+ * Une ligne n'existe que si la récompense a été prise : l'absence vaut
+ * « non réclamée », ce qui évite d'avoir à pré-remplir la table et rend
+ * l'ajout de nouvelles arènes indolore.
+ */
+@Entity(tableName = "arena_reward")
+data class ArenaRewardEntity(
+    @PrimaryKey val arenaId: Int = 0,
+    val claimedAt: Long = 0L
+)
+
 @Entity(tableName = "chest")
 data class ChestEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0L,

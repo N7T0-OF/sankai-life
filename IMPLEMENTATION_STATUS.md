@@ -17,10 +17,10 @@ Dernière mise à jour : build `assembleDebug` et `assembleRelease` verts.
 | 4 | Éditeur heure + minutes | 🟠 partiel | `MemoScheduleEngine.kt`, `AllEntities.kt` | Modèle et moteur prêts, **UI éditeur pas encore branchée** |
 | 5 | Notification aléatoire | 🟠 partiel | `MemoScheduleEngine.kt` | Moteur prêt, **UI pas encore branchée** |
 | 6 | Heures silencieuses | ✅ terminé | `core/notifications/QuietHours.kt`, `AppPreferences.kt`, `SettingsScreen.kt` | Gère les plages traversant minuit |
-| 7 | Parcours d'arènes | ❌ à faire | — | Non commencé |
-| 8 | Récompenses de paliers | ❌ à faire | — | Dépend du 7 |
-| 9 | Refonte accueil + coffres en bas | ❌ à faire | — | Non commencé |
-| 10 | Navigation de progression | ❌ à faire | — | Dépend du 7 |
+| 7 | Parcours d'arènes | ✅ terminé | `core/domain/model/Arena.kt`, `core/domain/engine/ArenaEngine.kt`, `ui/screens/arenas/` | 8 paliers, graduation, recentrage auto |
+| 8 | Récompenses de paliers | ✅ terminé | `ArenaRewardEntity`, `ArenasViewModel.kt` | Clé primaire = verrou anti double crédit |
+| 9 | Refonte accueil + coffres en bas | ✅ terminé | `ui/screens/home/HomeScreen.kt` | Actions rapides et Aujourd'hui retirées |
+| 10 | Navigation de progression | ✅ terminé | `ArenasScreen.kt` (résumé + parcours) | Résumé dans Accueil et Profil |
 | 11 | Icône d'application | ✅ terminé | `res/drawable/ic_launcher_foreground.xml`, `ic_launcher_monochrome.xml`, `mipmap-anydpi-v26/` | Themed icons Android 13 incluses |
 | 12 | README visuel | 🟠 partiel | `README.md` | Badges et structure faits, **captures et logo manquants** |
 | 13 | Mise à jour depuis l'app | ❌ à faire | — | Non commencé |

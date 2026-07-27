@@ -17,12 +17,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sankailife.ui.components.*
 import com.sankailife.ui.navigation.Screen
+import com.sankailife.ui.screens.arenas.CarteResumeArene
 import com.sankailife.ui.theme.*
 
 @Composable
 fun ProfileScreen(viewModel: ProfileViewModel, onNavigate: (String) -> Unit) {
     val user    by viewModel.user.collectAsState()
     val rawUser by viewModel.rawUser.collectAsState()
+    val arenesAReclamer by viewModel.arenesAReclamer.collectAsState()
     val c = MaterialTheme.sankaiColors
 
     val themes = viewModel.getThemes(rawUser?.unlockedThemeIds ?: "default", user.level)
@@ -56,6 +58,13 @@ fun ProfileScreen(viewModel: ProfileViewModel, onNavigate: (String) -> Unit) {
                         color = c.textSecondary, fontSize = 11.sp)
                 }
             }
+
+            SectionTitle("Progression")
+            CarteResumeArene(
+                niveau = user.level,
+                nombreAReclamer = arenesAReclamer,
+                onVoirParcours = { onNavigate(Screen.Arenas.route) }
+            )
 
             SectionTitle("Statistiques")
             val stats = listOf(

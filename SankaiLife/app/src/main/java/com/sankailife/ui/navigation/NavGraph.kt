@@ -9,6 +9,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.*
 import com.sankailife.SankaiApplication
+import com.sankailife.ui.screens.arenas.ArenasScreen
+import com.sankailife.ui.screens.arenas.ArenasViewModel
 import com.sankailife.ui.screens.challenges.ChallengesScreen
 import com.sankailife.ui.screens.challenges.ChallengesViewModel
 import com.sankailife.ui.screens.home.HomeScreen
@@ -48,7 +50,7 @@ fun SankaiNavGraph() {
 
     val noBottomBarRoutes = setOf(
         Screen.Settings.route, Screen.MemoEditor.route,
-        Screen.Objectives.route, Screen.Flashcards.route
+        Screen.Objectives.route, Screen.Flashcards.route, Screen.Arenas.route
     )
     val showBottom = currentRoute !in noBottomBarRoutes
 
@@ -105,6 +107,10 @@ fun SankaiNavGraph() {
                     viewModel = vm,
                     onBack = { navController.popBackStack() }
                 )
+            }
+            composable(Screen.Arenas.route) {
+                val vm: ArenasViewModel = viewModel(factory = ArenasViewModel.factory(app))
+                ArenasScreen(viewModel = vm, onBack = { navController.popBackStack() })
             }
             composable(Screen.Objectives.route) {
                 val vm: ObjectivesViewModel = viewModel(factory = ObjectivesViewModel.factory(app))

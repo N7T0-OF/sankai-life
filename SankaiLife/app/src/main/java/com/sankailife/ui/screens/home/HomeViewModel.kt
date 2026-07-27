@@ -11,6 +11,7 @@ import com.sankailife.core.ads.ResultatPub
 import com.sankailife.core.data.db.entities.ChestEntity
 import com.sankailife.core.data.repository.GameRepository
 import com.sankailife.core.data.repository.UserRepository
+import com.sankailife.core.domain.engine.ArenaEngine
 import com.sankailife.core.domain.engine.ChestEngine
 import com.sankailife.core.domain.engine.EconomyEngine
 import com.sankailife.core.domain.engine.XpEngine
@@ -55,6 +56,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     /** Sert uniquement à griser le bouton pub — le reste de l'écran marche hors ligne. */
     val isOnline: StateFlow<Boolean> = app.connectivity.isOnline
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), app.connectivity.currentlyOnline())
+
+    /** Pastille de la carte de progression : récompenses d'arène en attente. */
+    val arenesAReclamer: StateFlow<Int> =
+        combine(user, app.database.arenaRewardDao().getReclamees()) { u, prises ->
+            ArenaEngine.recompensesAReclamer(u.level, prises.toSet()).size
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     init {
         viewModelScope.launch {

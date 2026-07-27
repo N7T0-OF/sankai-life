@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import com.sankailife.core.data.db.entities.ChestEntity
 import com.sankailife.ui.components.*
 import com.sankailife.ui.navigation.Screen
+import com.sankailife.ui.screens.arenas.CarteResumeArene
 import com.sankailife.ui.theme.*
 import kotlinx.coroutines.delay
 
@@ -35,6 +36,7 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
     val lvlNum  by viewModel.levelUpLevel.collectAsState()
     val chestRw by viewModel.chestReward.collectAsState()
     val enLigne by viewModel.isOnline.collectAsState()
+    val arenesAReclamer by viewModel.arenesAReclamer.collectAsState()
     val c = MaterialTheme.sankaiColors
 
     // AdMob a besoin de l'Activity pour afficher une pub plein écran.
@@ -52,7 +54,10 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
             ResourceBar(user.level, user.xp, user.xpNext, user.coins, user.gems)
 
             Column(
-                modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp)
             ) {
                 // Header
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
@@ -86,53 +91,40 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
                         modifier = Modifier.fillMaxWidth())
                 }
 
-                // Coffres
-                SectionTitle("Coffres (${chests.size}/4)")
-                ChestsRow(chests = chests, onOpen = { viewModel.openChest(it) },
-                    formatTimer = { viewModel.formatChestTimer(it) })
+                // Progression : où j'en suis, quelle est la prochaine étape.
+                SectionTitle("Progression")
+                CarteResumeArene(
+                    niveau = user.level,
+                    nombreAReclamer = arenesAReclamer,
+                    onVoirParcours = { onNavigate(Screen.Arenas.route) }
+                )
 
-                // Actions rapides
-                SectionTitle("Actions rapides")
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    QuickActionButton(
-                        icon = Icons.Filled.PlayArrow,
-                        label = "Pub",
-                        sublabel = when {
-                            !enLigne -> "Hors ligne"
-                            adCd > 0 -> "${adCd}s"
-                            else -> "+5🪙"
-                        },
-                        color = SuccessGreen,
-                        enabled = adCd <= 0 && enLigne,
-                        modifier = Modifier.weight(1f)
-                    ) { activity?.let { viewModel.watchAd(it) } }
+                // Regarder une pub reste accessible, mais comme un bonus
+                // discret plutôt que comme une action mise en avant.
+                Spacer(Modifier.height(16.dp))
+                SankaiButton(
+                    text = when {
+                        !enLigne -> "🔌 Pub indisponible hors ligne"
+                        adCd > 0 -> "⏳ Prochaine pub dans ${adCd}s"
+                        else -> "🎥 Regarder une pub • +5 🪙"
+                    },
+                    onClick = { activity?.let { viewModel.watchAd(it) } },
+                    enabled = adCd <= 0 && enLigne,
+                    secondary = true,
+                    small = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-                    QuickActionButton(
-                        icon = Icons.Filled.Bolt,
-                        label = "Focus",
-                        sublabel = "+50 XP",
-                        color = AccentViolet,
-                        modifier = Modifier.weight(1f)
-                    ) { onNavigate(Screen.Focus.route) }
-
-                    QuickActionButton(
-                        icon = Icons.Filled.TrackChanges,
-                        label = "Défis",
-                        sublabel = "Réclamer",
-                        color = AccentGold,
-                        modifier = Modifier.weight(1f)
-                    ) { onNavigate(Screen.Challenges.route) }
-                }
-
-                // Stats jour
-                SectionTitle("Aujourd'hui")
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    StatCard("+${viewModel.todayXp.collectAsState().value} XP", "Gagné", AccentViolet, Modifier.weight(1f))
-                    StatCard("+${viewModel.todayCoins.collectAsState().value}🪙", "Pièces", CoinColor, Modifier.weight(1f))
-                    StatCard("${user.streakDays}j", "Streak", WarningAmber, Modifier.weight(1f))
-                }
                 Spacer(Modifier.height(16.dp))
             }
+
+            // Barre de coffres, ancrée en bas : une récompense en attente doit
+            // rester visible sans avoir à faire défiler l'écran.
+            BarreCoffres(
+                chests = chests,
+                onOpen = { viewModel.openChest(it) },
+                formatTimer = { viewModel.formatChestTimer(it) }
+            )
         }
 
         // Toast overlay
@@ -152,19 +144,56 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
     }
 }
 
+/**
+ * Barre de coffres fixe en bas de l'accueil.
+ *
+ * Quatre emplacements toujours affichés, même vides : voir un emplacement
+ * libre donne envie de le remplir, alors qu'une liste qui rétrécit ne dit rien.
+ */
 @Composable
-fun ChestsRow(chests: List<ChestEntity>, onOpen: (Long) -> Unit, formatTimer: (ChestEntity) -> String) {
+fun BarreCoffres(
+    chests: List<ChestEntity>,
+    onOpen: (Long) -> Unit,
+    formatTimer: (ChestEntity) -> String
+) {
     val c = MaterialTheme.sankaiColors
-    // Refresh timer every second
+    // Un tick par seconde suffit à animer les comptes à rebours.
     var tick by remember { mutableLongStateOf(0L) }
     LaunchedEffect(Unit) { while (true) { delay(1000); tick++ } }
 
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        repeat(4) { slot ->
-            val chest = chests.find { it.slotIndex == slot }
-            ChestSlotUI(chest = chest, onOpen = { chest?.let { onOpen(it.id) } },
-                timer = chest?.let { if (tick >= 0) formatTimer(it) else "" } ?: "",
-                modifier = Modifier.weight(1f))
+    val prets = chests.count { it.isReady }
+
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(c.surface1)
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(bottom = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                "Coffres  ${chests.size}/4",
+                color = c.textSecondary, fontSize = 11.sp, fontWeight = FontWeight.SemiBold
+            )
+            if (prets > 0) {
+                Text(
+                    "$prets prêt${if (prets > 1) "s" else ""} !",
+                    color = c.accent, fontSize = 11.sp, fontWeight = FontWeight.Bold
+                )
+            }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            repeat(4) { slot ->
+                val chest = chests.find { it.slotIndex == slot }
+                ChestSlotUI(
+                    chest = chest,
+                    onOpen = { chest?.let { onOpen(it.id) } },
+                    timer = chest?.let { if (tick >= 0) formatTimer(it) else "" } ?: "",
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
     }
 }

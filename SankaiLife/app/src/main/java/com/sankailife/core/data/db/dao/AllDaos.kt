@@ -162,6 +162,21 @@ interface ObjectiveDao {
 }
 
 @Dao
+interface ArenaRewardDao {
+    @Query("SELECT arenaId FROM arena_reward")
+    fun getReclamees(): Flow<List<Int>>
+
+    @Query("SELECT arenaId FROM arena_reward")
+    suspend fun getReclameesOnce(): List<Int>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun marquerReclamee(reward: ArenaRewardEntity): Long
+
+    @Query("DELETE FROM arena_reward")
+    suspend fun toutEffacer()
+}
+
+@Dao
 interface ChestDao {
     @Query("SELECT * FROM chest WHERE isOpened=0 ORDER BY slotIndex ASC")
     fun getActiveChests(): Flow<List<ChestEntity>>
