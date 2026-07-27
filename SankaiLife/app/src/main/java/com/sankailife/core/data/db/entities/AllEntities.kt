@@ -58,7 +58,15 @@ data class MemoLineEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0L,
     val profileId: Long = 0L,
     val text: String = "",
-    val orderIndex: Int = 0
+    val orderIndex: Int = 0,
+
+    // --- État de révision (flash cards) ---------------------------------
+    // Boîte de Leitner : 0 = à revoir vite, 4 = acquis de longue date.
+    val box: Int = 0,
+    /** 0 = jamais révisée, donc due immédiatement. */
+    val nextReviewAtMillis: Long = 0L,
+    val reviewCount: Int = 0,
+    val successCount: Int = 0
 )
 
 @Entity(tableName = "objective")

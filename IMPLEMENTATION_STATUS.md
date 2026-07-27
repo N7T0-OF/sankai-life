@@ -28,6 +28,13 @@ Dernière mise à jour : build `assembleDebug` et `assembleRelease` verts.
 | 15 | Optimisations | 🟠 partiel | `SankaiDatabase.kt` | Migrations explicites faites |
 | 16 | Monétisation | 🟠 partiel | `core/ads/` | Pubs récompensées faites, Premium et boutique cosmétique non |
 | 17 | Tests automatisés | ❌ à faire | — | Aucun test écrit |
+| 18 | Liens externes cliquables | ✅ terminé | `SettingsScreen.kt` | Grisés hors connexion |
+| 19 | Slot module payant | ✅ terminé | `Models.kt`, `ShopViewModel.kt`, `LifeScreen.kt` | Prix progressif + remboursement si échec |
+| 20 | Bouton pub bloqué | ✅ terminé | `core/ads/AdsManager.kt` | Attente du chargement, 8 s max |
+| 21 | R8 / taille / obfuscation | ✅ terminé | `build.gradle.kts`, `proguard-rules.pro` | APK 14,79 → 3,26 Mo |
+| 22 | Barre du bas moderne | ✅ terminé | `ui/navigation/BottomNavBar.kt` | Pilule translucide |
+| 23 | Flash cards | ✅ terminé | `core/domain/engine/FlashcardEngine.kt`, `ui/screens/life/flashcards/` | Leitner 5 boîtes |
+| 24 | Signature stable des Releases | ✅ terminé | `scripts/06-envoyer-secrets-github.ps1` | Secrets GitHub en place depuis v1.2.0 |
 
 ---
 

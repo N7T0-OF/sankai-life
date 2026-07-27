@@ -9,6 +9,9 @@ sealed class Screen(val route: String) {
         fun createRoute(profileId: Long) = "memo_editor/$profileId"
     }
     object Objectives  : Screen("objectives")
+    object Flashcards  : Screen("flashcards/{profileId}") {
+        fun createRoute(profileId: Long) = "flashcards/$profileId"
+    }
     object Challenges  : Screen("challenges")
     object Shop        : Screen("shop")
     object Profile     : Screen("profile")

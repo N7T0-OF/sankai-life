@@ -11,7 +11,7 @@ import com.sankailife.core.data.db.entities.*
     entities = [UserEntity::class, MemoProfileEntity::class, MemoLineEntity::class,
                 ObjectiveEntity::class, ChestEntity::class, ChallengeEntity::class,
                 StatsEntity::class],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class SankaiDatabase : RoomDatabase() {
@@ -70,7 +70,19 @@ abstract class SankaiDatabase : RoomDatabase() {
             }
         }
 
-        val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // État de révision des flash cards. Valeurs par défaut choisies
+                // pour que toutes les lignes déjà saisies soient immédiatement
+                // révisables, sans traitement de rattrapage.
+                db.execSQL("ALTER TABLE memo_line ADD COLUMN box INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE memo_line ADD COLUMN nextReviewAtMillis INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE memo_line ADD COLUMN reviewCount INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE memo_line ADD COLUMN successCount INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
 
         fun getDatabase(context: Context): SankaiDatabase {
             return INSTANCE ?: synchronized(this) {

@@ -70,7 +70,8 @@ fun LifeScreen(viewModel: LifeViewModel, onNavigate: (String) -> Unit) {
                     MemoProfileCard(
                         profile = profile,
                         onToggle = { viewModel.toggleMemo(profile.id, !profile.isActive) },
-                        onEdit = { onNavigate(Screen.Memo.route) }
+                        onEdit = { onNavigate(Screen.Memo.route) },
+                        onReviser = { onNavigate(Screen.Flashcards.createRoute(profile.id)) }
                     )
                 }
             }
@@ -134,7 +135,12 @@ fun ModuleCard(icon: String, title: String, subtitle: String, isActive: Boolean,
 }
 
 @Composable
-fun MemoProfileCard(profile: MemoProfileEntity, onToggle: () -> Unit, onEdit: () -> Unit) {
+fun MemoProfileCard(
+    profile: MemoProfileEntity,
+    onToggle: () -> Unit,
+    onEdit: () -> Unit,
+    onReviser: () -> Unit
+) {
     val c = MaterialTheme.sankaiColors
     SankaiCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -153,8 +159,12 @@ fun MemoProfileCard(profile: MemoProfileEntity, onToggle: () -> Unit, onEdit: ()
                 colors = SwitchDefaults.colors(checkedThumbColor = AccentGold, checkedTrackColor = AccentGold.copy(0.3f)))
         }
         Spacer(Modifier.height(10.dp))
-        SankaiButton("✏️ Modifier", onClick = onEdit, secondary = true, small = true,
-            modifier = Modifier.fillMaxWidth())
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SankaiButton("✏️ Modifier", onClick = onEdit, secondary = true, small = true,
+                modifier = Modifier.weight(1f))
+            SankaiButton("🃏 Réviser", onClick = onReviser, small = true,
+                modifier = Modifier.weight(1f))
+        }
     }
     Spacer(Modifier.height(8.dp))
 }

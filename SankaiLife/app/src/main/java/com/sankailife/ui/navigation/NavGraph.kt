@@ -20,6 +20,8 @@ import com.sankailife.ui.screens.life.focus.FocusViewModel
 import com.sankailife.ui.screens.life.memo.MemoEditorScreen
 import com.sankailife.ui.screens.life.memo.MemoScreen
 import com.sankailife.ui.screens.life.memo.MemoViewModel
+import com.sankailife.ui.screens.life.flashcards.FlashcardsScreen
+import com.sankailife.ui.screens.life.flashcards.FlashcardsViewModel
 import com.sankailife.ui.screens.life.objectives.ObjectivesScreen
 import com.sankailife.ui.screens.life.objectives.ObjectivesViewModel
 import com.sankailife.ui.screens.profile.ProfileScreen
@@ -45,7 +47,8 @@ fun SankaiNavGraph() {
     val claimableCount by challengesVm.claimableCount.collectAsState()
 
     val noBottomBarRoutes = setOf(
-        Screen.Settings.route, Screen.MemoEditor.route, Screen.Objectives.route
+        Screen.Settings.route, Screen.MemoEditor.route,
+        Screen.Objectives.route, Screen.Flashcards.route
     )
     val showBottom = currentRoute !in noBottomBarRoutes
 
@@ -93,6 +96,15 @@ fun SankaiNavGraph() {
                 val profileId = backEntry.arguments?.getString("profileId")?.toLongOrNull() ?: -1L
                 val vm: MemoViewModel = viewModel(factory = MemoViewModel.factory(app))
                 MemoEditorScreen(profileId = profileId, viewModel = vm, onBack = { navController.popBackStack() })
+            }
+            composable(Screen.Flashcards.route) { backEntry ->
+                val profileId = backEntry.arguments?.getString("profileId")?.toLongOrNull() ?: -1L
+                val vm: FlashcardsViewModel = viewModel(factory = FlashcardsViewModel.factory(app))
+                FlashcardsScreen(
+                    profileId = profileId,
+                    viewModel = vm,
+                    onBack = { navController.popBackStack() }
+                )
             }
             composable(Screen.Objectives.route) {
                 val vm: ObjectivesViewModel = viewModel(factory = ObjectivesViewModel.factory(app))

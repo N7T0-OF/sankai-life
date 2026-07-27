@@ -84,6 +84,43 @@ interface MemoDao {
     @Query("SELECT COUNT(*) FROM memo_line WHERE profileId=:profileId")
     fun getLineCount(profileId: Long): Flow<Int>
 
+    // --- Flash cards -----------------------------------------------------
+
+    /** Cartes dues à la révision, les plus en retard d'abord. */
+    @Query("""
+        SELECT * FROM memo_line
+        WHERE profileId = :profileId AND nextReviewAtMillis <= :maintenant
+        ORDER BY nextReviewAtMillis ASC, box ASC
+        LIMIT :limite
+    """)
+    suspend fun getCartesDues(profileId: Long, maintenant: Long, limite: Int): List<MemoLineEntity>
+
+    @Query("""
+        SELECT COUNT(*) FROM memo_line
+        WHERE profileId = :profileId AND nextReviewAtMillis <= :maintenant
+    """)
+    fun compterCartesDues(profileId: Long, maintenant: Long): Flow<Int>
+
+    @Query("""
+        SELECT COUNT(*) FROM memo_line
+        WHERE nextReviewAtMillis <= :maintenant
+    """)
+    fun compterToutesCartesDues(maintenant: Long): Flow<Int>
+
+    @Query("""
+        UPDATE memo_line
+        SET box = :box,
+            nextReviewAtMillis = :prochaine,
+            reviewCount = reviewCount + 1,
+            successCount = successCount + :reussite
+        WHERE id = :id
+    """)
+    suspend fun majEtatCarte(id: Long, box: Int, prochaine: Long, reussite: Int)
+
+    /** Remet un module entier à zéro côté révision. */
+    @Query("UPDATE memo_line SET box=0, nextReviewAtMillis=0, reviewCount=0, successCount=0 WHERE profileId=:profileId")
+    suspend fun reinitialiserRevisions(profileId: Long)
+
     @Query("UPDATE memo_profile SET isActive=:active WHERE id=:id")
     suspend fun setActive(id: Long, active: Boolean)
 
