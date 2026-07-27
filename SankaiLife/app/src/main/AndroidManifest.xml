@@ -18,6 +18,13 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <!--
+      Mise à jour depuis les Releases GitHub. Android exige toujours une
+      confirmation de l'utilisateur : cette permission autorise seulement à
+      OUVRIR l'installateur, jamais à installer en silence.
+    -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <!--
       INTERNET et ACCESS_NETWORK_STATE ne servent QU'AUX PUBS et aux liens
       externes (Ko-fi, site). Toute la progression, les mémos, le focus, les
       coffres et l'économie fonctionnent hors ligne.
@@ -72,6 +79,20 @@
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="${admobAppId}" />
+
+        <!--
+          Permet à l'installateur Android de lire l'APK téléchargé dans le
+          cache, sans exposer le reste du stockage de l'application.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
         <!-- Reçoit l'alarme d'un module mémo et envoie la phrase. -->
         <receiver

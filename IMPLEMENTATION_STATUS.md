@@ -23,8 +23,8 @@ Dernière mise à jour : build `assembleDebug` et `assembleRelease` verts.
 | 10 | Navigation de progression | ✅ terminé | `ArenasScreen.kt` (résumé + parcours) | Résumé dans Accueil et Profil |
 | 11 | Icône d'application | ✅ terminé | `res/drawable/ic_launcher_foreground.xml`, `ic_launcher_monochrome.xml`, `mipmap-anydpi-v26/` | Themed icons Android 13 incluses |
 | 12 | README visuel | 🟠 partiel | `README.md` | Badges et structure faits, **captures et logo manquants** |
-| 13 | Mise à jour depuis l'app | ❌ à faire | — | Non commencé |
-| 14 | Sécurité des mises à jour | ❌ à faire | — | Dépend du 13 |
+| 13 | Mise à jour depuis l'app | ✅ terminé | `core/update/UpdateManager.kt`, `SettingsScreen.kt`, `build-apk.yml` | Confirmation Android obligatoire |
+| 14 | Sécurité des mises à jour | ✅ terminé | `core/update/UpdateManager.kt` | Hôtes, SHA-256, package, versionCode, taille |
 | 15 | Optimisations | 🟠 partiel | `SankaiDatabase.kt` | Migrations explicites faites |
 | 16 | Monétisation | 🟠 partiel | `core/ads/` | Pubs récompensées faites, Premium et boutique cosmétique non |
 | 17 | Tests automatisés | ❌ à faire | — | Aucun test écrit |
@@ -141,6 +141,25 @@ Par ordre de valeur décroissante :
    installée sur un téléphone.
 6. **Tests automatisés** — en priorité `MemoScheduleEngine`, qui contient
    toute la logique de calcul d'horaires et se teste sans Android.
+
+---
+
+## Mise à jour intégrée — ce qui est vérifié avant d'installer
+
+Télécharger puis exécuter un fichier venu d'internet est l'opération la plus
+sensible de l'application. Cinq contrôles, tous dans `UpdateManager` :
+
+| Contrôle | Ce qu'il empêche |
+|---|---|
+| Liste blanche d'hôtes GitHub, redirections comprises | Qu'une Release piégée fasse télécharger depuis un serveur tiers |
+| Empreinte SHA-256 recalculée pendant le téléchargement | Un fichier corrompu ou substitué en chemin |
+| Nom de paquet lu dans l'APK avant installation | Qu'un autre APK, valide mais étranger, soit proposé |
+| Comparaison sur `versionCode` numérique | Une rétrogradation causée par un tag mal formé |
+| Plafond de taille à 100 Mo | Un téléchargement qui remplirait le stockage |
+
+Aucun jeton GitHub n'est embarqué : le dépôt étant public, l'API est
+interrogée en anonyme. Un jeton dans un APK distribué serait extractible par
+n'importe qui.
 
 ---
 

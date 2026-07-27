@@ -149,6 +149,39 @@ jobs:
           fi
           ls -lh artefacts
 
+      # update.json est lu par l'application pour décider s'il existe une
+      # version plus récente. Le versionCode y figure parce que comparer des
+      # noms de version textuels est fragile, et le SHA-256 permet à l'app de
+      # refuser un fichier corrompu ou substitué.
+      - name: Générer update.json et l'empreinte
+        run: |
+          APK="artefacts/SankaiLife-${GITHUB_REF_NAME}.apk"
+          VERSION_CODE=$(grep -oE 'versionCode *= *[0-9]+' SankaiLife/app/build.gradle.kts | grep -oE '[0-9]+' | head -1)
+          VERSION_NAME=$(grep -oE 'versionName *= *"[^"]+"' SankaiLife/app/build.gradle.kts | sed 's/.*"\(.*\)"/\1/' | head -1)
+          SHA=$(sha256sum "$APK" | cut -d' ' -f1)
+          TAILLE=$(stat -c%s "$APK")
+
+          echo "$SHA  $(basename "$APK")" > "artefacts/$(basename "$APK").sha256"
+
+          # Les notes proviennent du message du tag, une ligne par entrée.
+          CHANGELOG=$(git tag -l --format='%(contents:body)' "${GITHUB_REF_NAME}" \
+                      | grep -v '^$' | head -8 | jq -R . | jq -s .)
+          if [ "$CHANGELOG" = "[]" ]; then
+            CHANGELOG=$(git tag -l --format='%(contents:subject)' "${GITHUB_REF_NAME}" | jq -R . | jq -s .)
+          fi
+
+          jq -n \
+            --argjson versionCode "$VERSION_CODE" \
+            --arg versionName "$VERSION_NAME" \
+            --arg sha256 "$SHA" \
+            --argjson size "$TAILLE" \
+            --arg apkUrl "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/$(basename "$APK")" \
+            --argjson changelog "$CHANGELOG" \
+            '{versionCode: $versionCode, versionName: $versionName, sha256: $sha256, sizeBytes: $size, apkUrl: $apkUrl, changelog: $changelog}' \
+            > artefacts/update.json
+
+          cat artefacts/update.json
+
       - name: Rédiger les notes de version
         env:
           SIGNEE: ${{ steps.signature.outputs.signee }}

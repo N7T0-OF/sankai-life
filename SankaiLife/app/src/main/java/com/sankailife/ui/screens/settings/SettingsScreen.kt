@@ -33,6 +33,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit) {
     val quietEnd    by viewModel.quietEnd.collectAsState()
     val diag        by viewModel.diagnostic.collectAsState()
     val enLigne     by viewModel.isOnline.collectAsState()
+    val etatMaj     by viewModel.maj.collectAsState()
     val c = MaterialTheme.sankaiColors
     val contexte = LocalContext.current
 
@@ -184,10 +185,73 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit) {
                 }
             }
 
+            SectionTitle("Mises à jour")
+            SettingsCard {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Version installée", color = c.textPrimary, fontSize = 14.sp)
+                    Text(viewModel.versionInstallee, color = c.textSecondary,
+                        fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                }
+
+                if (etatMaj.message.isNotBlank()) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        etatMaj.message,
+                        color = if (etatMaj.disponible != null) c.accent else c.textSecondary,
+                        fontSize = 12.sp
+                    )
+                }
+
+                etatMaj.disponible?.let { dispo ->
+                    if (dispo.nouveautes.isNotEmpty()) {
+                        Spacer(Modifier.height(8.dp))
+                        dispo.nouveautes.take(5).forEach { ligne ->
+                            Text("• $ligne", color = c.textSecondary, fontSize = 12.sp)
+                        }
+                    }
+                }
+
+                if (etatMaj.telechargement) {
+                    Spacer(Modifier.height(10.dp))
+                    LinearProgressIndicator(
+                        progress = { etatMaj.progression },
+                        modifier = Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(3.dp)),
+                        color = c.accent, trackColor = c.surface3
+                    )
+                    Text("${(etatMaj.progression * 100).toInt()} %",
+                        color = c.textSecondary, fontSize = 11.sp)
+                }
+
+                Spacer(Modifier.height(12.dp))
+                when {
+                    etatMaj.disponible != null && !etatMaj.telechargement ->
+                        SankaiButton(
+                            "⬇  Télécharger et installer",
+                            onClick = { viewModel.telechargerMaj(contexte) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    else ->
+                        SankaiButton(
+                            if (etatMaj.recherche) "Recherche…" else "🔄  Rechercher une mise à jour",
+                            onClick = { viewModel.rechercherMaj() },
+                            enabled = !etatMaj.recherche && !etatMaj.telechargement && enLigne,
+                            secondary = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                }
+
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "Android demandera toujours ta confirmation avant d'installer. " +
+                    "Aucune mise à jour ne s'installe en silence.",
+                    color = c.textDisabled, fontSize = 11.sp
+                )
+            }
+
             SectionTitle("À propos")
             SettingsCard {
                 Text("Sankai Life", color = c.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                Text("Version 1.0.0", color = c.textSecondary, fontSize = 12.sp)
+                Text("Version ${viewModel.versionInstallee}", color = c.textSecondary, fontSize = 12.sp)
                 Text("Par Souanpt", color = c.textSecondary, fontSize = 12.sp)
             }
             Spacer(Modifier.height(32.dp))

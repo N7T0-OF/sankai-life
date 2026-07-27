@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Chemins exposés par le FileProvider.
+  Uniquement le sous-dossier des mises à jour dans le cache : l'installateur
+  Android doit pouvoir lire l'APK téléchargé, rien d'autre.
+-->
+<paths>
+    <cache-path name="updates" path="updates/" />
+</paths>

@@ -9,6 +9,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.sankailife.SankaiApplication
 import com.sankailife.core.notifications.MemoAlarmScheduler
 import com.sankailife.core.notifications.SankaiNotifications
+import com.sankailife.core.update.UpdateManager
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -60,6 +61,67 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     /** Grise les liens externes hors connexion. Le reste de l'écran reste actif. */
     val isOnline: StateFlow<Boolean> = app.connectivity.isOnline
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), app.connectivity.currentlyOnline())
+
+    // ----- Mises à jour ----------------------------------------------------
+
+    data class EtatMaj(
+        val recherche: Boolean = false,
+        val telechargement: Boolean = false,
+        val progression: Float = 0f,
+        val message: String = "",
+        val disponible: UpdateManager.Maj? = null
+    )
+
+    private val _maj = MutableStateFlow(EtatMaj())
+    val maj: StateFlow<EtatMaj> = _maj
+
+    val versionInstallee: String get() = UpdateManager.versionInstallee
+
+    fun rechercherMaj() = viewModelScope.launch {
+        if (!app.connectivity.currentlyOnline()) {
+            _maj.value = EtatMaj(message = "Connexion internet requise")
+            return@launch
+        }
+        _maj.value = EtatMaj(recherche = true, message = "Recherche…")
+
+        _maj.value = when (val r = UpdateManager.rechercher()) {
+            is UpdateManager.Resultat.AJour ->
+                EtatMaj(message = "Tu es à jour (version ${r.versionActuelle})")
+            is UpdateManager.Resultat.Disponible ->
+                EtatMaj(disponible = r.maj, message = "Version ${r.maj.versionName} disponible")
+            is UpdateManager.Resultat.Erreur ->
+                EtatMaj(message = r.message)
+        }
+    }
+
+    fun telechargerMaj(context: Context) = viewModelScope.launch {
+        val maj = _maj.value.disponible ?: return@launch
+
+        // Sans cette autorisation, l'installateur s'ouvrirait pour rien.
+        if (!UpdateManager.peutInstaller(context)) {
+            UpdateManager.intentAutorisationInstallation(context)?.let {
+                runCatching { context.startActivity(it) }
+            }
+            _maj.value = _maj.value.copy(
+                message = "Autorise l'installation depuis cette source, puis relance"
+            )
+            return@launch
+        }
+
+        _maj.value = _maj.value.copy(
+            telechargement = true, progression = 0f, message = "Téléchargement…"
+        )
+
+        val erreur = UpdateManager.telechargerEtInstaller(context, maj) { p ->
+            _maj.value = _maj.value.copy(progression = p)
+        }
+
+        _maj.value = if (erreur == null) {
+            EtatMaj(message = "Installation lancée — confirme sur l'écran Android")
+        } else {
+            _maj.value.copy(telechargement = false, message = erreur)
+        }
+    }
 
     // ----- Diagnostic ------------------------------------------------------
     data class Diagnostic(
