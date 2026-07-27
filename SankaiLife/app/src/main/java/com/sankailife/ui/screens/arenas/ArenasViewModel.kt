@@ -29,14 +29,24 @@ class ArenasViewModel(application: Application) : AndroidViewModel(application) 
     private val gameRepo = GameRepository(app.database)
     private val arenaDao = app.database.arenaRewardDao()
 
-    /** État d'une arène tel que l'affiche le parcours. */
-    enum class EtatArene { RECLAMEE, A_RECLAMER, ATTEINTE, VERROUILLEE }
+    /**
+     * État de progression d'une arène.
+     *
+     * Séparé du fait qu'une récompense soit réclamable : l'arène actuelle peut
+     * très bien avoir déjà donné son lot, et une arène ancienne peut encore
+     * avoir une récompense en attente si le joueur ne l'a pas prise.
+     */
+    enum class EtatArene { TERMINEE, ACTUELLE, DEBLOQUEE, VERROUILLEE }
 
     data class LigneArene(
         val arene: Arena,
         val etat: EtatArene,
-        val estCourante: Boolean
-    )
+        val recompenseDisponible: Boolean,
+        val recompenseReclamee: Boolean
+    ) {
+        val estVerrouillee: Boolean get() = etat == EtatArene.VERROUILLEE
+        val estCourante: Boolean get() = etat == EtatArene.ACTUELLE
+    }
 
     val user: StateFlow<UserState> = userRepo.userFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UserState())
@@ -50,20 +60,23 @@ class ArenasViewModel(application: Application) : AndroidViewModel(application) 
             val courante = ArenaEngine.areneActuelle(u.level)
             ALL_ARENAS.map { arene ->
                 val atteinte = ArenaEngine.estAtteinte(arene, u.level)
+                val reclamee = arene.id in prises
                 LigneArene(
                     arene = arene,
                     etat = when {
-                        arene.id in prises -> EtatArene.RECLAMEE
-                        atteinte -> EtatArene.A_RECLAMER
-                        else -> EtatArene.VERROUILLEE
+                        !atteinte -> EtatArene.VERROUILLEE
+                        arene.id == courante.id -> EtatArene.ACTUELLE
+                        reclamee -> EtatArene.TERMINEE
+                        else -> EtatArene.DEBLOQUEE
                     },
-                    estCourante = arene.id == courante.id
+                    recompenseDisponible = atteinte && !reclamee,
+                    recompenseReclamee = reclamee
                 )
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val nombreAReclamer: StateFlow<Int> = parcours
-        .map { liste -> liste.count { it.etat == EtatArene.A_RECLAMER } }
+        .map { liste -> liste.count { it.recompenseDisponible } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     private val _toast = MutableStateFlow("")
