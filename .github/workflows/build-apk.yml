@@ -72,8 +72,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # fetch-depth 0 : sans l'historique complet, actions/checkout ne crée
+      # qu'un tag léger en local et `%(contents)` retombe alors sur le message
+      # du commit au lieu de celui du tag.
       - name: Récupérer le code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Installer le JDK 17
         uses: actions/setup-java@v4
@@ -163,12 +168,15 @@ jobs:
 
           echo "$SHA  $(basename "$APK")" > "artefacts/$(basename "$APK").sha256"
 
-          # Les notes proviennent du message du tag, une ligne par entrée.
-          CHANGELOG=$(git tag -l --format='%(contents:body)' "${GITHUB_REF_NAME}" \
-                      | grep -v '^$' | head -8 | jq -R . | jq -s .)
-          if [ "$CHANGELOG" = "[]" ]; then
-            CHANGELOG=$(git tag -l --format='%(contents:subject)' "${GITHUB_REF_NAME}" | jq -R . | jq -s .)
+          # Les notes viennent du corps du message de tag, une ligne par entrée.
+          # for-each-ref sur la référence exacte évite de dépendre de la façon
+          # dont le tag a été matérialisé localement.
+          CORPS=$(git for-each-ref "refs/tags/${GITHUB_REF_NAME}" --format='%(contents:body)')
+          if [ -z "$(echo "$CORPS" | tr -d '[:space:]')" ]; then
+            CORPS=$(git for-each-ref "refs/tags/${GITHUB_REF_NAME}" --format='%(contents:subject)')
           fi
+          CHANGELOG=$(echo "$CORPS" | grep -v '^$' | head -8 | jq -R . | jq -s .)
+          [ "$CHANGELOG" = "[]" ] && CHANGELOG='["Nouvelle version"]'
 
           jq -n \
             --argjson versionCode "$VERSION_CODE" \
