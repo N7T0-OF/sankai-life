@@ -11,7 +11,10 @@ data class UserState(
     val totalFocusMinutes: Int = 0,
     val totalAdsWatched: Int = 0,
     val totalChestsOpened: Int = 0,
-    val adCountToday: Int = 0
+    val adCountToday: Int = 0,
+    /** Nombre de modules activables simultanément. S'achète en boutique. */
+    val moduleSlots: Int = 1,
+    val focusSlots: Int = 1
 )
 
 data class DayStats(
@@ -56,6 +59,8 @@ val ALL_SHOP_ITEMS = listOf(
     ShopItem("chest_common",   "Coffre Commun",    "Pièces et items basiques",             200, 0, "chest"),
     ShopItem("chest_rare",     "Coffre Rare",      "Pièces, gemmes, boosts",               500, 0, "chest"),
     ShopItem("chest_epic",     "Coffre Épique",    "Gemmes, thèmes possibles",             0,   3, "chest"),
+    // Prix 0 volontaire : le coût d'un slot augmente à chaque achat et est
+    // recalculé à l'affichage via EconomyEngine.slotCost(). Voir ShopScreen.
     ShopItem("slot_module",    "+1 Slot Module",   "Active un module de plus",             0,   0, "upgrade"),
     ShopItem("rare_chance",    "+25% Coffre Rare", "Meilleure chance de drop",             0,   5, "upgrade")
 )

@@ -74,7 +74,10 @@ fun ShopScreen(viewModel: ShopViewModel) {
 
                     val list = when (selectedTab) { 0 -> chests; 1 -> boosts; else -> upgrades }
                     items(list) { item ->
-                        ShopItemCard(item = item, userCoins = user.coins, userGems = user.gems,
+                        // Le prix du slot module dépend du nombre déjà possédé :
+                        // on l'affiche tel qu'il sera réellement débité.
+                        val affiche = item.copy(costCoins = viewModel.coutReel(item, user))
+                        ShopItemCard(item = affiche, userCoins = user.coins, userGems = user.gems,
                             onBuy = { viewModel.purchase(item) })
                     }
                     item { Spacer(Modifier.height(24.dp)) }

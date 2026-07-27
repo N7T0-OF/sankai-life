@@ -50,8 +50,8 @@ android {
         applicationId = "com.sankailife"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 3
+        versionName = "1.2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
     }
@@ -78,8 +78,11 @@ android {
             buildConfigField("boolean", "ADMOB_IS_REAL", "false")
         }
         release {
-            isMinifyEnabled = false
-            isShrinkResources = false
+            // R8 : obscurcit le code (une décompilation ne donne plus des noms
+            // lisibles), supprime le code et les ressources inutilisés, et
+            // réduit nettement la taille de l'APK.
+            isMinifyEnabled = true
+            isShrinkResources = true
 
             manifestPlaceholders["admobAppId"] = admobProdAppId
             buildConfigField("String", "ADMOB_REWARDED_UNIT_ID", "\"$admobProdRewardedId\"")

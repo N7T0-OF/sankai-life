@@ -44,26 +44,50 @@ class ShopViewModel(application: Application) : AndroidViewModel(application) {
     val isOnline: StateFlow<Boolean> = app.connectivity.isOnline
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), app.connectivity.currentlyOnline())
 
+    /**
+     * Coût réel d'un article : celui du slot module augmente à chaque achat,
+     * il ne peut donc pas vivre en dur dans ALL_SHOP_ITEMS.
+     */
+    fun coutReel(item: ShopItem, u: UserState): Int =
+        if (item.id == "slot_module") EconomyEngine.slotCost(u.moduleSlots) else item.costCoins
+
     fun purchase(item: ShopItem) = viewModelScope.launch {
         val u = user.value
-        val canBuyCoins = item.costCoins == 0 || u.coins >= item.costCoins
-        val canBuyGems  = item.costGems  == 0 || u.gems  >= item.costGems
-        if (!canBuyCoins || !canBuyGems) { showToast("Fonds insuffisants ❌"); return@launch }
+        val prixPieces = coutReel(item, u)
 
-        if (item.costCoins > 0) { if (!userRepo.spendCoins(item.costCoins)) { showToast("Fonds insuffisants ❌"); return@launch } }
-        if (item.costGems  > 0) { if (!userRepo.spendGems(item.costGems))   { showToast("Gemmes insuffisantes ❌"); return@launch } }
+        if (prixPieces > u.coins) { showToast("Pièces insuffisantes ❌"); return@launch }
+        if (item.costGems > u.gems) { showToast("Gemmes insuffisantes ❌"); return@launch }
+
+        // Le débit vient avant la livraison : si la livraison échoue, on
+        // rembourse. L'inverse permettrait d'obtenir l'article sans payer.
+        if (prixPieces > 0 && !userRepo.spendCoins(prixPieces)) {
+            showToast("Pièces insuffisantes ❌"); return@launch
+        }
+        if (item.costGems > 0 && !userRepo.spendGems(item.costGems)) {
+            if (prixPieces > 0) userRepo.addCoins(prixPieces)
+            showToast("Gemmes insuffisantes ❌"); return@launch
+        }
 
         when (item.id) {
             "chest_common", "chest_rare", "chest_epic" -> {
                 val type = item.id.removePrefix("chest_").uppercase()
-                val added = gameRepo.addChest(type)
-                if (added) showToast("${item.name} ajouté ! 🎁")
-                else showToast("Coffres pleins (4/4) !")
+                if (gameRepo.addChest(type)) {
+                    showToast("${item.name} ajouté ! 🎁")
+                } else {
+                    // File pleine : on rembourse intégralement.
+                    if (prixPieces > 0) userRepo.addCoins(prixPieces)
+                    if (item.costGems > 0) userRepo.addGems(item.costGems)
+                    showToast("Coffres pleins (4/4) — remboursé")
+                }
             }
             "slot_module" -> {
-                val cu = app.database.userDao().getUserOnce() ?: return@launch
+                val cu = app.database.userDao().getUserOnce()
+                if (cu == null) {
+                    if (prixPieces > 0) userRepo.addCoins(prixPieces)
+                    return@launch
+                }
                 app.database.userDao().updateModuleSlots(cu.moduleSlots + 1)
-                showToast("+1 slot module débloqué ✅")
+                showToast("+1 slot module • ${cu.moduleSlots + 1} au total ✅")
             }
             else -> showToast("${item.name} acheté ✅")
         }

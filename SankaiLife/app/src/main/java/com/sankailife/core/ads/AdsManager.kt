@@ -14,6 +14,8 @@ import com.sankailife.BuildConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -71,10 +73,18 @@ object AdsManager {
     private var rewardedAd: RewardedAd? = null
     private var lastRewardAtMillis = 0L
 
+    /** Temps maximum d'attente d'une pub avant d'abandonner proprement. */
+    private const val DELAI_CHARGEMENT_MS = 8_000L
+
     private val _adReady = MutableStateFlow(false)
 
     /** true quand une pub est chargée et prête à être montrée instantanément. */
     val adReady: StateFlow<Boolean> = _adReady.asStateFlow()
+
+    private val _chargementEnCours = MutableStateFlow(false)
+
+    /** true pendant l'attente d'une pub, pour afficher un état au bouton. */
+    val chargementEnCours: StateFlow<Boolean> = _chargementEnCours.asStateFlow()
 
     /** true si le build utilise de vrais identifiants AdMob (pas ceux de test). */
     val usesRealAdUnits: Boolean get() = BuildConfig.ADMOB_IS_REAL
@@ -151,9 +161,20 @@ object AdsManager {
         val restant = cooldownRemainingSeconds()
         if (restant > 0) return@withContext AdResult.Unavailable(AdUnavailableReason.COOLDOWN)
 
-        val ad = rewardedAd
+        // Si aucune pub n'est prête, on la charge et on attend au lieu de
+        // renvoyer un échec : dire « pub en cours de chargement » puis ne rien
+        // faire oblige l'utilisateur à réappuyer au hasard.
+        var ad = rewardedAd
         if (ad == null) {
+            _chargementEnCours.value = true
             preload(activity)
+            ad = withTimeoutOrNull(DELAI_CHARGEMENT_MS) {
+                while (rewardedAd == null) delay(150)
+                rewardedAd
+            }
+            _chargementEnCours.value = false
+        }
+        if (ad == null) {
             return@withContext AdResult.Unavailable(AdUnavailableReason.NOT_LOADED)
         }
 

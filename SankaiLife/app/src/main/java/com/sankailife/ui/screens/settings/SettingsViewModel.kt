@@ -57,6 +57,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         MemoAlarmScheduler.replanifierTout(app)
     }
 
+    /** Grise les liens externes hors connexion. Le reste de l'écran reste actif. */
+    val isOnline: StateFlow<Boolean> = app.connectivity.isOnline
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), app.connectivity.currentlyOnline())
+
     // ----- Diagnostic ------------------------------------------------------
     data class Diagnostic(
         val notificationsAutorisees: Boolean = false,

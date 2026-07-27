@@ -14,6 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sankailife.core.data.db.entities.MemoProfileEntity
+import com.sankailife.core.domain.engine.EconomyEngine
 import com.sankailife.ui.components.*
 import com.sankailife.ui.navigation.Screen
 import com.sankailife.ui.theme.*
@@ -88,12 +89,17 @@ fun LifeScreen(viewModel: LifeViewModel, onNavigate: (String) -> Unit) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically) {
                     Column {
-                        Text("Slots actifs : 1 / ${user.level / 5 + 1}", color = c.textPrimary,
+                        Text("Slots modules : ${user.moduleSlots}", color = c.textPrimary,
                             fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                        Text("Débloque +1 slot tous les 5 niveaux", color = c.textSecondary, fontSize = 11.sp)
+                        Text("Prochain slot : ${EconomyEngine.slotCost(user.moduleSlots)} 🪙",
+                            color = c.textSecondary, fontSize = 11.sp)
                     }
-                    SankaiButton("Acheter", onClick = { viewModel.buyModuleSlot() },
-                        small = true, secondary = true)
+                    SankaiButton(
+                        "Acheter",
+                        onClick = { viewModel.buyModuleSlot() },
+                        enabled = user.coins >= EconomyEngine.slotCost(user.moduleSlots),
+                        small = true, secondary = true
+                    )
                 }
             }
             Spacer(Modifier.height(16.dp))

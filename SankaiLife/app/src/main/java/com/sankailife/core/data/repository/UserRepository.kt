@@ -95,6 +95,7 @@ class UserRepository(private val db: SankaiDatabase) {
         pseudo = pseudo, level = level, xp = xp, xpNext = xpNext,
         coins = coins, gems = gems, streakDays = streakDays,
         totalFocusMinutes = totalFocusMinutes, totalAdsWatched = totalAdsWatched,
-        totalChestsOpened = totalChestsOpened, adCountToday = adCountToday
+        totalChestsOpened = totalChestsOpened, adCountToday = adCountToday,
+        moduleSlots = moduleSlots, focusSlots = focusSlots
     )
 }

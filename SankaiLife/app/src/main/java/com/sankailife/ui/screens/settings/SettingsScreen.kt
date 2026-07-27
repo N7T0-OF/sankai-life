@@ -14,6 +14,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sankailife.core.haptics.LocalHaptics
 import com.sankailife.core.notifications.QuietHours
 import com.sankailife.ui.components.SankaiButton
 import com.sankailife.ui.components.SectionTitle
@@ -31,6 +32,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit) {
     val quietStart  by viewModel.quietStart.collectAsState()
     val quietEnd    by viewModel.quietEnd.collectAsState()
     val diag        by viewModel.diagnostic.collectAsState()
+    val enLigne     by viewModel.isOnline.collectAsState()
     val c = MaterialTheme.sankaiColors
     val contexte = LocalContext.current
 
@@ -151,9 +153,22 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit) {
 
             SectionTitle("Liens")
             SettingsCard {
-                SettingLink("🌐 haunt.gg/souanpt",    "Site Souanpt", enabled = true)
-                Spacer(Modifier.height(8.dp))
-                SettingLink("☕ ko-fi.com/souanpt",   "Ko-fi",         enabled = true)
+                SettingLink(
+                    url = "https://haunt.gg/souanpt",
+                    label = "Site Souanpt", emoji = "🌐", enabled = enLigne
+                )
+                SettingLink(
+                    url = "https://ko-fi.com/souanpt",
+                    label = "Soutenir sur Ko-fi", emoji = "☕", enabled = enLigne
+                )
+                if (!enLigne) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Ces liens sont les seules parties de l'app qui ont besoin " +
+                        "d'internet. Tout le reste fonctionne hors ligne.",
+                        color = c.textSecondary, fontSize = 11.sp
+                    )
+                }
             }
 
             SectionTitle("Données")
@@ -239,14 +254,57 @@ fun SettingToggle(label: String, value: Boolean, onChange: (Boolean) -> Unit) {
     }
 }
 
+/**
+ * Lien externe réellement cliquable.
+ *
+ * [url] doit être une URL complète avec son schéma : sans « https:// »,
+ * Android ne trouve aucune application capable d'ouvrir l'intent et le clic
+ * ne fait rien.
+ */
 @Composable
-fun SettingLink(url: String, label: String, enabled: Boolean) {
+fun SettingLink(url: String, label: String, emoji: String, enabled: Boolean) {
     val c = MaterialTheme.sankaiColors
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+    val contexte = LocalContext.current
+    val haptics = LocalHaptics.current
+
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .then(
+                if (enabled) Modifier.clickable {
+                    haptics.click()
+                    ouvrirLien(contexte, url)
+                } else Modifier
+            )
+            .padding(vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Column {
-            Text(label, color = if (enabled) c.textPrimary else c.textDisabled, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-            Text(url,   color = c.textSecondary, fontSize = 11.sp)
+            Text(
+                "$emoji  $label",
+                color = if (enabled) c.textPrimary else c.textDisabled,
+                fontSize = 14.sp, fontWeight = FontWeight.Medium
+            )
+            Text(
+                if (enabled) url.removePrefix("https://") else "Connexion requise",
+                color = c.textSecondary, fontSize = 11.sp
+            )
         }
-        Icon(Icons.Filled.OpenInNew, null, tint = if (enabled) c.accent else c.textDisabled, modifier = Modifier.size(18.dp))
+        Icon(
+            Icons.Filled.OpenInNew, null,
+            tint = if (enabled) c.accent else c.textDisabled,
+            modifier = Modifier.size(18.dp)
+        )
     }
+}
+
+private fun ouvrirLien(contexte: android.content.Context, url: String) {
+    val intent = android.content.Intent(
+        android.content.Intent.ACTION_VIEW,
+        android.net.Uri.parse(url)
+    ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+    // Aucun navigateur installé : on échoue en silence plutôt que de planter.
+    runCatching { contexte.startActivity(intent) }
 }

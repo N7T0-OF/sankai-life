@@ -1,8 +1,11 @@
 package com.sankailife.ui.navigation
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -16,6 +19,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -32,13 +37,23 @@ data class NavItem(
 )
 
 val bottomNavItems = listOf(
-    NavItem(Screen.Shop.route,       "Shop",   Icons.Filled.ShoppingCart,  Icons.Outlined.ShoppingCart),
-    NavItem(Screen.Life.route,       "Vie",    Icons.Filled.Bolt,           Icons.Outlined.Bolt),
-    NavItem(Screen.Home.route,       "Accueil",Icons.Filled.Home,           Icons.Outlined.Home),
-    NavItem(Screen.Challenges.route, "Défis",  Icons.Filled.TrackChanges,   Icons.Outlined.TrackChanges),
-    NavItem(Screen.Profile.route,    "Profil", Icons.Filled.Person,         Icons.Outlined.Person)
+    NavItem(Screen.Shop.route,       "Shop",    Icons.Filled.ShoppingCart, Icons.Outlined.ShoppingCart),
+    NavItem(Screen.Life.route,       "Vie",     Icons.Filled.Bolt,         Icons.Outlined.Bolt),
+    NavItem(Screen.Home.route,       "Accueil", Icons.Filled.Home,         Icons.Outlined.Home),
+    NavItem(Screen.Challenges.route, "Défis",   Icons.Filled.TrackChanges, Icons.Outlined.TrackChanges),
+    NavItem(Screen.Profile.route,    "Profil",  Icons.Filled.Person,       Icons.Outlined.Person)
 )
 
+/**
+ * Barre de navigation flottante, style « verre ».
+ *
+ * Note technique : Compose ne sait pas flouter ce qui se trouve *derrière* un
+ * composant — `Modifier.blur` ne floute que le contenu du composant lui-même.
+ * L'effet de verre est donc obtenu par translucidité, dégradé et liseré clair,
+ * ce qui est exactement ce que font la plupart des applications. Un vrai flou
+ * d'arrière-plan demanderait une bibliothèque dédiée et coûterait cher en GPU
+ * sur les téléphones d'entrée de gamme.
+ */
 @Composable
 fun SankaiBottomNavBar(
     currentRoute: String?,
@@ -48,31 +63,64 @@ fun SankaiBottomNavBar(
 ) {
     val c = MaterialTheme.sankaiColors
     val haptics = LocalHaptics.current
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(c.surface1)
+            .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
-        Divider(color = c.border, thickness = 0.5.dp)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 4.dp, top = 4.dp),
+                .clip(RoundedCornerShape(26.dp))
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            c.surface2.copy(alpha = 0.94f),
+                            c.surface1.copy(alpha = 0.98f)
+                        )
+                    )
+                )
+                // Liseré clair en haut : c'est lui qui donne l'impression
+                // d'épaisseur et de matière translucide.
+                .border(
+                    width = 1.dp,
+                    brush = Brush.verticalGradient(
+                        listOf(
+                            Color.White.copy(alpha = 0.10f),
+                            Color.White.copy(alpha = 0.02f)
+                        )
+                    ),
+                    shape = RoundedCornerShape(26.dp)
+                )
+                .padding(horizontal = 4.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
             bottomNavItems.forEach { item ->
                 val isSelected = currentRoute == item.route
-                val scale by animateFloatAsState(if (isSelected) 1.1f else 1f, label = "scale")
-                val iconColor by animateColorAsState(
-                    if (isSelected) c.accent else c.textSecondary, label = "color"
-                )
                 val badge = if (item.route == Screen.Challenges.route) challengeBadge else item.badgeCount
+
+                val scale by animateFloatAsState(
+                    targetValue = if (isSelected) 1.08f else 1f,
+                    animationSpec = spring(dampingRatio = 0.55f),
+                    label = "scale"
+                )
+                val iconColor by animateColorAsState(
+                    if (isSelected) c.accent else c.textSecondary, label = "iconColor"
+                )
+                val pastilleAlpha by animateFloatAsState(
+                    if (isSelected) 0.16f else 0f, label = "pastille"
+                )
+                val padH by animateDpAsState(
+                    if (isSelected) 16.dp else 12.dp, label = "padH"
+                )
 
                 Box(
                     modifier = Modifier
                         .scale(scale)
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(c.accent.copy(alpha = pastilleAlpha))
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
@@ -80,24 +128,26 @@ fun SankaiBottomNavBar(
                             if (!isSelected) haptics.click()
                             onNavigate(item.route)
                         }
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                        .padding(horizontal = padH, vertical = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         BadgedBox(badge = {
-                            if (badge > 0) Badge(containerColor = MaterialTheme.colorScheme.error) {
-                                Text(badge.toString(), fontSize = 9.sp)
+                            if (badge > 0) {
+                                Badge(containerColor = MaterialTheme.colorScheme.error) {
+                                    Text(badge.toString(), fontSize = 9.sp)
+                                }
                             }
                         }) {
                             Icon(
                                 imageVector = if (isSelected) item.iconSelected else item.iconUnselected,
                                 contentDescription = item.label,
                                 tint = iconColor,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(23.dp)
                             )
                         }
                         if (showLabels) {
-                            Spacer(Modifier.height(2.dp))
+                            Spacer(Modifier.height(3.dp))
                             Text(
                                 item.label,
                                 color = iconColor,
