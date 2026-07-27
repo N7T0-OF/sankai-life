@@ -13,6 +13,7 @@ import com.sankailife.core.data.repository.UserRepository
 import com.sankailife.core.domain.engine.ChestEngine
 import com.sankailife.core.domain.engine.EconomyEngine
 import com.sankailife.core.domain.model.ALL_SHOP_ITEMS
+import java.time.LocalDate
 import com.sankailife.core.domain.model.ShopItem
 import com.sankailife.core.domain.model.UserState
 import kotlinx.coroutines.delay
@@ -44,12 +45,39 @@ class ShopViewModel(application: Application) : AndroidViewModel(application) {
     val isOnline: StateFlow<Boolean> = app.connectivity.isOnline
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), app.connectivity.currentlyOnline())
 
+    /** Remise appliquée à l'offre du jour. */
+    private val remiseOffre = 0.25f
+
     /**
-     * Coût réel d'un article : celui du slot module augmente à chaque achat,
-     * il ne peut donc pas vivre en dur dans ALL_SHOP_ITEMS.
+     * Article mis en avant, choisi à partir de la date.
+     *
+     * Déterministe et sans état : le même article toute la journée, différent
+     * demain, identique après un redémarrage. Un tirage aléatoire stocké
+     * aurait demandé une colonne en base et se serait désynchronisé au
+     * changement de fuseau horaire.
      */
-    fun coutReel(item: ShopItem, u: UserState): Int =
-        if (item.id == "slot_module") EconomyEngine.slotCost(u.moduleSlots) else item.costCoins
+    val offreDuJour: ShopItem? =
+        ALL_SHOP_ITEMS.filter { it.costCoins > 0 }.let { eligibles ->
+            if (eligibles.isEmpty()) null
+            else eligibles[(LocalDate.now().toEpochDay() % eligibles.size).toInt()]
+        }
+
+    fun estOffreDuJour(item: ShopItem): Boolean = item.id == offreDuJour?.id
+
+    /**
+     * Coût réel d'un article.
+     *
+     * Le slot module augmente à chaque achat, il ne peut donc pas vivre en dur
+     * dans ALL_SHOP_ITEMS. Et la remise est appliquée ici, pas seulement à
+     * l'affichage : sinon le prix montré mentirait sur ce qui sera débité.
+     */
+    fun coutReel(item: ShopItem, u: UserState): Int {
+        val base = if (item.id == "slot_module") EconomyEngine.slotCost(u.moduleSlots)
+                   else item.costCoins
+        return if (estOffreDuJour(item) && base > 0) {
+            (base * (1f - remiseOffre)).toInt().coerceAtLeast(1)
+        } else base
+    }
 
     fun purchase(item: ShopItem) = viewModelScope.launch {
         val u = user.value

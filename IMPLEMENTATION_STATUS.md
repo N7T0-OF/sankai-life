@@ -36,7 +36,8 @@ Dernière mise à jour : build `assembleDebug` et `assembleRelease` verts.
 | 30 | Système de cartes à états + tokens | ✅ terminé | `ui/components/SankaiCardState.kt` | 6 états partagés par tous les écrans |
 | 31 | États vides / erreur / chargement | ✅ terminé | `ui/components/StateCards.kt` | Erreur toujours accompagnée d'une action |
 | 32 | Défis en tableau de missions | ✅ terminé | `ChallengesScreen.kt`, `ChallengesViewModel.kt` | Bandeau, compte à rebours, tri par réclamable |
-| 33 | Refonte Boutique / Mode Vie / Focus / Mémo / Coffres / Stats / Paramètres | ❌ à faire | — | Sections 9, 10, 12 à 16 du complément UI |
+| 33 | Refonte Boutique | ✅ terminé | `ShopScreen.kt`, `ShopViewModel.kt` | Grille, offre du jour sans état, remise réellement appliquée |
+| 34 | Refonte Mode Vie / Focus / Mémo / Coffres / Stats / Paramètres | ❌ à faire | — | Sections 10, 12 à 16 du complément UI |
 | 18 | Liens externes cliquables | ✅ terminé | `SettingsScreen.kt` | Grisés hors connexion |
 | 19 | Slot module payant | ✅ terminé | `Models.kt`, `ShopViewModel.kt`, `LifeScreen.kt` | Prix progressif + remboursement si échec |
 | 20 | Bouton pub bloqué | ✅ terminé | `core/ads/AdsManager.kt` | Attente du chargement, 8 s max |
