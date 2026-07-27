@@ -72,13 +72,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # fetch-depth 0 : sans l'historique complet, actions/checkout ne crée
-      # qu'un tag léger en local et `%(contents)` retombe alors sur le message
-      # du commit au lieu de celui du tag.
       - name: Récupérer le code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Installer le JDK 17
         uses: actions/setup-java@v4
@@ -159,6 +154,8 @@ jobs:
       # noms de version textuels est fragile, et le SHA-256 permet à l'app de
       # refuser un fichier corrompu ou substitué.
       - name: Générer update.json et l'empreinte
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           APK="artefacts/SankaiLife-${GITHUB_REF_NAME}.apk"
           VERSION_CODE=$(grep -oE 'versionCode *= *[0-9]+' SankaiLife/app/build.gradle.kts | grep -oE '[0-9]+' | head -1)
@@ -168,15 +165,26 @@ jobs:
 
           echo "$SHA  $(basename "$APK")" > "artefacts/$(basename "$APK").sha256"
 
-          # Les notes viennent du corps du message de tag, une ligne par entrée.
-          # for-each-ref sur la référence exacte évite de dépendre de la façon
-          # dont le tag a été matérialisé localement.
-          CORPS=$(git for-each-ref "refs/tags/${GITHUB_REF_NAME}" --format='%(contents:body)')
-          if [ -z "$(echo "$CORPS" | tr -d '[:space:]')" ]; then
-            CORPS=$(git for-each-ref "refs/tags/${GITHUB_REF_NAME}" --format='%(contents:subject)')
+          # Notes de version : lues via l'API GitHub, PAS via git.
+          #
+          # actions/checkout ne matérialise pas l'objet de tag annoté, même
+          # avec fetch-depth 0 : `git for-each-ref %(contents)` retombe alors
+          # silencieusement sur le message du commit, et le changelog affiché
+          # dans l'application devient du texte destiné à l'historique Git.
+          # L'API renvoie le message du tag lui-même, sans ambiguïté.
+          CORPS=""
+          REF=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${GITHUB_REF_NAME}" 2>/dev/null || echo '{}')
+          TYPE=$(echo "$REF" | jq -r '.object.type // empty')
+          SHA_TAG=$(echo "$REF" | jq -r '.object.sha // empty')
+          if [ "$TYPE" = "tag" ] && [ -n "$SHA_TAG" ]; then
+            # tail -n +2 retire la première ligne, qui sert de titre.
+            CORPS=$(gh api "repos/${GITHUB_REPOSITORY}/git/tags/${SHA_TAG}" --jq '.message' | tail -n +2)
           fi
+
           CHANGELOG=$(echo "$CORPS" | grep -v '^$' | head -8 | jq -R . | jq -s .)
-          [ "$CHANGELOG" = "[]" ] && CHANGELOG='["Nouvelle version"]'
+          if [ "$CHANGELOG" = "[]" ] || [ -z "$CHANGELOG" ]; then
+            CHANGELOG='["Mise à jour de Sankai Life"]'
+          fi
 
           jq -n \
             --argjson versionCode "$VERSION_CODE" \
