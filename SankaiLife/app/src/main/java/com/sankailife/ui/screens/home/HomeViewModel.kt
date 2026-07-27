@@ -16,6 +16,7 @@ import com.sankailife.core.domain.engine.ChestEngine
 import com.sankailife.core.domain.engine.EconomyEngine
 import com.sankailife.core.domain.engine.XpEngine
 import com.sankailife.core.domain.model.UserState
+import com.sankailife.ui.navigation.Screen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -56,6 +57,78 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     /** Sert uniquement à griser le bouton pub — le reste de l'écran marche hors ligne. */
     val isOnline: StateFlow<Boolean> = app.connectivity.isOnline
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), app.connectivity.currentlyOnline())
+
+    /**
+     * Carte unique affichée en zone C de l'accueil.
+     *
+     * Une seule à la fois : montrer Mémo, Focus et Objectifs simultanément
+     * remplirait l'écran sans aider à décider quoi faire.
+     */
+    data class ModuleContextuel(
+        val titre: String,
+        val ligne1: String,
+        val ligne2: String,
+        val libelleBouton: String,
+        val route: String,
+        val emoji: String
+    )
+
+    val moduleContextuel: StateFlow<ModuleContextuel> =
+        combine(
+            app.database.memoDao().getAllProfiles(),
+            app.database.objectiveDao().countPending(),
+            chests
+        ) { memos, objectifsEnCours, coffres ->
+            val coffrePret = coffres.firstOrNull { it.isReady }
+            val memoActif = memos.firstOrNull { it.isActive && it.nextTriggerAtMillis > 0 }
+
+            when {
+                // Un coffre prêt est la seule chose qui se périme : priorité.
+                coffrePret != null -> ModuleContextuel(
+                    titre = "COFFRE PRÊT",
+                    ligne1 = "Coffre ${coffrePret.type.lowercase()}",
+                    ligne2 = "Ouvre-le depuis la barre ci-dessous",
+                    libelleBouton = "Voir les coffres",
+                    route = Screen.Home.route,
+                    emoji = "🎁"
+                )
+                memoActif != null -> ModuleContextuel(
+                    titre = "MÉMO ACTIF",
+                    ligne1 = memoActif.name.ifBlank { "Mémo" },
+                    ligne2 = "Prochaine notification : " + formaterHeure(memoActif.nextTriggerAtMillis),
+                    libelleBouton = "Ouvrir",
+                    route = Screen.Memo.route,
+                    emoji = "📖"
+                )
+                objectifsEnCours > 0 -> ModuleContextuel(
+                    titre = "OBJECTIFS",
+                    ligne1 = "$objectifsEnCours en cours",
+                    ligne2 = "Valide-en un pour gagner 30 XP",
+                    libelleBouton = "Ouvrir",
+                    route = Screen.Objectives.route,
+                    emoji = "🎯"
+                )
+                // Repli : toujours proposer quelque chose plutôt qu'un vide.
+                else -> ModuleContextuel(
+                    titre = "FOCUS",
+                    ligne1 = "25 minutes",
+                    ligne2 = "Aucune session en cours",
+                    libelleBouton = "Commencer",
+                    route = Screen.Focus.route,
+                    emoji = "⏱️"
+                )
+            }
+        }.stateIn(
+            viewModelScope, SharingStarted.WhileSubscribed(5000),
+            ModuleContextuel("FOCUS", "25 minutes", "Aucune session en cours",
+                "Commencer", Screen.Focus.route, "⏱️")
+        )
+
+    private fun formaterHeure(millis: Long): String =
+        if (millis <= 0) "non planifiée"
+        else java.time.Instant.ofEpochMilli(millis)
+            .atZone(java.time.ZoneId.systemDefault())
+            .format(java.time.format.DateTimeFormatter.ofPattern("HH'h'mm"))
 
     /** Pastille de la carte de progression : récompenses d'arène en attente. */
     val arenesAReclamer: StateFlow<Int> =

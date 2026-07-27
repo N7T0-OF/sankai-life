@@ -34,19 +34,17 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             ArenaEngine.recompensesAReclamer(u.level, prises.toSet()).size
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
-    fun getThemes(unlockedIds: String, level: Int): List<Pair<Theme, Boolean>> {
-        val unlocked = unlockedIds.split(",").toSet()
-        return ALL_THEMES.map { theme ->
-            val isUnlocked = theme.id in unlocked ||
-                    (theme.unlockType == "level" && level >= theme.unlockLevel) ||
-                    theme.unlockType == "default"
-            Pair(theme, isUnlocked)
+    /**
+     * Nom du thème équipé, pour la carte résumé.
+     * La collection complète et l'équipement vivent dans CustomizationViewModel :
+     * le profil n'affiche plus qu'un aperçu.
+     */
+    val nomThemeEquipe: StateFlow<String> = rawUser
+        .map { e ->
+            val id = e?.equippedThemeId ?: "default"
+            ALL_THEMES.firstOrNull { it.id == id }?.name ?: "Default Or"
         }
-    }
-
-    fun equipTheme(themeId: String) = viewModelScope.launch {
-        app.database.userDao().updateTheme(themeId)
-    }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "Default Or")
 
     companion object {
         fun factory(app: SankaiApplication) = viewModelFactory { initializer { ProfileViewModel(app) } }

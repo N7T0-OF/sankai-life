@@ -12,6 +12,9 @@ import com.sankailife.SankaiApplication
 import com.sankailife.ui.screens.arenas.ArenasScreen
 import com.sankailife.ui.screens.arenas.ArenasViewModel
 import com.sankailife.ui.screens.challenges.ChallengesScreen
+import com.sankailife.ui.screens.customization.CustomizationScreen
+import com.sankailife.ui.screens.customization.CustomizationViewModel
+import com.sankailife.ui.screens.profile.AllStatsScreen
 import com.sankailife.ui.screens.challenges.ChallengesViewModel
 import com.sankailife.ui.screens.home.HomeScreen
 import com.sankailife.ui.screens.home.HomeViewModel
@@ -50,7 +53,8 @@ fun SankaiNavGraph() {
 
     val noBottomBarRoutes = setOf(
         Screen.Settings.route, Screen.MemoEditor.route,
-        Screen.Objectives.route, Screen.Flashcards.route, Screen.Arenas.route
+        Screen.Objectives.route, Screen.Flashcards.route, Screen.Arenas.route,
+        Screen.Customization.route, Screen.AllStats.route
     )
     val showBottom = currentRoute !in noBottomBarRoutes
 
@@ -107,6 +111,15 @@ fun SankaiNavGraph() {
                     viewModel = vm,
                     onBack = { navController.popBackStack() }
                 )
+            }
+            composable(Screen.Customization.route) {
+                val vm: CustomizationViewModel =
+                    viewModel(factory = CustomizationViewModel.factory(app))
+                CustomizationScreen(viewModel = vm, onBack = { navController.popBackStack() })
+            }
+            composable(Screen.AllStats.route) {
+                val vm: ProfileViewModel = viewModel(factory = ProfileViewModel.factory(app))
+                AllStatsScreen(viewModel = vm, onBack = { navController.popBackStack() })
             }
             composable(Screen.Arenas.route) {
                 val vm: ArenasViewModel = viewModel(factory = ArenasViewModel.factory(app))

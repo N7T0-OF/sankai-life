@@ -25,10 +25,8 @@ fun ProfileScreen(viewModel: ProfileViewModel, onNavigate: (String) -> Unit) {
     val user    by viewModel.user.collectAsState()
     val rawUser by viewModel.rawUser.collectAsState()
     val arenesAReclamer by viewModel.arenesAReclamer.collectAsState()
+    val nomThemeEquipe by viewModel.nomThemeEquipe.collectAsState()
     val c = MaterialTheme.sankaiColors
-
-    val themes = viewModel.getThemes(rawUser?.unlockedThemeIds ?: "default", user.level)
-    val equippedTheme = rawUser?.equippedThemeId ?: "default"
 
     Column(Modifier.fillMaxSize().background(c.background)) {
         ResourceBar(user.level, user.xp, user.xpNext, user.coins, user.gems)
@@ -66,51 +64,52 @@ fun ProfileScreen(viewModel: ProfileViewModel, onNavigate: (String) -> Unit) {
                 onVoirParcours = { onNavigate(Screen.Arenas.route) }
             )
 
+            // Quatre statistiques seulement : au-delà, l'écran devient un
+            // tableau de bord et on ne lit plus rien. Le reste est à un clic.
             SectionTitle("Statistiques")
-            val stats = listOf(
-                Triple("${user.totalAdsWatched}", "Pubs vues", c.textPrimary),
-                Triple("${user.totalChestsOpened}", "Coffres", CoinColor),
+            val principales = listOf(
+                Triple("${user.streakDays}j", "Série", WarningAmber),
                 Triple("${user.totalFocusMinutes / 60}h${user.totalFocusMinutes % 60}", "Focus", AccentViolet),
-                Triple("${user.streakDays}j", "Streak", WarningAmber),
-                Triple("${rawUser?.totalCoinsEarned ?: 0}🪙", "Gagnées", SuccessGreen),
-                Triple("${rawUser?.totalCoinsSpent ?: 0}🪙", "Dépensées", DangerRed)
+                Triple("${user.totalChestsOpened}", "Coffres", CoinColor),
+                Triple("${user.totalAdsWatched}", "Pubs vues", SuccessGreen)
             )
-            @Suppress("UNCHECKED_CAST")
-            val chunks = stats.chunked(3)
-            chunks.forEach { row ->
-                Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    row.forEach { (value, label, color) ->
+            principales.chunked(2).forEach { ligne ->
+                Row(Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ligne.forEach { (valeur, libelle, couleur) ->
                         Box(Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(c.surface2)
                             .border(0.5.dp, c.border, RoundedCornerShape(12.dp)).padding(12.dp)) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                                Text(value, color = color, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                                Text(label, color = c.textSecondary, fontSize = 10.sp)
+                            Column(horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.fillMaxWidth()) {
+                                Text(valeur, color = couleur, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                                Text(libelle, color = c.textSecondary, fontSize = 10.sp)
                             }
                         }
                     }
                 }
             }
+            SankaiButton("Voir toutes les statistiques",
+                onClick = { onNavigate(Screen.AllStats.route) },
+                secondary = true, small = true, modifier = Modifier.fillMaxWidth())
 
-            SectionTitle("Thèmes (${themes.count { it.second }} / ${themes.size})")
-            themes.forEach { (theme, isUnlocked) ->
-                ThemeRow(theme = theme, isUnlocked = isUnlocked, isEquipped = theme.id == equippedTheme,
-                    onEquip = { viewModel.equipTheme(theme.id) })
-                Spacer(Modifier.height(6.dp))
-            }
-
-            SectionTitle("Ko-fi")
+            // La collection complète vit dans son propre écran : l'afficher
+            // ici transformait le profil en catalogue, majoritairement
+            // composé d'éléments verrouillés.
+            SectionTitle("Personnalisation")
             Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(c.surface2)
-                .border(1.dp, if (user.level >= 20) AccentGold.copy(0.5f) else c.border, RoundedCornerShape(16.dp))
+                .border(1.dp, c.border, RoundedCornerShape(16.dp))
+                .clickable { onNavigate(Screen.Customization.route) }
                 .padding(14.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("☕", fontSize = 28.sp)
+                    Text("🎨", fontSize = 26.sp)
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text("Clé Ko-fi", color = c.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                        Text("Accès produit exclusif Souanpt", color = c.textSecondary, fontSize = 12.sp)
-                        Text(if (user.level >= 20) "Débloqué ✅" else "Niveau 20 requis (${20 - user.level} niveaux restants)",
-                            color = if (user.level >= 20) SuccessGreen else c.textSecondary, fontSize = 11.sp)
+                        Text("Thème équipé", color = c.textSecondary, fontSize = 11.sp)
+                        Text(nomThemeEquipe, color = c.textPrimary,
+                            fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     }
+                    Text("Personnaliser", color = c.accent,
+                        fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
 

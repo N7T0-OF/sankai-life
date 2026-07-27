@@ -37,6 +37,7 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
     val chestRw by viewModel.chestReward.collectAsState()
     val enLigne by viewModel.isOnline.collectAsState()
     val arenesAReclamer by viewModel.arenesAReclamer.collectAsState()
+    val moduleContextuel by viewModel.moduleContextuel.collectAsState()
     val c = MaterialTheme.sankaiColors
 
     // AdMob a besoin de l'Activity pour afficher une pub plein écran.
@@ -53,11 +54,16 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
             // Resource bar
             ResourceBar(user.level, user.xp, user.xpNext, user.coins, user.gems)
 
+            // L'accueil ne défile pas en usage normal : tout tient dans la
+            // hauteur disponible. Le défilement reste possible en secours,
+            // sans quoi une très grande taille de police rendrait le bas de
+            // l'écran inatteignable — c'est un problème d'accessibilité, pas
+            // un cas marginal.
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .verticalScroll(rememberScrollState())
-                    .padding(16.dp)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
                 // Header
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
@@ -70,38 +76,29 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
                     StreakBadge(user.streakDays)
                 }
 
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(14.dp))
 
-                // Action du jour
-                SectionTitle("Action du jour")
-                SankaiCard {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(AccentViolet.copy(0.2f)),
-                            contentAlignment = Alignment.Center) {
-                            Icon(Icons.Filled.TrackChanges, null, tint = AccentViolet, modifier = Modifier.size(24.dp))
-                        }
-                        Spacer(Modifier.width(12.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text("Session Focus recommandée", color = c.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                            Text("25 min • +50 XP après", color = c.textSecondary, fontSize = 12.sp)
-                        }
-                    }
-                    Spacer(Modifier.height(14.dp))
-                    SankaiButton("▶  Commencer", onClick = { onNavigate(Screen.Focus.route) },
-                        modifier = Modifier.fillMaxWidth())
-                }
-
-                // Progression : où j'en suis, quelle est la prochaine étape.
-                SectionTitle("Progression")
+                // Zone B — l'arène occupe l'espace disponible restant, ce qui
+                // fait d'elle l'élément visuel principal sans hauteur figée.
                 CarteResumeArene(
                     niveau = user.level,
                     nombreAReclamer = arenesAReclamer,
                     onVoirParcours = { onNavigate(Screen.Arenas.route) }
                 )
 
-                // Regarder une pub reste accessible, mais comme un bonus
-                // discret plutôt que comme une action mise en avant.
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(12.dp))
+
+                // Zone C — une seule carte contextuelle, selon ce qui est en
+                // cours. Afficher Mémo, Focus et Objectifs en même temps
+                // remplirait l'écran sans aider à choisir.
+                CarteModuleContextuel(
+                    module = moduleContextuel,
+                    onOuvrir = { route -> onNavigate(route) }
+                )
+
+                Spacer(Modifier.height(10.dp))
+
+                // Bonus discret, volontairement en bas et en secondaire.
                 SankaiButton(
                     text = when {
                         !enLigne -> "🔌 Pub indisponible hors ligne"
@@ -114,8 +111,6 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
                     small = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-
-                Spacer(Modifier.height(16.dp))
             }
 
             // Barre de coffres, ancrée en bas : une récompense en attente doit
@@ -141,6 +136,45 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
                 Text(toast, color = c.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
             }
         }
+    }
+}
+
+/** Zone C de l'accueil : la seule carte de module affichée à la fois. */
+@Composable
+fun CarteModuleContextuel(
+    module: HomeViewModel.ModuleContextuel,
+    onOuvrir: (String) -> Unit
+) {
+    val c = MaterialTheme.sankaiColors
+    SankaiCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier.size(42.dp).clip(RoundedCornerShape(12.dp))
+                    .background(c.accent.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(module.emoji, fontSize = 20.sp)
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    module.titre, color = c.textSecondary, fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp
+                )
+                Text(
+                    module.ligne1, color = c.textPrimary,
+                    fontSize = 15.sp, fontWeight = FontWeight.SemiBold
+                )
+                Text(module.ligne2, color = c.textSecondary, fontSize = 12.sp)
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        SankaiButton(
+            module.libelleBouton,
+            onClick = { onOuvrir(module.route) },
+            small = true,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 
