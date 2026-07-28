@@ -68,4 +68,35 @@ interface GardenDao {
     /** Nettoie les cultures récoltées anciennes pour borner la table. */
     @Query("DELETE FROM garden_crop WHERE recoltee = 1 AND plantedAtMillis < :avant")
     suspend fun purger(avant: Long)
+
+    // --- Défi souvenir ----------------------------------------------------
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun enregistrerNotification(defi: MemoChallengeEntity): Long
+
+    /** Dernière notification non encore transformée en défi réclamé. */
+    @Query("""
+        SELECT * FROM memo_challenge
+        WHERE reclame = 0 AND envoyeALeMillis >= :depuis
+        ORDER BY envoyeALeMillis DESC LIMIT 1
+    """)
+    suspend fun dernierDefiDisponible(depuis: Long): MemoChallengeEntity?
+
+    @Query("""
+        SELECT * FROM memo_challenge
+        WHERE reclame = 0 AND envoyeALeMillis >= :depuis
+        ORDER BY envoyeALeMillis DESC LIMIT 1
+    """)
+    fun observerDefiDisponible(depuis: Long): Flow<MemoChallengeEntity?>
+
+    /**
+     * Marque un défi comme réclamé.
+     * La clause `reclame = 0` fait office de verrou : un second appel ne
+     * modifie aucune ligne et renvoie 0, ce qui empêche le double crédit.
+     */
+    @Query("UPDATE memo_challenge SET reclame = 1 WHERE id = :id AND reclame = 0")
+    suspend fun marquerDefiReclame(id: Long): Int
+
+    @Query("DELETE FROM memo_challenge WHERE envoyeALeMillis < :avant")
+    suspend fun purgerDefis(avant: Long)
 }

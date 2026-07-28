@@ -110,13 +110,32 @@ class GardenViewModel(application: Application) : AndroidViewModel(application) 
         return ALL_SEEDS.filter { it.areneRequise <= arene }
     }
 
+    private val _defi = MutableStateFlow<MemoChallengeEngine.Defi?>(null)
+    val defi: StateFlow<MemoChallengeEngine.Defi?> = _defi
+
     init {
         viewModelScope.launch {
             val verdict = repo.ouvrirJardin()
             TrustedTimeEngine.message(verdict)?.let { afficher(it) }
+            _defi.value = runCatching { repo.defiSouvenir() }.getOrNull()
             _chargement.value = false
         }
     }
+
+    /** Répond au défi souvenir. Une seule réponse est prise en compte. */
+    fun repondreDefi(reponse: String) = viewModelScope.launch {
+        val defiCourant = _defi.value ?: return@launch
+        val reussi = reponse == defiCourant.bonneReponse
+        val recompense = repo.repondreDefiSouvenir(defiCourant.challengeId, reussi)
+
+        _defi.value = null
+        afficher(
+            if (reussi) "Souvenir exact • +${recompense.eau} 💧 +${recompense.pieces} 🪙"
+            else "Ce n'était pas celle-là. Elle reviendra."
+        )
+    }
+
+    fun ignorerDefi() { _defi.value = null }
 
     fun nettoyer(plotId: Int) = viewModelScope.launch {
         if (repo.nettoyer(plotId)) afficher("Parcelle nettoyée")

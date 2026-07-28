@@ -54,6 +54,23 @@ data class GardenPlotEntity(
 )
 
 /**
+ * Trace d'une notification mémo envoyée, support du défi souvenir.
+ *
+ * Une ligne est créée à chaque notification réellement partie. Le drapeau
+ * [reclame] est ce qui empêche de rejouer indéfiniment le même souvenir.
+ */
+@Entity(tableName = "memo_challenge")
+data class MemoChallengeEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0L,
+    val profileId: Long = 0L,
+    val lineId: Long = 0L,
+    val texte: String = "",
+    val nomModule: String = "",
+    val envoyeALeMillis: Long = 0L,
+    val reclame: Boolean = false
+)
+
+/**
  * Une culture en cours ou récoltée.
  *
  * `minutesCumulees` est recalculé à chaque ouverture depuis l'horloge de

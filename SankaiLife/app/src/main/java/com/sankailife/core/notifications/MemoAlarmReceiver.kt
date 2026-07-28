@@ -6,6 +6,7 @@ import android.content.Intent
 import com.sankailife.core.data.db.SankaiDatabase
 import com.sankailife.core.data.preferences.AppPreferences
 import com.sankailife.core.domain.engine.MemoEngine
+import com.sankailife.core.garden.data.MemoChallengeEntity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -78,5 +79,19 @@ class MemoAlarmReceiver : BroadcastReceiver() {
         SankaiNotifications.afficherMemo(context, profileId, nomModule, texte)
         dao.updateHistory(profileId, MemoEngine.updateHistory(historique, choisie))
         dao.updateLastNotified(profileId, System.currentTimeMillis())
+
+        // Trace pour le défi souvenir du jardin. Enregistrée seulement après
+        // l'envoi réel : un défi ne doit exister que si la phrase a été vue.
+        runCatching {
+            SankaiDatabase.getDatabase(context).gardenDao().enregistrerNotification(
+                MemoChallengeEntity(
+                    profileId = profileId,
+                    lineId = choisie,
+                    texte = texte,
+                    nomModule = nomModule,
+                    envoyeALeMillis = System.currentTimeMillis()
+                )
+            )
+        }
     }
 }

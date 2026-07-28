@@ -227,6 +227,75 @@ class GardenRepository(
         return gain
     }
 
+    // --- Défi souvenir ----------------------------------------------------
+
+    /**
+     * Prépare le défi lié à la dernière notification, s'il y en a un.
+     * @return null si aucune notification récente n'est en attente.
+     */
+    suspend fun defiSouvenir(): MemoChallengeEngine.Defi? {
+        val maintenant = clock.now().toEpochMilli()
+        val limite = maintenant - MemoChallengeEngine.VALIDITE_HEURES * 3_600_000
+        val trace = dao.dernierDefiDisponible(limite) ?: return null
+
+        if (!MemoChallengeEngine.estProposable(trace.reclame, trace.envoyeALeMillis, maintenant)) {
+            return null
+        }
+
+        // Les leurres viennent du même module : piocher ailleurs rendrait la
+        // bonne réponse reconnaissable au simple ton de la phrase.
+        val autres = db.memoDao().getLinesOnce(trace.profileId).map { it.text }
+        if (autres.size < 2) return null
+
+        return MemoChallengeEngine.Defi(
+            challengeId = trace.id,
+            nomModule = trace.nomModule,
+            bonneReponse = trace.texte,
+            options = MemoChallengeEngine.construireOptions(trace.texte, autres)
+        )
+    }
+
+    /**
+     * Enregistre la réponse au défi.
+     *
+     * Le marquage sert de verrou : la mise à jour ne touche une ligne que si
+     * elle n'était pas déjà réclamée. Un double appui ne crédite donc rien
+     * une seconde fois.
+     *
+     * @return la récompense réellement accordée.
+     */
+    suspend fun repondreDefiSouvenir(
+        challengeId: Long,
+        reussi: Boolean
+    ): MemoChallengeEngine.Recompense {
+        val aucune = MemoChallengeEngine.Recompense(0, 0)
+        if (dao.marquerDefiReclame(challengeId) == 0) return aucune
+
+        val recompense = MemoChallengeEngine.recompense(reussi)
+        if (recompense.eau > 0) {
+            dao.etat()?.let {
+                dao.sauverEtat(it.copy(eau = LearningRewardEngine.ajouterEau(it.eau, recompense.eau)))
+            }
+        }
+        if (recompense.pieces > 0) userRepo.addCoins(recompense.pieces)
+        return recompense
+    }
+
+    /**
+     * Bonus de croissance offert par une session Focus terminée.
+     * Appliqué à toutes les cultures en cours : la concentration profite au
+     * jardin entier, pas à une parcelle choisie.
+     */
+    suspend fun appliquerBonusFocus() {
+        for (culture in dao.culturesEnCours()) {
+            dao.majCulture(
+                culture.copy(
+                    minutesCumulees = culture.minutesCumulees + LearningRewardEngine.BONUS_FOCUS_MINUTES
+                )
+            )
+        }
+    }
+
     companion object {
         /** Durée pendant laquelle un arrosage garde la terre humide. */
         const val DUREE_ARROSAGE_MINUTES = 240L

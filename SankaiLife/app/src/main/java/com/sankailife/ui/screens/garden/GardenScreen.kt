@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sankailife.core.domain.engine.ArenaEngine
+import com.sankailife.core.garden.domain.MemoChallengeEngine
 import com.sankailife.core.garden.domain.PlotState
 import com.sankailife.core.garden.domain.Seed
 import com.sankailife.core.haptics.LocalHaptics
@@ -56,6 +57,15 @@ fun GardenScreen(viewModel: GardenViewModel, onBack: () -> Unit) {
     val pretes by viewModel.nombrePretes.collectAsState()
 
     var selection by remember { mutableStateOf<GardenViewModel.ParcelleUi?>(null) }
+    val defi by viewModel.defi.collectAsState()
+
+    defi?.let { d ->
+        FeuilleDefiSouvenir(
+            defi = d,
+            onRepondre = { viewModel.repondreDefi(it) },
+            onFermer = { viewModel.ignorerDefi() }
+        )
+    }
 
     selection?.let { parcelle ->
         FeuilleParcelle(
@@ -186,6 +196,53 @@ fun GardenScreen(viewModel: GardenViewModel, onBack: () -> Unit) {
             ) {
                 Text(message, color = c.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             }
+        }
+    }
+}
+
+/**
+ * Défi souvenir : reconnaître la phrase reçue en notification.
+ *
+ * Présenté à l'ouverture du jardin, une seule fois par notification. Il dure
+ * une dizaine de secondes — c'est une micro-révision, pas un examen.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FeuilleDefiSouvenir(
+    defi: MemoChallengeEngine.Defi,
+    onRepondre: (String) -> Unit,
+    onFermer: () -> Unit
+) {
+    val c = MaterialTheme.sankaiColors
+
+    ModalBottomSheet(onDismissRequest = onFermer, containerColor = c.surface1) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 22.dp).padding(bottom = 30.dp)) {
+            Text("SOUVENIR DU JOUR", color = AccentCyan, fontSize = 10.sp,
+                fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+            Spacer(Modifier.height(8.dp))
+            Text("Quelle phrase as-tu reçue ?", color = c.textPrimary,
+                fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text("Module : ${defi.nomModule}", color = c.textSecondary, fontSize = 12.sp)
+
+            Spacer(Modifier.height(16.dp))
+            defi.options.forEach { option ->
+                Box(
+                    Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(c.surface2)
+                        .border(1.dp, c.border, RoundedCornerShape(12.dp))
+                        .clickable { onRepondre(option) }
+                        .padding(14.dp)
+                ) {
+                    Text(option, color = c.textPrimary, fontSize = 13.sp)
+                }
+            }
+
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "Se tromper ne retire rien. Le défi reviendra à la prochaine notification.",
+                color = c.textDisabled, fontSize = 11.sp
+            )
         }
     }
 }

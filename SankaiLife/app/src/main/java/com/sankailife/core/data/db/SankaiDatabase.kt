@@ -10,13 +10,15 @@ import com.sankailife.core.garden.data.GardenCropEntity
 import com.sankailife.core.garden.data.GardenDao
 import com.sankailife.core.garden.data.GardenPlotEntity
 import com.sankailife.core.garden.data.GardenStateEntity
+import com.sankailife.core.garden.data.MemoChallengeEntity
 
 @Database(
     entities = [UserEntity::class, MemoProfileEntity::class, MemoLineEntity::class,
                 ObjectiveEntity::class, ArenaRewardEntity::class, ChestEntity::class,
                 ChallengeEntity::class, StatsEntity::class, DayRecordEntity::class,
-                GardenStateEntity::class, GardenPlotEntity::class, GardenCropEntity::class],
-    version = 8,
+                GardenStateEntity::class, GardenPlotEntity::class, GardenCropEntity::class,
+                MemoChallengeEntity::class],
+    version = 9,
     exportSchema = false
 )
 abstract class SankaiDatabase : RoomDatabase() {
@@ -175,9 +177,29 @@ abstract class SankaiDatabase : RoomDatabase() {
             }
         }
 
+        /** Défi souvenir : trace des notifications mémo envoyées. */
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `memo_challenge` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `profileId` INTEGER NOT NULL,
+                        `lineId` INTEGER NOT NULL,
+                        `texte` TEXT NOT NULL,
+                        `nomModule` TEXT NOT NULL,
+                        `envoyeALeMillis` INTEGER NOT NULL,
+                        `reclame` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
         val MIGRATIONS = arrayOf(
             MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
-            MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8
+            MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
+            MIGRATION_7_8, MIGRATION_8_9
         )
 
         fun getDatabase(context: Context): SankaiDatabase {
