@@ -38,6 +38,9 @@ Dernière mise à jour : build `assembleDebug` et `assembleRelease` verts.
 | 32 | Défis en tableau de missions | ✅ terminé | `ChallengesScreen.kt`, `ChallengesViewModel.kt` | Bandeau, compte à rebours, tri par réclamable |
 | 33 | Refonte Boutique | ✅ terminé | `ShopScreen.kt`, `ShopViewModel.kt` | Grille, offre du jour sans état, remise réellement appliquée |
 | 34 | Refonte Mode Vie / Focus / Mémo / Coffres / Stats / Paramètres | ❌ à faire | — | Sections 10, 12 à 16 du complément UI |
+| 35 | **Jardin — phase 1** | ✅ terminé | `core/garden/`, `ui/screens/garden/` | Boucle complète, 21 tests verts |
+| 36 | Jardin — phases 2 à 4 | ❌ à faire | — | Mimos, météo, zones, Herbier, decks structurés |
+| 37 | Visuels du jardin | 🟠 provisoire | `GardenScreen.kt` | Rendu géométrique, substituable sans toucher la logique |
 | 18 | Liens externes cliquables | ✅ terminé | `SettingsScreen.kt` | Grisés hors connexion |
 | 19 | Slot module payant | ✅ terminé | `Models.kt`, `ShopViewModel.kt`, `LifeScreen.kt` | Prix progressif + remboursement si échec |
 | 20 | Bouton pub bloqué | ✅ terminé | `core/ads/AdsManager.kt` | Attente du chargement, 8 s max |

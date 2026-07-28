@@ -13,6 +13,8 @@ import com.sankailife.ui.screens.arenas.ArenasScreen
 import com.sankailife.ui.screens.arenas.ArenasViewModel
 import com.sankailife.ui.screens.challenges.ChallengesScreen
 import com.sankailife.ui.screens.customization.CustomizationScreen
+import com.sankailife.ui.screens.garden.GardenScreen
+import com.sankailife.ui.screens.garden.GardenViewModel
 import com.sankailife.ui.screens.customization.CustomizationViewModel
 import com.sankailife.ui.screens.profile.AllStatsScreen
 import com.sankailife.ui.screens.challenges.ChallengesViewModel
@@ -54,7 +56,10 @@ fun SankaiNavGraph() {
     val noBottomBarRoutes = setOf(
         Screen.Settings.route, Screen.MemoEditor.route,
         Screen.Objectives.route, Screen.Flashcards.route, Screen.Arenas.route,
-        Screen.Customization.route, Screen.AllStats.route
+        Screen.Customization.route, Screen.AllStats.route,
+        // Le jardin masque la navigation de l'app : c'est un mode isolé, pas
+        // un onglet de plus.
+        Screen.Garden.route
     )
     val showBottom = currentRoute !in noBottomBarRoutes
 
@@ -120,6 +125,10 @@ fun SankaiNavGraph() {
             composable(Screen.AllStats.route) {
                 val vm: ProfileViewModel = viewModel(factory = ProfileViewModel.factory(app))
                 AllStatsScreen(viewModel = vm, onBack = { navController.popBackStack() })
+            }
+            composable(Screen.Garden.route) {
+                val vm: GardenViewModel = viewModel(factory = GardenViewModel.factory(app))
+                GardenScreen(viewModel = vm, onBack = { navController.popBackStack() })
             }
             composable(Screen.Arenas.route) {
                 val vm: ArenasViewModel = viewModel(factory = ArenasViewModel.factory(app))

@@ -88,6 +88,16 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
 
                 Spacer(Modifier.height(12.dp))
 
+                // Entrée du mode jeu. Bouton unique et large, à la façon d'un
+                // hub : le jardin est un univers séparé, pas une section.
+                SankaiButton(
+                    "🌿  Entrer dans le jardin",
+                    onClick = { onNavigate(Screen.Garden.route) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(Modifier.height(12.dp))
+
                 // Zone C — une seule carte contextuelle, selon ce qui est en
                 // cours. Afficher Mémo, Focus et Objectifs en même temps
                 // remplirait l'écran sans aider à choisir.
