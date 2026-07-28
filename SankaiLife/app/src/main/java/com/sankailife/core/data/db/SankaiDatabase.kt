@@ -6,15 +6,21 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.sankailife.core.data.db.dao.*
 import com.sankailife.core.data.db.entities.*
+import com.sankailife.core.garden.data.GardenCropEntity
+import com.sankailife.core.garden.data.GardenDao
+import com.sankailife.core.garden.data.GardenPlotEntity
+import com.sankailife.core.garden.data.GardenStateEntity
 
 @Database(
     entities = [UserEntity::class, MemoProfileEntity::class, MemoLineEntity::class,
                 ObjectiveEntity::class, ArenaRewardEntity::class, ChestEntity::class,
-                ChallengeEntity::class, StatsEntity::class, DayRecordEntity::class],
-    version = 7,
+                ChallengeEntity::class, StatsEntity::class, DayRecordEntity::class,
+                GardenStateEntity::class, GardenPlotEntity::class, GardenCropEntity::class],
+    version = 8,
     exportSchema = false
 )
 abstract class SankaiDatabase : RoomDatabase() {
+    abstract fun gardenDao(): GardenDao
     abstract fun userDao(): UserDao
     abstract fun memoDao(): MemoDao
     abstract fun objectiveDao(): ObjectiveDao
@@ -117,9 +123,61 @@ abstract class SankaiDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Mode Jardin. Migration purement additive : trois tables neuves,
+         * aucune table existante touchée. L'outil de productivité continue de
+         * fonctionner à l'identique pour qui n'ouvre jamais le jardin.
+         */
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `garden_state` (
+                        `id` INTEGER PRIMARY KEY NOT NULL,
+                        `eau` INTEGER NOT NULL,
+                        `compost` INTEGER NOT NULL,
+                        `cristaux` INTEGER NOT NULL,
+                        `gouttes` INTEGER NOT NULL,
+                        `eauGagneeAujourdhui` INTEGER NOT NULL,
+                        `jourPlafond` TEXT NOT NULL,
+                        `revisionsDepuisOuverture` INTEGER NOT NULL,
+                        `derniereHeureMurale` INTEGER NOT NULL,
+                        `dernierElapsedRealtime` INTEGER NOT NULL,
+                        `zoneActive` TEXT NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `garden_plot` (
+                        `id` INTEGER PRIMARY KEY NOT NULL,
+                        `etat` TEXT NOT NULL,
+                        `solId` TEXT NOT NULL,
+                        `areneRequise` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `garden_crop` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `plotId` INTEGER NOT NULL,
+                        `seedId` TEXT NOT NULL,
+                        `plantedAtMillis` INTEGER NOT NULL,
+                        `minutesCumulees` INTEGER NOT NULL,
+                        `dernierArrosageMillis` INTEGER NOT NULL,
+                        `arrosages` INTEGER NOT NULL,
+                        `revisionsPendantCulture` INTEGER NOT NULL,
+                        `recoltee` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
         val MIGRATIONS = arrayOf(
             MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
-            MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7
+            MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8
         )
 
         fun getDatabase(context: Context): SankaiDatabase {
