@@ -69,6 +69,42 @@ interface GardenDao {
     @Query("DELETE FROM garden_crop WHERE recoltee = 1 AND plantedAtMillis < :avant")
     suspend fun purger(avant: Long)
 
+    // --- Caisses et dépôt --------------------------------------------------
+
+    @Query("SELECT * FROM garden_crate ORDER BY creeALeMillis ASC")
+    fun observerCaisses(): Flow<List<GardenCrateEntity>>
+
+    @Query("SELECT * FROM garden_crate ORDER BY creeALeMillis ASC")
+    suspend fun caisses(): List<GardenCrateEntity>
+
+    @Query("SELECT COUNT(*) FROM garden_crate")
+    suspend fun nombreCaisses(): Int
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun poserCaisse(caisse: GardenCrateEntity): Long
+
+    @Query("DELETE FROM garden_crate WHERE id IN (:ids)")
+    suspend fun retirerCaisses(ids: List<Long>)
+
+    @Query("SELECT * FROM garden_inventory WHERE quantite > 0 ORDER BY seedId ASC")
+    fun observerInventaire(): Flow<List<GardenInventoryEntity>>
+
+    @Query("SELECT * FROM garden_inventory WHERE cle = :cle LIMIT 1")
+    suspend fun ligneInventaire(cle: String): GardenInventoryEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun sauverInventaire(ligne: GardenInventoryEntity)
+
+    /**
+     * Retire du stock uniquement si la quantité demandée est disponible.
+     *
+     * La condition vit dans le WHERE : c'est ce qui rend la vente atomique.
+     * Deux appuis simultanés sur « Vendre » ne peuvent pas vendre deux fois le
+     * même légume, le second ne touchant aucune ligne.
+     */
+    @Query("UPDATE garden_inventory SET quantite = quantite - :n WHERE cle = :cle AND quantite >= :n")
+    suspend fun retirerDuStock(cle: String, n: Int): Int
+
     // --- Défi souvenir ----------------------------------------------------
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

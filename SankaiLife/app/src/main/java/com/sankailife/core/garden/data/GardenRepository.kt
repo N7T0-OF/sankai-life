@@ -1,11 +1,14 @@
 package com.sankailife.core.garden.data
 
 import android.os.SystemClock
+import androidx.room.withTransaction
 import com.sankailife.core.data.db.SankaiDatabase
 import com.sankailife.core.data.repository.UserRepository
 import com.sankailife.core.garden.domain.*
+import kotlinx.coroutines.flow.first
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 
 /**
  * Point d'entrée unique du jardin.
@@ -170,11 +173,22 @@ class GardenRepository(
         return true
     }
 
+    /** Ce qu'une récolte a produit, pour que l'écran puisse la nommer. */
+    data class Recolte(val graine: Seed, val qualite: HarvestQuality)
+
     /**
      * Récolte une culture arrivée à maturité.
-     * @return les pièces gagnées, ou null si la culture n'est pas prête.
+     *
+     * Ne rapporte aucune pièce : la récolte devient une caisse posée sur le
+     * terrain, à ranger au dépôt puis à vendre au marchand. Le gain immédiat
+     * a été retiré volontairement — c'est ce qui donne un rôle au dépôt.
+     *
+     * @return la récolte produite, ou null si la plante n'est pas prête ou si
+     *         le terrain est saturé de caisses.
      */
-    suspend fun recolter(plotId: Int): Int? {
+    suspend fun recolter(plotId: Int): Recolte? {
+        if (DepotEngine.terrainSature(dao.nombreCaisses())) return null
+
         val culture = dao.cultureSurParcelle(plotId) ?: return null
         val graine = seedParId(culture.seedId) ?: return null
         val parcelle = dao.parcelle(plotId) ?: return null
@@ -193,15 +207,93 @@ class GardenRepository(
             arrosagesAttendus = (duree / DUREE_ARROSAGE_MINUTES).toInt().coerceAtLeast(1),
             revisionsPendantCulture = culture.revisionsPendantCulture
         )
-        val pieces = CropGrowthEngine.rendement(graine, qualite, etatCulture.enRepos)
 
-        userRepo.addCoins(pieces)
         dao.marquerRecoltee(culture.id)
         dao.majEtatParcelle(plotId, PlotState.EMPTY.name)
+        dao.poserCaisse(
+            GardenCrateEntity(
+                seedId = graine.id,
+                qualite = qualite.name,
+                creeALeMillis = maintenant
+            )
+        )
 
         // Un peu de compost à chaque récolte, pour amorcer l'économie.
         dao.etat()?.let { dao.sauverEtat(it.copy(compost = it.compost + 1)) }
+        return Recolte(graine, qualite)
+    }
+
+    // --- Dépôt central ----------------------------------------------------
+
+    val caissesFlow = dao.observerCaisses()
+    val inventaireFlow = dao.observerInventaire()
+
+    /**
+     * Transporte toutes les caisses posées jusqu'au dépôt.
+     *
+     * L'ensemble tient dans une transaction : sans elle, une interruption
+     * entre l'écriture du stock et le retrait des caisses ferait compter la
+     * même récolte deux fois. C'est aussi ce qui rend l'appel réentrant — un
+     * double appui sur « Ranger » ne peut pas créditer deux fois, la seconde
+     * transaction ne trouvant plus de caisse.
+     *
+     * @return le nombre de caisses rangées.
+     */
+    suspend fun rangerCaisses(): Int = db.withTransaction {
+        val caisses = dao.caisses()
+        if (caisses.isEmpty()) return@withTransaction 0
+
+        caisses.groupBy { it.seedId to it.qualite }.forEach { (couple, lot) ->
+            val (seedId, qualite) = couple
+            val cle = "${seedId}_$qualite"
+            val existant = dao.ligneInventaire(cle)
+            dao.sauverInventaire(
+                GardenInventoryEntity(
+                    cle = cle,
+                    seedId = seedId,
+                    qualite = qualite,
+                    quantite = (existant?.quantite ?: 0) + lot.size
+                )
+            )
+        }
+        dao.retirerCaisses(caisses.map { it.id })
+        caisses.size
+    }
+
+    /**
+     * Vend une quantité de stock au marchand.
+     *
+     * Refusée hors des heures d'ouverture : c'est la seule contrainte que le
+     * cycle jour / nuit impose réellement au joueur.
+     *
+     * @return les pièces gagnées, ou null si la vente est impossible.
+     */
+    suspend fun vendre(seedId: String, qualite: HarvestQuality, quantite: Int): Int? {
+        if (quantite <= 0) return null
+        if (!DayNightEngine.magasinOuvert(clock.now().atZone(ZoneId.systemDefault()).toLocalTime())) {
+            return null
+        }
+        val graine = seedParId(seedId) ?: return null
+
+        // Le retrait porte sa propre condition : si le stock est insuffisant,
+        // aucune ligne n'est touchée et rien n'est crédité.
+        val cle = DepotEngine.cle(seedId, qualite)
+        if (dao.retirerDuStock(cle, quantite) == 0) return null
+
+        val pieces = DepotEngine.prixUnitaire(graine, qualite, clock.currentDayId()) * quantite
+        userRepo.addCoins(pieces)
         return pieces
+    }
+
+    /** Vend tout le stock d'un coup. @return les pièces totales. */
+    suspend fun vendreTout(): Int {
+        var total = 0
+        for (ligne in dao.observerInventaire().first()) {
+            val qualite = runCatching { HarvestQuality.valueOf(ligne.qualite) }
+                .getOrDefault(HarvestQuality.NORMALE)
+            total += vendre(ligne.seedId, qualite, ligne.quantite) ?: 0
+        }
+        return total
     }
 
     // --- Apprentissage ----------------------------------------------------

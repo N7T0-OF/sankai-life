@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import com.sankailife.core.domain.engine.ArenaEngine
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import com.sankailife.core.garden.domain.DayNightEngine
 import com.sankailife.core.garden.domain.MemoChallengeEngine
 import com.sankailife.core.garden.domain.OutilJardin
 import com.sankailife.core.garden.domain.PlotState
@@ -59,9 +60,27 @@ fun GardenScreen(viewModel: GardenViewModel, onBack: () -> Unit) {
     val message by viewModel.message.collectAsState()
     val pretes by viewModel.nombrePretes.collectAsState()
 
+    val caisses by viewModel.caisses.collectAsState()
+    val stock by viewModel.stock.collectAsState()
+    val valeurStock by viewModel.valeurStock.collectAsState()
+    val phase by viewModel.phase.collectAsState()
+    val magasinOuvert by viewModel.magasinOuvert.collectAsState()
+
     var selection by remember { mutableStateOf<GardenViewModel.ParcelleUi?>(null) }
+    var marcheOuvert by remember { mutableStateOf(false) }
     val defi by viewModel.defi.collectAsState()
     val outil by viewModel.outil.collectAsState()
+
+    if (marcheOuvert) {
+        FeuilleMarche(
+            stock = stock,
+            valeurTotale = valeurStock,
+            ouvert = magasinOuvert,
+            onVendre = { haptics.reward(); viewModel.vendre(it) },
+            onVendreTout = { haptics.reward(); viewModel.vendreTout(); marcheOuvert = false },
+            onFermer = { marcheOuvert = false }
+        )
+    }
 
     defi?.let { d ->
         FeuilleDefiSouvenir(
@@ -112,7 +131,10 @@ fun GardenScreen(viewModel: GardenViewModel, onBack: () -> Unit) {
                         ArenaEngine.areneActuelle(user.level).nom,
                         color = c.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold
                     )
-                    Text("Jardin central", color = c.textSecondary, fontSize = 11.sp)
+                    Text(
+                        "${phase.emoji} ${phase.libelle}",
+                        color = c.textSecondary, fontSize = 11.sp
+                    )
                 }
                 Ressource("💧", "${etat.eau}", AccentCyan)
                 Spacer(Modifier.width(6.dp))
@@ -139,6 +161,21 @@ fun GardenScreen(viewModel: GardenViewModel, onBack: () -> Unit) {
                         onOuvrirDetail = { selection = it }
                     )
                 }
+
+                // Voile nocturne, posé sur le terrain seul.
+                //
+                // Il ne couvre ni le bandeau ni les boutons : assombrir les
+                // commandes rendrait l'application pénible à utiliser le soir,
+                // qui est justement le moment où beaucoup l'ouvriront. Sans
+                // modificateur de saisie, ce voile ne capte aucun geste.
+                val nuit = DayNightEngine.intensiteNuit()
+                if (nuit > 0f) {
+                    Box(
+                        Modifier.matchParentSize()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color(0xFF060C1F).copy(alpha = nuit))
+                    )
+                }
             }
 
             // Barre d'outils : sélectionner puis glisser sur les parcelles.
@@ -148,16 +185,27 @@ fun GardenScreen(viewModel: GardenViewModel, onBack: () -> Unit) {
                 onChoisir = { haptics.click(); viewModel.choisirOutil(it) }
             )
 
-            // Carte contextuelle unique, comme sur l'accueil.
+            // Zone d'action unique.
+            //
+            // Une seule action principale à la fois, choisie dans l'ordre du
+            // circuit : ranger avant de récolter, récolter avant de conseiller.
+            // C'est ce qui empêche le joueur de laisser le terrain saturer
+            // sans jamais comprendre pourquoi la récolte est refusée.
             Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp)) {
-                if (pretes > 0) {
-                    SankaiButton(
+                when {
+                    caisses.isNotEmpty() -> SankaiButton(
+                        "📦  Ranger ${caisses.size} caisse(s) au dépôt",
+                        onClick = { haptics.click(); viewModel.rangerCaisses() },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    pretes > 0 -> SankaiButton(
                         "🧺  Tout récolter ($pretes)",
                         onClick = { haptics.reward(); viewModel.toutRecolter() },
                         modifier = Modifier.fillMaxWidth()
                     )
-                } else {
-                    Box(
+
+                    else -> Box(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
                             .background(c.surface2)
                             .border(1.dp, c.border, RoundedCornerShape(14.dp))
@@ -171,6 +219,16 @@ fun GardenScreen(viewModel: GardenViewModel, onBack: () -> Unit) {
                         )
                     }
                 }
+
+                // Accès permanent au dépôt : même vide, il indique où va la
+                // récolte, ce qui évite de chercher ses légumes après coup.
+                Spacer(Modifier.height(8.dp))
+                BandeauDepot(
+                    lignes = stock.size,
+                    valeur = valeurStock,
+                    ouvert = magasinOuvert,
+                    onOuvrir = { marcheOuvert = true }
+                )
             }
         }
 
@@ -186,6 +244,140 @@ fun GardenScreen(viewModel: GardenViewModel, onBack: () -> Unit) {
                     .padding(horizontal = 18.dp, vertical = 11.dp)
             ) {
                 Text(message, color = c.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            }
+        }
+    }
+}
+
+/**
+ * Bandeau du dépôt central.
+ *
+ * Affiche la valeur du stock au cours du jour, et si le marchand est là.
+ * Reste visible même vide : c'est le repère qui explique où part la récolte.
+ */
+@Composable
+private fun BandeauDepot(
+    lignes: Int,
+    valeur: Int,
+    ouvert: Boolean,
+    onOuvrir: () -> Unit
+) {
+    val c = MaterialTheme.sankaiColors
+
+    Row(
+        Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(c.surface2)
+            .border(1.dp, if (ouvert && valeur > 0) AccentGold.copy(alpha = 0.5f) else c.border,
+                RoundedCornerShape(14.dp))
+            .clickable { onOuvrir() }
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(if (ouvert) "🏪" else "🌙", fontSize = 18.sp)
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                "Dépôt central",
+                color = c.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                when {
+                    lignes == 0 -> "Vide — récolte puis range tes caisses"
+                    !ouvert -> "$lignes lot(s) en stock • marchand absent"
+                    else -> "$lignes lot(s) • valeur $valeur 🪙"
+                },
+                color = if (ouvert && lignes > 0) CoinColor else c.textSecondary,
+                fontSize = 11.sp
+            )
+        }
+        Text("›", color = c.textSecondary, fontSize = 20.sp)
+    }
+}
+
+/**
+ * Le marché.
+ *
+ * Le cours varie d'un jour à l'autre, et il est affiché : vendre au bon moment
+ * doit être une décision lisible, pas une loterie invisible. Hors des heures
+ * d'ouverture, le stock reste consultable mais la vente est bloquée — on ne
+ * cache jamais ce que le joueur possède.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FeuilleMarche(
+    stock: List<GardenViewModel.LigneStock>,
+    valeurTotale: Int,
+    ouvert: Boolean,
+    onVendre: (GardenViewModel.LigneStock) -> Unit,
+    onVendreTout: () -> Unit,
+    onFermer: () -> Unit
+) {
+    val c = MaterialTheme.sankaiColors
+
+    ModalBottomSheet(onDismissRequest = onFermer, containerColor = c.surface1) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 22.dp).padding(bottom = 30.dp)) {
+            Text(
+                if (ouvert) "MARCHÉ OUVERT" else "MARCHÉ FERMÉ",
+                color = if (ouvert) SuccessGreen else c.textDisabled,
+                fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp
+            )
+            Spacer(Modifier.height(8.dp))
+            Text("Dépôt central", color = c.textPrimary,
+                fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(
+                if (ouvert)
+                    "Ouvert de ${DayNightEngine.OUVERTURE_MAGASIN} h à ${DayNightEngine.FERMETURE_MAGASIN} h."
+                else DayNightEngine.messageMagasinFerme(),
+                color = c.textSecondary, fontSize = 12.sp
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            if (stock.isEmpty()) {
+                Text(
+                    "Le dépôt est vide. Récolte tes cultures, puis range les caisses.",
+                    color = c.textSecondary, fontSize = 13.sp
+                )
+            } else {
+                stock.forEach { ligne ->
+                    Row(
+                        Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(c.surface2)
+                            .border(1.dp, c.border, RoundedCornerShape(12.dp))
+                            .clickable(enabled = ouvert) { onVendre(ligne) }
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(ligne.graine.emoji, fontSize = 22.sp)
+                        Spacer(Modifier.width(10.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                "${ligne.graine.nom} × ${ligne.quantite}",
+                                color = c.textPrimary, fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                "${ligne.qualite.libelle} • ${ligne.prixUnitaire} 🪙 pièce",
+                                color = c.textSecondary, fontSize = 11.sp
+                            )
+                        }
+                        Text(
+                            "${ligne.total} 🪙",
+                            color = if (ouvert) CoinColor else c.textDisabled,
+                            fontSize = 13.sp, fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(10.dp))
+                SankaiButton(
+                    if (ouvert) "Tout vendre • $valeurTotale 🪙" else "Marchand absent",
+                    onClick = onVendreTout,
+                    enabled = ouvert,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }

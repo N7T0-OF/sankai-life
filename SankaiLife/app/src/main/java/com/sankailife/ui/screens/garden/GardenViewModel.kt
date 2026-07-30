@@ -7,6 +7,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.sankailife.SankaiApplication
 import com.sankailife.core.data.repository.UserRepository
+import com.sankailife.core.garden.data.GardenCrateEntity
 import com.sankailife.core.garden.data.GardenRepository
 import com.sankailife.core.garden.data.GardenStateEntity
 import com.sankailife.core.garden.domain.OutilJardin
@@ -16,6 +17,7 @@ import com.sankailife.core.domain.model.UserState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 class GardenViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -158,7 +160,13 @@ class GardenViewModel(application: Application) : AndroidViewModel(application) 
                     afficher("Plus d'eau — révise des cartes pour en obtenir")
                     _outil.value = null
                 }
-            OutilJardin.Panier -> repo.recolter(plotId)
+            OutilJardin.Panier ->
+                if (repo.recolter(plotId) == null &&
+                    DepotEngine.terrainSature(caisses.value.size)
+                ) {
+                    afficher("Le terrain est couvert de caisses — range-les au dépôt")
+                    _outil.value = null
+                }
             OutilJardin.Pioche ->
                 if (!repo.nettoyer(plotId)) {
                     afficher("Il faut ${GardenRepository.COUT_NETTOYAGE} pièces")
@@ -198,18 +206,97 @@ class GardenViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun recolter(plotId: Int) = viewModelScope.launch {
-        val pieces = repo.recolter(plotId)
-        if (pieces != null) afficher("Récolte : +$pieces 🪙")
-        else afficher("Cette plante n'est pas encore prête")
+        val recolte = repo.recolter(plotId)
+        when {
+            recolte != null ->
+                afficher("${recolte.graine.emoji} ${recolte.graine.nom} • ${recolte.qualite.libelle} → caisse")
+            DepotEngine.terrainSature(caisses.value.size) ->
+                afficher("Le terrain est couvert de caisses — range-les au dépôt")
+            else -> afficher("Cette plante n'est pas encore prête")
+        }
     }
 
     fun toutRecolter() = viewModelScope.launch {
         var total = 0
         parcelles.value.filter { it.prete }.forEach { p ->
-            repo.recolter(p.id)?.let { total += it }
+            if (repo.recolter(p.id) != null) total++
         }
-        if (total > 0) afficher("Tout récolté : +$total 🪙")
+        if (total > 0) afficher("$total caisse(s) posée(s) — à ranger au dépôt")
+        else afficher("Le terrain est couvert de caisses — range-les au dépôt")
     }
+
+    // --- Dépôt central ----------------------------------------------------
+
+    val caisses: StateFlow<List<GardenCrateEntity>> = repo.caissesFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** Ligne de stock résolue : espèce, qualité, quantité, prix du jour. */
+    data class LigneStock(
+        val graine: Seed,
+        val qualite: HarvestQuality,
+        val quantite: Int,
+        val prixUnitaire: Int
+    ) {
+        val total: Int get() = prixUnitaire * quantite
+    }
+
+    val stock: StateFlow<List<LigneStock>> =
+        combine(repo.inventaireFlow, tick) { lignes, _ ->
+            val jour = LocalDate.now().toString()
+            lignes.mapNotNull { ligne ->
+                val graine = seedParId(ligne.seedId) ?: return@mapNotNull null
+                val qualite = runCatching { HarvestQuality.valueOf(ligne.qualite) }
+                    .getOrDefault(HarvestQuality.NORMALE)
+                LigneStock(
+                    graine = graine,
+                    qualite = qualite,
+                    quantite = ligne.quantite,
+                    prixUnitaire = DepotEngine.prixUnitaire(graine, qualite, jour)
+                )
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val valeurStock: StateFlow<Int> = stock
+        .map { liste -> liste.sumOf { it.total } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    fun rangerCaisses() = viewModelScope.launch {
+        val rangees = repo.rangerCaisses()
+        if (rangees > 0) afficher("$rangees caisse(s) rangée(s) au dépôt")
+        else afficher("Aucune caisse à ranger")
+    }
+
+    fun vendre(ligne: LigneStock) = viewModelScope.launch {
+        val pieces = repo.vendre(ligne.graine.id, ligne.qualite, ligne.quantite)
+        if (pieces != null) afficher("Vendu : +$pieces 🪙")
+        else afficher(DayNightEngine.messageMagasinFerme())
+    }
+
+    fun vendreTout() = viewModelScope.launch {
+        val total = repo.vendreTout()
+        if (total > 0) afficher("Tout vendu : +$total 🪙")
+        else afficher(
+            if (magasinOuvert.value) "Rien à vendre"
+            else DayNightEngine.messageMagasinFerme()
+        )
+    }
+
+    // --- Cycle jour / nuit -------------------------------------------------
+
+    /**
+     * L'heure n'est relue qu'à chaque tick d'une minute. Un flux plus fin
+     * ferait recomposer l'écran en continu pour un ciel qui bouge à peine.
+     */
+    val phase: StateFlow<DayNightEngine.Phase> = tick
+        .map { DayNightEngine.phase() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DayNightEngine.phase())
+
+    val magasinOuvert: StateFlow<Boolean> = tick
+        .map { DayNightEngine.magasinOuvert() }
+        .stateIn(
+            viewModelScope, SharingStarted.WhileSubscribed(5000),
+            DayNightEngine.magasinOuvert()
+        )
 
     private fun afficher(texte: String) = viewModelScope.launch {
         _message.value = texte

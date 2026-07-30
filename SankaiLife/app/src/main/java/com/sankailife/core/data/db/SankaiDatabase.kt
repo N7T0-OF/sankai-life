@@ -6,8 +6,10 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.sankailife.core.data.db.dao.*
 import com.sankailife.core.data.db.entities.*
+import com.sankailife.core.garden.data.GardenCrateEntity
 import com.sankailife.core.garden.data.GardenCropEntity
 import com.sankailife.core.garden.data.GardenDao
+import com.sankailife.core.garden.data.GardenInventoryEntity
 import com.sankailife.core.garden.data.GardenPlotEntity
 import com.sankailife.core.garden.data.GardenStateEntity
 import com.sankailife.core.garden.data.MemoChallengeEntity
@@ -17,8 +19,9 @@ import com.sankailife.core.garden.data.MemoChallengeEntity
                 ObjectiveEntity::class, ArenaRewardEntity::class, ChestEntity::class,
                 ChallengeEntity::class, StatsEntity::class, DayRecordEntity::class,
                 GardenStateEntity::class, GardenPlotEntity::class, GardenCropEntity::class,
-                MemoChallengeEntity::class],
-    version = 10,
+                MemoChallengeEntity::class,
+                GardenCrateEntity::class, GardenInventoryEntity::class],
+    version = 11,
     exportSchema = false
 )
 abstract class SankaiDatabase : RoomDatabase() {
@@ -203,10 +206,43 @@ abstract class SankaiDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Caisses de récolte et stock du dépôt.
+         *
+         * Purement additive : les cultures déjà récoltées avant cette version
+         * ont été payées immédiatement, elles ne réapparaissent pas en caisse.
+         * Le nouveau circuit ne s'applique donc qu'aux récoltes suivantes.
+         */
+        private val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `garden_crate` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `seedId` TEXT NOT NULL,
+                        `qualite` TEXT NOT NULL,
+                        `creeALeMillis` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `garden_inventory` (
+                        `cle` TEXT PRIMARY KEY NOT NULL,
+                        `seedId` TEXT NOT NULL,
+                        `qualite` TEXT NOT NULL,
+                        `quantite` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
         val MIGRATIONS = arrayOf(
             MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
             MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
-            MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10
+            MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
+            MIGRATION_10_11
         )
 
         fun getDatabase(context: Context): SankaiDatabase {

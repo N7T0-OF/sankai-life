@@ -54,6 +54,37 @@ data class GardenPlotEntity(
 )
 
 /**
+ * Caisse de récolte en attente de rangement.
+ *
+ * Une plante récoltée ne rejoint pas directement l'inventaire : elle produit
+ * une caisse qu'il faut ranger au dépôt. C'est ce qui donne un rôle au dépôt
+ * et, plus tard, aux Mimos transporteurs — sans cette étape, l'automatisation
+ * n'aurait rien à automatiser.
+ */
+@Entity(tableName = "garden_crate")
+data class GardenCrateEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0L,
+    val seedId: String = "",
+    /** Valeur de HarvestQuality. */
+    val qualite: String = "NORMALE",
+    val creeALeMillis: Long = 0L
+)
+
+/**
+ * Stock rangé au dépôt, prêt à être vendu.
+ *
+ * Une ligne par couple espèce + qualité. La clé est la concaténation des deux
+ * plutôt qu'une clé composite : ça rend l'UPSERT trivial côté DAO.
+ */
+@Entity(tableName = "garden_inventory")
+data class GardenInventoryEntity(
+    @PrimaryKey val cle: String = "",
+    val seedId: String = "",
+    val qualite: String = "NORMALE",
+    val quantite: Int = 0
+)
+
+/**
  * Trace d'une notification mémo envoyée, support du défi souvenir.
  *
  * Une ligne est créée à chaque notification réellement partie. Le drapeau
