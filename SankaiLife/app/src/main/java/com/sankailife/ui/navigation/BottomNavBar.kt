@@ -60,6 +60,7 @@ fun SankaiBottomNavBar(
     currentRoute: String?,
     showLabels: Boolean,
     challengeBadge: Int,
+    homeBadge: Int = 0,
     onNavigate: (String) -> Unit
 ) {
     val c = MaterialTheme.sankaiColors
@@ -83,7 +84,13 @@ fun SankaiBottomNavBar(
         ) {
             bottomNavItems.forEach { item ->
                 val isSelected = currentRoute == item.route
-                val badge = if (item.route == Screen.Challenges.route) challengeBadge else item.badgeCount
+                val badge = when (item.route) {
+                    Screen.Challenges.route -> challengeBadge
+                    // Un coffre prêt se signale ici plutôt que par une carte
+                    // supplémentaire dans le contenu de l'accueil.
+                    Screen.Home.route -> homeBadge
+                    else -> item.badgeCount
+                }
 
                 val scale by animateFloatAsState(
                     targetValue = if (isSelected) 1.08f else 1f,

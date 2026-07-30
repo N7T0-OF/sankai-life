@@ -2,6 +2,11 @@ package com.sankailife.ui.screens.home
 
 import android.app.Activity
 import androidx.compose.animation.*
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -40,10 +45,8 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
     val moduleContextuel by viewModel.moduleContextuel.collectAsState()
     val c = MaterialTheme.sankaiColors
 
-    // Les coffres ne sont plus manipulés depuis l'accueil : on ne garde qu'un
-    // compteur. Les publicités partent d'ici pour de bon — elles restent
-    // accessibles depuis la boutique, sur action volontaire.
-    val coffresPrets = chests.count { it.isReady }
+    // Les publicités ne partent plus de l'accueil : elles restent accessibles
+    // depuis la boutique, sur action volontaire.
 
     // Dialogs
     if (showLvl) LevelUpDialog(level = lvlNum, coins = lvlNum * 50, onDismiss = { viewModel.dismissLevelUp() })
@@ -109,26 +112,17 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
                 )
 
                 Spacer(Modifier.height(10.dp))
-
-                // Rappel discret des coffres, sans les afficher ici. L'accueil
-                // est un hub : il annonce, il ne fait pas à la place des
-                // écrans dédiés.
-                if (coffresPrets > 0) {
-                    Box(
-                        Modifier.fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(AccentGold.copy(alpha = 0.12f))
-                            .border(1.dp, AccentGold.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
-                            .padding(12.dp)
-                    ) {
-                        Text(
-                            "🎁  $coffresPrets coffre${if (coffresPrets > 1) "s" else ""} " +
-                            "prêt${if (coffresPrets > 1) "s" else ""} dans la boutique",
-                            color = AccentGold, fontSize = 12.sp, fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
             }
+
+            // Barre fixe des coffres, hors zone de défilement.
+            // Elle porte tout le système : emplacements, minuteries, ouverture.
+            // Aucune carte ne doit la doubler dans le contenu principal —
+            // c'était la redondance à supprimer, pas la barre elle-même.
+            BarreCoffres(
+                chests = chests,
+                onOpen = { viewModel.openChest(it) },
+                formatTimer = { viewModel.formatChestTimer(it) }
+            )
         }
 
         // Toast overlay
@@ -252,10 +246,27 @@ fun ChestSlotUI(chest: ChestEntity?, onOpen: () -> Unit, timer: String, modifier
         else         -> if (chest != null) ChestCommon else c.surface3
     }
     val isReady = chest?.isReady == true
+
+    // Halo réservé au coffre prêt : c'est ce qui remplace la grande carte
+    // supprimée du contenu principal, sans encombrer l'écran.
+    val transition = rememberInfiniteTransition(label = "coffre")
+    val halo by transition.animateFloat(
+        initialValue = 0.45f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(950), RepeatMode.Reverse),
+        label = "haloCoffre"
+    )
+
     Box(
         modifier = modifier.height(100.dp).clip(RoundedCornerShape(12.dp))
-            .background(if (chest != null) chestColor.copy(alpha = 0.15f) else c.surface2)
-            .border(1.dp, if (isReady) chestColor else c.border, RoundedCornerShape(12.dp))
+            .background(
+                if (chest != null) chestColor.copy(alpha = if (isReady) 0.22f else 0.15f)
+                else c.surface2
+            )
+            .border(
+                width = if (isReady) 2.dp else 1.dp,
+                color = if (isReady) chestColor.copy(alpha = halo) else c.border,
+                shape = RoundedCornerShape(12.dp)
+            )
             .then(if (isReady) Modifier.clickable { onOpen() } else Modifier),
         contentAlignment = Alignment.Center
     ) {

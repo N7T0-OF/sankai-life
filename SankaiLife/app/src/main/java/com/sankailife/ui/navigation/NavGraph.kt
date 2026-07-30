@@ -52,6 +52,7 @@ fun SankaiNavGraph() {
 
     val showLabels by settingsVm.showNavLabels.collectAsState()
     val claimableCount by challengesVm.claimableCount.collectAsState()
+    val coffresPrets by homeVm.coffresPrets.collectAsState()
 
     val noBottomBarRoutes = setOf(
         Screen.Settings.route, Screen.MemoEditor.route,
@@ -70,6 +71,7 @@ fun SankaiNavGraph() {
                     currentRoute = currentRoute,
                     showLabels = showLabels,
                     challengeBadge = claimableCount,
+                    homeBadge = coffresPrets,
                     onNavigate = { route ->
                         navController.navigate(route) {
                             popUpTo(navController.graph.findStartDestination().id) { saveState = true }

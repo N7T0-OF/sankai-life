@@ -226,8 +226,17 @@ interface ChestDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(chest: ChestEntity): Long
 
-    @Query("UPDATE chest SET isOpened=1 WHERE id=:id")
-    suspend fun markOpened(id: Long)
+    /**
+     * Marque un coffre comme ouvert.
+     *
+     * La clause `isOpened=0` sert de verrou : deux appuis rapprochés ne
+     * peuvent pas créditer la récompense deux fois, puisque la seconde mise à
+     * jour ne touche aucune ligne.
+     *
+     * @return 1 si le coffre vient d'être ouvert, 0 s'il l'était déjà.
+     */
+    @Query("UPDATE chest SET isOpened=1 WHERE id=:id AND isOpened=0")
+    suspend fun markOpened(id: Long): Int
 
     @Query("DELETE FROM chest WHERE isOpened=1 AND createdAt < :before")
     suspend fun cleanOld(before: Long)

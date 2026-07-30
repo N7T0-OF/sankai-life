@@ -130,6 +130,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             .atZone(java.time.ZoneId.systemDefault())
             .format(java.time.format.DateTimeFormatter.ofPattern("HH'h'mm"))
 
+    /** Coffres prêts à ouvrir, pour le badge de l'onglet Accueil. */
+    val coffresPrets: StateFlow<Int> = chests
+        .map { liste -> liste.count { it.isReady } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
     /** Pastille de la carte de progression : récompenses d'arène en attente. */
     val arenesAReclamer: StateFlow<Int> =
         combine(user, app.database.arenaRewardDao().getReclamees()) { u, prises ->

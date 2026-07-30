@@ -24,10 +24,17 @@ class GameRepository(private val db: SankaiDatabase) {
         return true
     }
 
+    /**
+     * Ouvre un coffre et renvoie sa récompense.
+     *
+     * Le marquage précède la génération de la récompense : si deux appuis
+     * arrivent presque simultanément, seul le premier passe le verrou et
+     * l'emplacement n'est crédité qu'une fois.
+     */
     suspend fun openChest(chestId: Long): ChestEngine.ChestReward? {
         val chest = chestDao.getActiveChestsOnce().find { it.id == chestId } ?: return null
         if (!chest.isReady) return null
-        chestDao.markOpened(chestId)
+        if (chestDao.markOpened(chestId) == 0) return null
         db.userDao().incrementChests()
         return ChestEngine.generateReward(chest.type)
     }
