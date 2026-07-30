@@ -7,6 +7,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.sankailife.SankaiApplication
 import com.sankailife.core.data.repository.UserRepository
+import com.sankailife.core.domain.engine.ExerciceEngine
 import com.sankailife.core.domain.engine.FlashcardEngine
 import com.sankailife.core.garden.data.GardenRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,11 +38,18 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
         val reussies: Int = 0,
         val ratees: Int = 0,
         val terminee: Boolean = false,
-        val messageFin: String = ""
+        val messageFin: String = "",
+        /** Exercice de la carte courante, construit à chaque avancée. */
+        val exercice: ExerciceEngine.Exercice? = null,
+        /** null tant que rien n'est validé, puis le verdict. */
+        val correction: Boolean? = null,
+        /** Montrée seulement après une erreur. */
+        val reponseAttendue: String? = null
     ) {
         val carteCourante: FlashcardEngine.Carte? get() = cartes.getOrNull(index)
         val total: Int get() = cartes.size
         val progression: Float get() = if (total == 0) 0f else index.toFloat() / total
+        val enAttenteDeValidation: Boolean get() = correction == null
     }
 
     private val _etat = MutableStateFlow(EtatSession())
@@ -64,14 +72,52 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
                 val (recto, verso) = FlashcardEngine.decouper(ligne.text)
                 FlashcardEngine.Carte(ligne.id, recto, verso, ligne.box)
             }
+            // Les leurres viennent de tout le module, pas seulement des cartes
+            // dues : une session courte n'offrirait pas assez de propositions
+            // crédibles, et l'exercice se dégraderait en saisie systématique.
+            reservoirLeurres = memoDao.getLinesOnce(profileId).map { ligne ->
+                val (recto, verso) = FlashcardEngine.decouper(ligne.text)
+                FlashcardEngine.Carte(ligne.id, recto, verso, ligne.box)
+            }
+
             _etat.value = EtatSession(
                 chargement = false,
                 nomModule = profil?.name.orEmpty().ifBlank { "Mémo" },
                 cartes = cartes,
                 terminee = cartes.isEmpty(),
-                messageFin = if (cartes.isEmpty()) "Aucune carte à réviser pour l'instant" else ""
+                messageFin = if (cartes.isEmpty()) "Aucune carte à réviser pour l'instant" else "",
+                exercice = cartes.firstOrNull()?.let { exercicePour(it) }
             )
         }
+    }
+
+    /** Toutes les cartes du module, pour tirer des leurres crédibles. */
+    private var reservoirLeurres: List<FlashcardEngine.Carte> = emptyList()
+
+    private fun exercicePour(carte: FlashcardEngine.Carte): ExerciceEngine.Exercice =
+        ExerciceEngine.construire(
+            carte = carte,
+            autres = reservoirLeurres.filter { it.id != carte.id }
+        )
+
+    /**
+     * Valide une réponse écrite ou choisie.
+     *
+     * La correction est séparée du passage à la carte suivante : voir sa
+     * faute et la bonne réponse est le moment où l'on apprend réellement,
+     * enchaîner immédiatement le supprimerait.
+     */
+    fun valider(reponse: String) {
+        val etat = _etat.value
+        val exercice = etat.exercice ?: return
+        if (etat.correction != null) return
+
+        val juste = ExerciceEngine.corriger(exercice, reponse) ?: return
+        _etat.value = etat.copy(
+            correction = juste,
+            versoVisible = true,
+            reponseAttendue = if (juste) null else ExerciceEngine.reponseAttendue(exercice)
+        )
     }
 
     fun revelerVerso() {
@@ -100,6 +146,9 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
                 _etat.value = etat.copy(
                     index = suivant,
                     versoVisible = false,
+                    correction = null,
+                    reponseAttendue = null,
+                    exercice = etat.cartes[suivant].let { exercicePour(it) },
                     reussies = etat.reussies + if (reussi) 1 else 0,
                     ratees = etat.ratees + if (reussi) 0 else 1
                 )

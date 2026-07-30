@@ -20,9 +20,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sankailife.core.domain.engine.ExerciceEngine
 import com.sankailife.core.domain.engine.FlashcardEngine
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.text.input.ImeAction
 import com.sankailife.core.haptics.LocalHaptics
 import com.sankailife.ui.components.SankaiButton
+import com.sankailife.ui.theme.AccentCyan
 import com.sankailife.ui.theme.AccentGold
 import com.sankailife.ui.theme.AccentViolet
 import com.sankailife.ui.theme.DangerRed
@@ -102,88 +111,204 @@ fun FlashcardsScreen(
                     ) {
                         Spacer(Modifier.height(12.dp))
 
-                        // La carte
+                        val exercice = etat.exercice
+
+                        // La saisie et l'ordre des mots sont remis à zéro à
+                        // chaque carte : la clé de `remember` porte l'index,
+                        // sinon la réponse précédente resterait affichée.
+                        var saisie by remember(etat.index) { mutableStateOf("") }
+                        var assemblage by remember(etat.index) {
+                            mutableStateOf(listOf<String>())
+                        }
+
                         Box(
                             Modifier
                                 .fillMaxWidth()
                                 .weight(1f)
                                 .clip(RoundedCornerShape(20.dp))
                                 .background(c.surface2)
-                                .border(1.dp, c.border, RoundedCornerShape(20.dp))
-                                .clickable(enabled = carte.aDeuxFaces && !etat.versoVisible) {
-                                    haptics.click()
-                                    viewModel.revelerVerso()
-                                }
-                                .padding(24.dp),
+                                .border(
+                                    1.dp,
+                                    when (etat.correction) {
+                                        true -> SuccessGreen.copy(alpha = 0.6f)
+                                        false -> DangerRed.copy(alpha = 0.6f)
+                                        null -> c.border
+                                    },
+                                    RoundedCornerShape(20.dp)
+                                )
+                                .padding(20.dp)
+                                .verticalScroll(rememberScrollState()),
                             contentAlignment = Alignment.Center
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    carte.recto,
-                                    color = c.textPrimary,
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    textAlign = TextAlign.Center
-                                )
+                                if (exercice != null) {
+                                    Text(
+                                        exercice.consigne.uppercase(),
+                                        color = AccentCyan, fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp
+                                    )
+                                    Spacer(Modifier.height(14.dp))
+                                }
 
-                                if (carte.aDeuxFaces) {
-                                    Spacer(Modifier.height(20.dp))
-                                    HorizontalDivider(color = c.border)
-                                    Spacer(Modifier.height(20.dp))
-
-                                    AnimatedVisibility(
-                                        visible = etat.versoVisible,
-                                        enter = fadeIn(), exit = fadeOut()
-                                    ) {
+                                when (exercice) {
+                                    is ExerciceEngine.Exercice.Reconnaissance -> {
                                         Text(
-                                            carte.verso.orEmpty(),
-                                            color = AccentGold,
-                                            fontSize = 18.sp,
+                                            exercice.question, color = c.textPrimary,
+                                            fontSize = 19.sp, fontWeight = FontWeight.SemiBold,
+                                            textAlign = TextAlign.Center
+                                        )
+                                        Spacer(Modifier.height(18.dp))
+                                        exercice.options.forEach { option ->
+                                            OptionExercice(
+                                                texte = option,
+                                                actif = etat.enAttenteDeValidation,
+                                                juste = etat.correction != null &&
+                                                        option == exercice.attendu
+                                            ) {
+                                                haptics.click(); viewModel.valider(option)
+                                            }
+                                        }
+                                    }
+
+                                    is ExerciceEngine.Exercice.TexteATrous -> {
+                                        Text(
+                                            listOf(exercice.avant, "____", exercice.apres)
+                                                .filter { it.isNotBlank() }.joinToString(" "),
+                                            color = c.textPrimary, fontSize = 18.sp,
+                                            textAlign = TextAlign.Center
+                                        )
+                                        Spacer(Modifier.height(18.dp))
+                                        ChampReponse(
+                                            valeur = saisie,
+                                            actif = etat.enAttenteDeValidation,
+                                            onChange = { saisie = it },
+                                            onValider = { viewModel.valider(saisie) }
+                                        )
+                                    }
+
+                                    is ExerciceEngine.Exercice.Saisie -> {
+                                        Text(
+                                            exercice.question, color = c.textPrimary,
+                                            fontSize = 19.sp, fontWeight = FontWeight.SemiBold,
+                                            textAlign = TextAlign.Center
+                                        )
+                                        Spacer(Modifier.height(18.dp))
+                                        ChampReponse(
+                                            valeur = saisie,
+                                            actif = etat.enAttenteDeValidation,
+                                            onChange = { saisie = it },
+                                            onValider = { viewModel.valider(saisie) }
+                                        )
+                                    }
+
+                                    is ExerciceEngine.Exercice.Ordre -> {
+                                        if (exercice.question.isNotBlank()) {
+                                            Text(
+                                                exercice.question, color = c.textPrimary,
+                                                fontSize = 17.sp, textAlign = TextAlign.Center
+                                            )
+                                            Spacer(Modifier.height(14.dp))
+                                        }
+                                        Text(
+                                            assemblage.joinToString(" ").ifBlank { "…" },
+                                            color = AccentGold, fontSize = 17.sp,
+                                            textAlign = TextAlign.Center
+                                        )
+                                        Spacer(Modifier.height(14.dp))
+                                        FlowMorceaux(
+                                            morceaux = exercice.morceaux,
+                                            utilises = assemblage,
+                                            actif = etat.enAttenteDeValidation,
+                                            onChoisir = { mot -> assemblage = assemblage + mot },
+                                            onEffacer = { assemblage = assemblage.dropLast(1) }
+                                        )
+                                    }
+
+                                    else -> {
+                                        Text(
+                                            carte.recto, color = c.textPrimary,
+                                            fontSize = 20.sp, fontWeight = FontWeight.SemiBold,
                                             textAlign = TextAlign.Center
                                         )
                                     }
-                                    if (!etat.versoVisible) {
-                                        Text(
-                                            "Touche pour révéler",
-                                            color = c.textDisabled, fontSize = 13.sp
-                                        )
-                                    }
+                                }
+
+                                // Après une erreur, la bonne réponse est
+                                // montrée : c'est le seul moment où l'on
+                                // apprend vraiment quelque chose.
+                                etat.reponseAttendue?.let { attendu ->
+                                    Spacer(Modifier.height(16.dp))
+                                    HorizontalDivider(color = c.border)
+                                    Spacer(Modifier.height(12.dp))
+                                    Text("La réponse était", color = c.textSecondary, fontSize = 11.sp)
+                                    Text(
+                                        attendu, color = AccentGold, fontSize = 17.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        textAlign = TextAlign.Center
+                                    )
                                 }
                             }
                         }
 
-                        Spacer(Modifier.height(16.dp))
+                        Spacer(Modifier.height(14.dp))
 
-                        Text(
-                            "Prochaine révision si tu sais : " +
-                            FlashcardEngine.libelleIntervalle(
-                                FlashcardEngine.boiteSuivante(carte.box, true)
-                            ),
-                            color = c.textSecondary, fontSize = 11.sp
-                        )
-
-                        Spacer(Modifier.height(12.dp))
-
-                        // Une carte à une seule face n'a rien à révéler : on
-                        // propose directement les deux réponses.
-                        val peutRepondre = !carte.aDeuxFaces || etat.versoVisible
-
-                        if (peutRepondre) {
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                BoutonReponse(
-                                    "À revoir", DangerRed, Modifier.weight(1f)
-                                ) { haptics.error(); viewModel.repondre(false) }
-                                BoutonReponse(
-                                    "Je savais", SuccessGreen, Modifier.weight(1f)
-                                ) { haptics.success(); viewModel.repondre(true) }
+                        when {
+                            // Exercice corrigé : on avance, la boîte suit le
+                            // verdict de la machine et non l'avis du joueur.
+                            etat.correction != null -> {
+                                val juste = etat.correction == true
+                                Text(
+                                    if (juste)
+                                        "Juste • prochaine révision " +
+                                            FlashcardEngine.libelleIntervalle(
+                                                FlashcardEngine.boiteSuivante(carte.box, true)
+                                            )
+                                    else "Cette carte reviendra bientôt",
+                                    color = if (juste) SuccessGreen else c.textSecondary,
+                                    fontSize = 12.sp
+                                )
+                                Spacer(Modifier.height(10.dp))
+                                SankaiButton(
+                                    "Continuer",
+                                    onClick = {
+                                        if (juste) haptics.success() else haptics.error()
+                                        viewModel.repondre(juste)
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
                             }
-                        } else {
-                            SankaiButton(
-                                "Révéler la réponse",
-                                onClick = { viewModel.revelerVerso() },
+
+                            // La reconnaissance se valide en touchant une
+                            // option : pas de bouton supplémentaire.
+                            exercice is ExerciceEngine.Exercice.Reconnaissance -> Unit
+
+                            exercice is ExerciceEngine.Exercice.Ordre -> SankaiButton(
+                                "Valider",
+                                onClick = { viewModel.valider(assemblage.joinToString(" ")) },
+                                enabled = assemblage.isNotEmpty(),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            exercice is ExerciceEngine.Exercice.Memoire -> {
+                                // Rien à corriger : on garde l'auto-évaluation,
+                                // faute de mieux pour une carte d'une seule face.
+                                Row(
+                                    Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    BoutonReponse("À revoir", DangerRed, Modifier.weight(1f)) {
+                                        haptics.error(); viewModel.repondre(false)
+                                    }
+                                    BoutonReponse("Je savais", SuccessGreen, Modifier.weight(1f)) {
+                                        haptics.success(); viewModel.repondre(true)
+                                    }
+                                }
+                            }
+
+                            else -> SankaiButton(
+                                "Valider",
+                                onClick = { viewModel.valider(saisie) },
+                                enabled = saisie.isNotBlank(),
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
@@ -191,6 +316,119 @@ fun FlashcardsScreen(
                         Spacer(Modifier.height(16.dp))
                     }
                 }
+            }
+        }
+    }
+}
+
+/** Une proposition de QCM. Après validation, la bonne réponse s'éclaire. */
+@Composable
+private fun OptionExercice(
+    texte: String,
+    actif: Boolean,
+    juste: Boolean,
+    onClic: () -> Unit
+) {
+    val c = MaterialTheme.sankaiColors
+    Box(
+        Modifier.fillMaxWidth().padding(bottom = 8.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (juste) SuccessGreen.copy(alpha = 0.18f) else c.surface3)
+            .border(
+                1.dp,
+                if (juste) SuccessGreen.copy(alpha = 0.6f) else c.border,
+                RoundedCornerShape(12.dp)
+            )
+            .clickable(enabled = actif) { onClic() }
+            .padding(14.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            texte,
+            color = if (juste) SuccessGreen else c.textPrimary,
+            fontSize = 14.sp,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+/** Champ de réponse écrite. La touche entrée valide, comme au clavier. */
+@Composable
+private fun ChampReponse(
+    valeur: String,
+    actif: Boolean,
+    onChange: (String) -> Unit,
+    onValider: () -> Unit
+) {
+    val c = MaterialTheme.sankaiColors
+    OutlinedTextField(
+        value = valeur,
+        onValueChange = onChange,
+        enabled = actif,
+        singleLine = true,
+        placeholder = { Text("Ta réponse", color = c.textDisabled, fontSize = 14.sp) },
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+        keyboardActions = KeyboardActions(onDone = { onValider() }),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = c.textPrimary,
+            unfocusedTextColor = c.textPrimary,
+            disabledTextColor = c.textSecondary,
+            focusedBorderColor = c.accent,
+            unfocusedBorderColor = c.border,
+            cursorColor = c.accent
+        ),
+        modifier = Modifier.fillMaxWidth()
+    )
+}
+
+/**
+ * Les morceaux à remettre dans l'ordre.
+ *
+ * Un mot déjà placé reste visible mais grisé plutôt que de disparaître : voir
+ * la liste se vider ferait perdre le repère de ce qui reste à placer.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun FlowMorceaux(
+    morceaux: List<String>,
+    utilises: List<String>,
+    actif: Boolean,
+    onChoisir: (String) -> Unit,
+    onEffacer: () -> Unit
+) {
+    val c = MaterialTheme.sankaiColors
+    val restants = utilises.toMutableList()
+
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        morceaux.forEach { mot ->
+            // Un même mot peut apparaître deux fois : on ne grise que la
+            // première occurrence encore non consommée.
+            val consomme = restants.remove(mot)
+            Box(
+                Modifier.clip(RoundedCornerShape(10.dp))
+                    .background(if (consomme) c.surface1 else c.surface3)
+                    .border(1.dp, c.border, RoundedCornerShape(10.dp))
+                    .clickable(enabled = actif && !consomme) { onChoisir(mot) }
+                    .padding(horizontal = 11.dp, vertical = 7.dp)
+            ) {
+                Text(
+                    mot,
+                    color = if (consomme) c.textDisabled else c.textPrimary,
+                    fontSize = 13.sp
+                )
+            }
+        }
+        if (utilises.isNotEmpty() && actif) {
+            Box(
+                Modifier.clip(RoundedCornerShape(10.dp))
+                    .background(c.surface1)
+                    .clickable { onEffacer() }
+                    .padding(horizontal = 11.dp, vertical = 7.dp)
+            ) {
+                Text("⌫", color = c.textSecondary, fontSize = 13.sp)
             }
         }
     }
