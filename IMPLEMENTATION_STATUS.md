@@ -44,7 +44,7 @@ Dernière mise à jour : build `assembleDebug` et `assembleRelease` verts.
 | 38 | Accueil nettoyé (coffres + pub retirés) | ✅ terminé | `HomeScreen.kt` | Pubs uniquement depuis la boutique |
 | 39 | Surface Liquid Glass | ✅ terminé | `ui/components/LiquidGlass.kt` | Appliquée à la barre du bas |
 | 40 | Jardin unique et persistant | ✅ déjà acquis | `GardenRepository.kt` | Une seule instance, les arènes débloquent du contenu |
-| 41 | Jardin — caméra, chunks, glisser-planter | ❌ à faire | — | Phase 2 du dernier cahier des charges |
+| 41 | Jardin — caméra + glisser-planter | ✅ terminé | `GrilleJardin.kt`, `OutilJardin.kt` | Terrain 4×4, geste unique selon l'outil tenu |
 | 42 | Jardin — jour/nuit, magasin, dépôt, Mimos | ❌ à faire | — | Phase 3 |
 | 43 | Académie Sankai (modes d'apprentissage) | ❌ à faire | — | Phase 4 : écriture, écoute, dictée, packs |
 | 37 | Visuels du jardin | 🟠 provisoire | `GardenScreen.kt` | Rendu géométrique, substituable sans toucher la logique |

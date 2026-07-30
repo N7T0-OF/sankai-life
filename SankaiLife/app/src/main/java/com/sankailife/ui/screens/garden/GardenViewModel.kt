@@ -9,6 +9,7 @@ import com.sankailife.SankaiApplication
 import com.sankailife.core.data.repository.UserRepository
 import com.sankailife.core.garden.data.GardenRepository
 import com.sankailife.core.garden.data.GardenStateEntity
+import com.sankailife.core.garden.domain.OutilJardin
 import com.sankailife.core.garden.domain.*
 import com.sankailife.core.domain.engine.ArenaEngine
 import com.sankailife.core.domain.model.UserState
@@ -119,6 +120,50 @@ class GardenViewModel(application: Application) : AndroidViewModel(application) 
             TrustedTimeEngine.message(verdict)?.let { afficher(it) }
             _defi.value = runCatching { repo.defiSouvenir() }.getOrNull()
             _chargement.value = false
+        }
+    }
+
+    /** Nombre de colonnes du terrain, partagé avec la grille. */
+    val colonnes = 4
+
+    private val _outil = MutableStateFlow<OutilJardin?>(null)
+    val outil: StateFlow<OutilJardin?> = _outil
+
+    /** Sélectionner l'outil déjà tenu le repose : un seul geste pour les deux. */
+    fun choisirOutil(nouveau: OutilJardin?) {
+        _outil.value = if (_outil.value == nouveau) null else nouveau
+    }
+
+    /**
+     * Applique l'outil tenu à une parcelle.
+     *
+     * Appelé pour chaque case traversée pendant un glissement, donc
+     * potentiellement plusieurs fois par seconde : les messages ne sont émis
+     * que pour les échecs réellement informatifs, sinon un balayage sur des
+     * cases incompatibles noierait l'écran de notifications.
+     */
+    fun appliquerOutil(plotId: Int) = viewModelScope.launch {
+        val outilCourant = _outil.value ?: return@launch
+        val parcelle = parcelles.value.firstOrNull { it.id == plotId } ?: return@launch
+        if (!outilCourant.applicableA(parcelle.etat)) return@launch
+
+        when (outilCourant) {
+            is OutilJardin.Graine ->
+                if (!repo.planter(plotId, outilCourant.seed.id)) {
+                    afficher("Pièces insuffisantes")
+                    _outil.value = null
+                }
+            OutilJardin.Arrosoir ->
+                if (!repo.arroser(plotId)) {
+                    afficher("Plus d'eau — révise des cartes pour en obtenir")
+                    _outil.value = null
+                }
+            OutilJardin.Panier -> repo.recolter(plotId)
+            OutilJardin.Pioche ->
+                if (!repo.nettoyer(plotId)) {
+                    afficher("Il faut ${GardenRepository.COUT_NETTOYAGE} pièces")
+                    _outil.value = null
+                }
         }
     }
 

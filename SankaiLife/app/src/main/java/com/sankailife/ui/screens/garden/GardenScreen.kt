@@ -25,7 +25,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sankailife.core.domain.engine.ArenaEngine
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import com.sankailife.core.garden.domain.MemoChallengeEngine
+import com.sankailife.core.garden.domain.OutilJardin
 import com.sankailife.core.garden.domain.PlotState
 import com.sankailife.core.garden.domain.Seed
 import com.sankailife.core.haptics.LocalHaptics
@@ -58,6 +61,7 @@ fun GardenScreen(viewModel: GardenViewModel, onBack: () -> Unit) {
 
     var selection by remember { mutableStateOf<GardenViewModel.ParcelleUi?>(null) }
     val defi by viewModel.defi.collectAsState()
+    val outil by viewModel.outil.collectAsState()
 
     defi?.let { d ->
         FeuilleDefiSouvenir(
@@ -122,40 +126,27 @@ fun GardenScreen(viewModel: GardenViewModel, onBack: () -> Unit) {
             Box(
                 Modifier.weight(1f).fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp)
             ) {
-                Column(
-                    Modifier.fillMaxSize()
-                        .clip(RoundedCornerShape(22.dp))
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color(0xFF16301F), Color(0xFF0E2116))
-                            )
-                        )
-                        .border(1.dp, Color(0xFF2E5238), RoundedCornerShape(22.dp))
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
+                Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     // Arbre Sankai : symbole du niveau global, non cultivable.
                     ArbreSankai(niveau = user.level)
 
-                    val lignes = parcelles.chunked(3)
-                    lignes.forEach { ligne ->
-                        Row(
-                            Modifier.fillMaxWidth().weight(1f),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            ligne.forEach { parcelle ->
-                                Parcelle(
-                                    parcelle = parcelle,
-                                    modifier = Modifier.weight(1f).fillMaxHeight()
-                                ) {
-                                    haptics.click()
-                                    selection = parcelle
-                                }
-                            }
-                        }
-                    }
+                    GrilleJardin(
+                        parcelles = parcelles,
+                        colonnes = viewModel.colonnes,
+                        outil = outil,
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                        onAppliquer = { viewModel.appliquerOutil(it) },
+                        onOuvrirDetail = { selection = it }
+                    )
                 }
             }
+
+            // Barre d'outils : sélectionner puis glisser sur les parcelles.
+            BarreOutils(
+                outil = outil,
+                graines = viewModel.grainesDisponibles(user.level),
+                onChoisir = { haptics.click(); viewModel.choisirOutil(it) }
+            )
 
             // Carte contextuelle unique, comme sur l'accueil.
             Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp)) {
@@ -244,6 +235,80 @@ private fun FeuilleDefiSouvenir(
                 color = c.textDisabled, fontSize = 11.sp
             )
         }
+    }
+}
+
+/**
+ * Barre d'outils du jardin.
+ *
+ * Un seul appui sélectionne, un second repose l'outil. Le glissement sur la
+ * grille fait le reste : c'est ce qui permet de semer six cases d'un geste
+ * sans jamais confirmer.
+ */
+@Composable
+private fun BarreOutils(
+    outil: OutilJardin?,
+    graines: List<Seed>,
+    onChoisir: (OutilJardin?) -> Unit
+) {
+    val c = MaterialTheme.sankaiColors
+
+    Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp)) {
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            listOf(OutilJardin.Arrosoir, OutilJardin.Panier, OutilJardin.Pioche).forEach { o ->
+                BoutonOutil(o.emoji, o.libelle, outil == o) { onChoisir(o) }
+            }
+            graines.forEach { graine ->
+                val g = OutilJardin.Graine(graine)
+                BoutonOutil(
+                    graine.emoji,
+                    "${graine.prixPieces} 🪙",
+                    outil is OutilJardin.Graine && outil.seed.id == graine.id
+                ) { onChoisir(g) }
+            }
+        }
+
+        if (outil == null) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Glisse sur le terrain pour te déplacer, ou choisis un outil.",
+                color = c.textDisabled, fontSize = 10.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun BoutonOutil(
+    emoji: String,
+    libelle: String,
+    actif: Boolean,
+    onClic: () -> Unit
+) {
+    val c = MaterialTheme.sankaiColors
+    Column(
+        Modifier
+            .clip(RoundedCornerShape(13.dp))
+            .background(if (actif) c.accent.copy(alpha = 0.18f) else c.surface2)
+            .border(
+                if (actif) 1.5.dp else 1.dp,
+                if (actif) c.accent else c.border,
+                RoundedCornerShape(13.dp)
+            )
+            .clickable { onClic() }
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(emoji, fontSize = 19.sp)
+        Text(
+            libelle,
+            color = if (actif) c.accent else c.textSecondary,
+            fontSize = 9.sp,
+            fontWeight = if (actif) FontWeight.Bold else FontWeight.Normal
+        )
     }
 }
 

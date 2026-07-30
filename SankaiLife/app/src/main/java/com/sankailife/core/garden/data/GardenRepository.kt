@@ -20,8 +20,12 @@ class GardenRepository(
 ) {
     private val dao = db.gardenDao()
 
-    /** Nombre de parcelles du prototype. */
-    private val nombreParcelles = 9
+    /**
+     * Taille du terrain. 4 × 4 : assez grand pour dépasser l'écran et donner
+     * un sens au déplacement de caméra, assez petit pour rester lisible.
+     */
+    private val colonnes = 4
+    private val nombreParcelles = colonnes * 4
 
     val etatFlow = dao.observerEtat()
     val parcellesFlow = dao.observerParcelles()
@@ -36,13 +40,25 @@ class GardenRepository(
         if (dao.etat() == null) {
             dao.sauverEtat(GardenStateEntity(jourPlafond = clock.currentDayId()))
         }
-        if (dao.parcelles().isEmpty()) {
+        // Ajoute les parcelles manquantes sans toucher aux existantes : un
+        // agrandissement du terrain ne doit jamais réinitialiser les cultures
+        // déjà en place.
+        val existantes = dao.parcelles()
+        val manquantes = (0 until nombreParcelles)
+            .filter { index -> existantes.none { it.id == index } }
+
+        if (manquantes.isNotEmpty()) {
             dao.sauverParcelles(
-                (0 until nombreParcelles).map { index ->
+                manquantes.map { index ->
                     when {
                         index < 4 -> GardenPlotEntity(index, PlotState.EMPTY.name, "terre", 1)
-                        index < 6 -> GardenPlotEntity(index, PlotState.UNCLEARED.name, "terre", 1)
-                        else -> GardenPlotEntity(index, PlotState.LOCKED.name, "terre", index - 3)
+                        index < 8 -> GardenPlotEntity(index, PlotState.UNCLEARED.name, "terre", 1)
+                        // Les rangées suivantes s'ouvrent au fil des arènes.
+                        else -> GardenPlotEntity(
+                            index, PlotState.LOCKED.name,
+                            if (index >= 12) "sable" else "terre",
+                            areneRequise = 2 + (index - 8) / 4
+                        )
                     }
                 }
             )
