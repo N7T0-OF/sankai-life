@@ -265,6 +265,43 @@ reste du jeu fonctionne la nuit.
 
 Reste de la phase 2 : les chunks nord / sud / est / ouest.
 
+### Phase 3 — les Mimos (v1.18.0)
+
+Cinq métiers qui couvrent le circuit entier : arroseur, récolteur,
+transporteur, vendeur, planteur.
+
+**Rien ne tourne quand l'application est fermée.** Leur travail est reconstitué
+à l'ouverture depuis le temps écoulé, exactement comme la croissance. C'est le
+seul modèle honnête hors ligne : un service d'arrière-plan serait tué par le
+système sur la plupart des téléphones, et le joueur ne comprendrait pas
+pourquoi ses Mimos travaillent chez lui et pas chez son voisin.
+
+**Ils ne travaillent que le jour.** `minutesOuvrees` découpe l'absence jour par
+jour et ne garde que les heures d'ouverture. Sans cette borne, dormir
+rapporterait autant que vivre, et le cycle jour / nuit livré en v1.17
+n'aurait aucune conséquence mécanique.
+
+**Le compost devient leur carburant.** Il s'accumulait sans emploi depuis les
+premières récoltes. La boucle se referme maintenant sur elle-même : récolter
+produit du compost, le compost paie les Mimos, les Mimos récoltent.
+
+**Un plafond de douze actions par ouverture.** Revenir après une semaine ne
+doit pas vider le jardin d'un coup — il ne resterait plus rien à faire, ce qui
+est l'échec exact que l'automatisation doit éviter.
+
+Deux entorses délibérées à la cohérence apparente, notées ici pour qu'on ne
+les « corrige » pas par erreur :
+
+- le vendeur automatique ignore l'horaire du marchand, parce que son travail
+  est reconstitué — l'heure du retour n'a rien à voir avec l'heure où il a
+  vendu. Lui réappliquer le contrôle empêcherait toute vente chez quelqu'un
+  qui ouvre l'application le soir, c'est-à-dire la plupart ;
+- le transporteur facture une action pour un trajet, quel que soit le nombre
+  de caisses ramenées.
+
+Restent de la phase 3 : les animaux, l'irrigation, les rails et convoyeurs, et
+les Mimos botaniste / protecteur / professeur / nocturne.
+
 ### Ce qui n'a pas bougé
 
 Les deux réserves ci-dessus tiennent toujours.
@@ -273,8 +310,8 @@ Les visuels restent le goulot : le jardin est géométrique, emojis compris. Le
 remplacement par de vraies illustrations ne demandera pas de retoucher la
 logique — catalogues et rendu sont séparés — mais il demandera un graphiste.
 
-**L'application n'a toujours jamais été lancée.** Vingt-quatre versions
+**L'application n'a toujours jamais été lancée.** Vingt-cinq versions
 publiées, aucun écran vu. Chaque phase ajoutée augmente la surface de ce qui
-peut être faux sans qu'on le sache. Les moteurs sont couverts par 59 tests ;
+peut être faux sans qu'on le sache. Les moteurs sont couverts par 72 tests ;
 la mise en page, les gestes et les migrations en conditions réelles ne le
 sont pas et ne peuvent pas l'être sans appareil.
