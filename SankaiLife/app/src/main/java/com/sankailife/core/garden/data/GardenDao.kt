@@ -41,6 +41,9 @@ interface GardenDao {
     @Query("UPDATE garden_plot SET solId = :solId WHERE id = :id")
     suspend fun majSol(id: Int, solId: String)
 
+    @Query("UPDATE garden_plot SET humidite = :humidite, dernierCalculHumidite = :quand WHERE id = :id")
+    suspend fun majHumidite(id: Int, humidite: Float, quand: Long)
+
     // --- Cultures ---------------------------------------------------------
 
     @Query("SELECT * FROM garden_crop WHERE recoltee = 0")

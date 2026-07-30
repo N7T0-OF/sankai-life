@@ -24,7 +24,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.Brush
 import com.sankailife.core.data.db.entities.ChestEntity
+import com.sankailife.core.domain.engine.ArenaEngine
+import com.sankailife.core.garden.domain.DayNightEngine
 import com.sankailife.ui.components.*
 import com.sankailife.ui.navigation.Screen
 import com.sankailife.ui.screens.arenas.CarteResumeArene
@@ -93,22 +96,26 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
 
                 Spacer(Modifier.height(12.dp))
 
+                // Zone C — aperçu du jardin.
+                //
+                // Il a remplacé le raccourci « Mémo actif ». L'accueil n'est
+                // pas une liste de raccourcis : le Mémo reste accessible depuis
+                // Mode Vie, les notifications et la navigation du bas, où on le
+                // cherche vraiment. Le diorama n'est pas interactif — un seul
+                // appui, qui ouvre le jardin.
+                DioramaJardin(
+                    niveau = user.level,
+                    onEntrer = { onNavigate(Screen.Garden.route) }
+                )
+
+                Spacer(Modifier.height(12.dp))
+
                 // Entrée du mode jeu. Bouton unique et large, à la façon d'un
                 // hub : le jardin est un univers séparé, pas une section.
                 SankaiButton(
                     "🌿  Entrer dans le jardin",
                     onClick = { onNavigate(Screen.Garden.route) },
                     modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(Modifier.height(12.dp))
-
-                // Zone C — une seule carte contextuelle, selon ce qui est en
-                // cours. Afficher Mémo, Focus et Objectifs en même temps
-                // remplirait l'écran sans aider à choisir.
-                CarteModuleContextuel(
-                    module = moduleContextuel,
-                    onOuvrir = { route -> onNavigate(route) }
                 )
 
                 Spacer(Modifier.height(10.dp))
@@ -142,7 +149,73 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
     }
 }
 
-/** Zone C de l'accueil : la seule carte de module affichée à la fois. */
+/**
+ * Aperçu du jardin sur l'accueil.
+ *
+ * Volontairement non interactif : un appui ouvre le jardin, rien d'autre.
+ * Y brancher les actions du jeu ferait de l'accueil un second écran de jeu, et
+ * obligerait à charger tout le mode jardin dès le démarrage de l'application.
+ *
+ * Il reflète l'avancement — arène, phase du jour — sans lire l'état complet des
+ * parcelles, qui coûterait une requête à chaque retour sur l'accueil.
+ */
+@Composable
+fun DioramaJardin(niveau: Int, onEntrer: () -> Unit) {
+    val c = MaterialTheme.sankaiColors
+    val arene = ArenaEngine.areneActuelle(niveau)
+    val phase = DayNightEngine.phase()
+    val nuit = DayNightEngine.intensiteNuit()
+
+    Box(
+        Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        Color(0xFF1B3A26).copy(alpha = 1f - nuit * 0.5f),
+                        Color(0xFF0C1D14)
+                    )
+                )
+            )
+            .border(1.dp, Color(0xFF2E5238), RoundedCornerShape(18.dp))
+            .clickable { onEntrer() }
+            .padding(14.dp)
+    ) {
+        Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(arene.emoji, fontSize = 26.sp)
+                Spacer(Modifier.width(10.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("Ton jardin", color = c.textPrimary,
+                        fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    Text("${phase.emoji} ${phase.libelle}",
+                        color = c.textSecondary, fontSize = 11.sp)
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            // Rangée décorative : une silhouette de terrain, pas une grille
+            // fonctionnelle. Elle donne l'échelle sans rien promettre.
+            Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                listOf("🌱", "🌿", "🪴", "🌻", "🌾").forEach {
+                    Box(
+                        Modifier.weight(1f).height(34.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFF3E2C1B)),
+                        contentAlignment = Alignment.Center
+                    ) { Text(it, fontSize = 15.sp) }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Carte de module contextuelle.
+ *
+ * Retirée de l'accueil : celui-ci ne présente plus que l'arène, le jardin et
+ * les coffres. Conservée parce qu'elle reste utilisée par Mode Vie, où un
+ * raccourci vers le module en cours est à sa place.
+ */
 @Composable
 fun CarteModuleContextuel(
     module: HomeViewModel.ModuleContextuel,

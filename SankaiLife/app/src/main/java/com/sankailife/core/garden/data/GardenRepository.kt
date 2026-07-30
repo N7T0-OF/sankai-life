@@ -23,49 +23,127 @@ class GardenRepository(
 ) {
     private val dao = db.gardenDao()
 
-    /**
-     * Taille du terrain. 4 × 4 : assez grand pour dépasser l'écran et donner
-     * un sens au déplacement de caméra, assez petit pour rester lisible.
-     */
-    private val colonnes = 4
-    private val nombreParcelles = colonnes * 4
-
     val etatFlow = dao.observerEtat()
     val parcellesFlow = dao.observerParcelles()
     val culturesFlow = dao.observerCultures()
 
     /**
      * Prépare le jardin au premier lancement.
-     * Quatre parcelles cultivables, cinq à débloquer — assez pour jouer tout
-     * de suite, assez peu pour donner envie d'agrandir.
+     *
+     * Quatre cases au centre du plan, et rien d'autre. Le reste n'existe pas
+     * en base tant qu'il n'est pas découvert : créer les 1 600 cases de la
+     * grille logique d'avance remplirait la base pour des positions que le
+     * joueur n'atteindra jamais.
      */
     suspend fun initialiser() {
         if (dao.etat() == null) {
             dao.sauverEtat(GardenStateEntity(jourPlafond = clock.currentDayId()))
         }
-        // Ajoute les parcelles manquantes sans toucher aux existantes : un
-        // agrandissement du terrain ne doit jamais réinitialiser les cultures
-        // déjà en place.
-        val existantes = dao.parcelles()
-        val manquantes = (0 until nombreParcelles)
-            .filter { index -> existantes.none { it.id == index } }
 
-        if (manquantes.isNotEmpty()) {
+        val existantes = dao.parcelles()
+        if (existantes.isEmpty()) {
+            val maintenant = clock.now().toEpochMilli()
             dao.sauverParcelles(
-                manquantes.map { index ->
-                    when {
-                        index < 4 -> GardenPlotEntity(index, PlotState.EMPTY.name, "terre", 1)
-                        index < 8 -> GardenPlotEntity(index, PlotState.UNCLEARED.name, "terre", 1)
-                        // Les rangées suivantes s'ouvrent au fil des arènes.
-                        else -> GardenPlotEntity(
-                            index, PlotState.LOCKED.name,
-                            if (index >= 12) "sable" else "terre",
-                            areneRequise = 2 + (index - 8) / 4
-                        )
-                    }
+                ExpansionEngine.casesInitiales().map { cle ->
+                    GardenPlotEntity(
+                        id = cle,
+                        etat = PlotState.EMPTY.name,
+                        solId = SoilType.TERRE.id,
+                        deblocage = ExpansionEngine.Deblocage.DEBLOQUEE.name,
+                        terrain = ExpansionEngine.Terrain.ORDINAIRE.name,
+                        humidite = 0.55f,
+                        dernierCalculHumidite = maintenant
+                    )
                 }
             )
         }
+        revelerFrontiere()
+    }
+
+    /**
+     * Fait reculer le brouillard d'un cran.
+     *
+     * Seules les cases adjacentes à une case possédée sont matérialisées en
+     * base. Le reste du plan reste une abstraction — ce qui garde la table
+     * proportionnelle à ce que le joueur a réellement exploré.
+     */
+    private suspend fun revelerFrontiere() {
+        val toutes = dao.parcelles()
+        val possedees = toutes
+            .filter { it.deblocage == ExpansionEngine.Deblocage.DEBLOQUEE.name }
+            .map { it.id }.toSet()
+        if (possedees.isEmpty()) return
+
+        val connues = toutes.map { it.id }.toSet()
+        val nouvelles = ExpansionEngine.frontiere(possedees) - connues
+        if (nouvelles.isEmpty()) return
+
+        dao.sauverParcelles(
+            nouvelles.map { cle ->
+                val terrain = ExpansionEngine.terrainDe(cle)
+                GardenPlotEntity(
+                    id = cle,
+                    etat = if (terrain.aNettoyer) PlotState.UNCLEARED.name else PlotState.EMPTY.name,
+                    solId = terrain.sol.id,
+                    deblocage = ExpansionEngine.Deblocage.DECOUVERTE.name,
+                    terrain = terrain.name,
+                    humidite = 0.4f,
+                    dernierCalculHumidite = clock.now().toEpochMilli()
+                )
+            }
+        )
+    }
+
+    /**
+     * Lance le chantier d'une case découverte.
+     *
+     * L'adjacence est revérifiée ici et pas seulement à l'affichage : c'est la
+     * règle du jeu, elle doit tenir même si un écran se trompe.
+     */
+    suspend fun lancerChantier(cle: Int): Boolean {
+        val parcelle = dao.parcelle(cle) ?: return false
+        if (parcelle.deblocage != ExpansionEngine.Deblocage.DECOUVERTE.name) return false
+
+        val possedees = dao.parcelles()
+            .filter { it.deblocage == ExpansionEngine.Deblocage.DEBLOQUEE.name }
+            .map { it.id }.toSet()
+        if (!ExpansionEngine.estAchetable(cle, possedees)) return false
+
+        val terrain = ExpansionEngine.Terrain.parNom(parcelle.terrain)
+        if (!userRepo.spendCoins(ExpansionEngine.cout(cle, terrain))) return false
+
+        val fin = clock.now().toEpochMilli() +
+            ExpansionEngine.dureeChantierMinutes(cle, terrain) * 60_000
+        dao.sauverParcelles(
+            listOf(
+                parcelle.copy(
+                    deblocage = ExpansionEngine.Deblocage.EN_CHANTIER.name,
+                    chantierFinMillis = fin
+                )
+            )
+        )
+        return true
+    }
+
+    /** Termine les chantiers arrivés à échéance. @return le nombre livré. */
+    private suspend fun acheverChantiers(): Int {
+        val maintenant = clock.now().toEpochMilli()
+        val finis = dao.parcelles().filter {
+            it.deblocage == ExpansionEngine.Deblocage.EN_CHANTIER.name &&
+                it.chantierFinMillis in 1..maintenant
+        }
+        if (finis.isEmpty()) return 0
+
+        dao.sauverParcelles(
+            finis.map {
+                it.copy(
+                    deblocage = ExpansionEngine.Deblocage.DEBLOQUEE.name,
+                    chantierFinMillis = 0L
+                )
+            }
+        )
+        revelerFrontiere()
+        return finis.size
     }
 
     /**
@@ -95,6 +173,7 @@ class GardenRepository(
         if (resultat.minutesRetenues > 0) {
             appliquerCroissance(resultat.minutesRetenues, heureMurale)
         }
+        acheverChantiers()
 
         // Les Mimos travaillent après la croissance : ils doivent voir le
         // jardin tel qu'il est au retour, pas tel qu'il était au départ.
@@ -225,23 +304,18 @@ class GardenRepository(
         }
     }
 
-    /** Arrose en priorité ce qui a soif, sinon rien. */
+    /**
+     * Arrose ce qui a soif, et seulement ça.
+     *
+     * Passe par le même chemin assisté que le joueur : un Mimo qui noierait
+     * un cactus serait un Mimo qu'on préfère ne pas embaucher.
+     */
     private suspend fun travailArroseur(budget: Int): Int {
         var faites = 0
-        val maintenant = clock.now().toEpochMilli()
         for (culture in dao.culturesEnCours()) {
             if (faites >= budget) break
-            val etat = dao.etat() ?: break
-            if (etat.eau < 1) break
-
-            val minutesDepuis = (maintenant - culture.dernierArrosageMillis) / 60_000
-            if (minutesDepuis < DUREE_ARROSAGE_MINUTES) continue
-
-            dao.majCulture(
-                culture.copy(dernierArrosageMillis = maintenant, arrosages = culture.arrosages + 1)
-            )
-            dao.sauverEtat(etat.copy(eau = etat.eau - 1))
-            faites++
+            if ((dao.etat()?.eau ?: 0) < 1) break
+            if (arroser(culture.plotId, assiste = true)) faites++
         }
         return faites
     }
@@ -301,17 +375,36 @@ class GardenRepository(
     fun coutEmbauche(type: MimoEngine.Type, dejaEmployes: Int): Int =
         type.coutEmbauche * (dejaEmployes + 1)
 
+    /**
+     * Fait sécher les sols, puis pousser les plantes.
+     *
+     * L'ordre compte : l'évaporation d'abord, la croissance ensuite, avec
+     * l'humidité **moyenne** de la période. Utiliser l'humidité finale
+     * pénaliserait deux fois un joueur absent — le sol a séché *pendant* son
+     * absence, il n'était pas sec depuis le début.
+     */
     private suspend fun appliquerCroissance(minutes: Long, maintenant: Long) {
-        for (culture in dao.culturesEnCours()) {
-            val minutesDepuisArrosage = (maintenant - culture.dernierArrosageMillis) / 60_000
-            // La part arrosée est bornée par la durée d'effet d'un arrosage.
-            val minutesArrosees = (DUREE_ARROSAGE_MINUTES - minutesDepuisArrosage + minutes)
-                .coerceIn(0L, minutes)
+        val debut = maintenant - minutes * 60_000
+        val minutesDeJour = MimoEngine.minutesOuvrees(debut, maintenant)
+        val partNocturne = if (minutes > 0) {
+            1f - (minutesDeJour.toFloat() / minutes)
+        } else 0f
 
-            val acquises = CropGrowthEngine.minutesAcquises(
-                minutesEcoulees = minutes,
-                minutesArrosees = minutesArrosees
-            )
+        val cultures = dao.culturesEnCours().associateBy { it.plotId }
+
+        for (parcelle in dao.parcelles()) {
+            if (parcelle.deblocage != ExpansionEngine.Deblocage.DEBLOQUEE.name) continue
+
+            val sol = SoilType.parId(parcelle.solId)
+            val avant = parcelle.humidite
+            val apres = MoistureEngine.apresEcoulement(avant, minutes, sol, partNocturne)
+            val moyenne = (avant + apres) / 2f
+
+            dao.majHumidite(parcelle.id, apres, maintenant)
+
+            val culture = cultures[parcelle.id] ?: continue
+            val graine = seedParId(culture.seedId) ?: continue
+            val acquises = (minutes * MoistureEngine.facteurCroissance(moyenne, graine)).toLong()
             dao.majCulture(culture.copy(minutesCumulees = culture.minutesCumulees + acquises))
         }
     }
@@ -353,18 +446,35 @@ class GardenRepository(
         return true
     }
 
-    /** Arrose une culture. Consomme une unité d'eau. */
-    suspend fun arroser(plotId: Int): Boolean {
+    /**
+     * Arrose une parcelle. Consomme une unité d'eau.
+     *
+     * Verse une quantité dans le sol au lieu de remettre un minuteur à zéro.
+     * Conséquence voulue : arroser un sol déjà détrempé gaspille l'eau, et
+     * l'arrosage assisté peut donc refuser d'agir.
+     *
+     * Une parcelle vide peut être arrosée — préparer la terre avant de semer
+     * est un geste légitime, l'interdire n'apprendrait rien à personne.
+     */
+    suspend fun arroser(plotId: Int, assiste: Boolean = false): Boolean {
         val etat = dao.etat() ?: return false
         if (etat.eau < 1) return false
-        val culture = dao.cultureSurParcelle(plotId) ?: return false
+        val parcelle = dao.parcelle(plotId) ?: return false
+        if (parcelle.deblocage != ExpansionEngine.Deblocage.DEBLOQUEE.name) return false
 
-        dao.majCulture(
-            culture.copy(
-                dernierArrosageMillis = clock.now().toEpochMilli(),
-                arrosages = culture.arrosages + 1
-            )
-        )
+        val culture = dao.cultureSurParcelle(plotId)
+        val graine = culture?.let { seedParId(it.seedId) }
+
+        // L'assistance évite le gaspillage et, pour un cactus, le dégât.
+        if (assiste && !MoistureEngine.aBesoinDEau(parcelle.humidite, graine)) return false
+        if (parcelle.humidite >= 0.99f) return false
+
+        val maintenant = clock.now().toEpochMilli()
+        dao.majHumidite(plotId, MoistureEngine.apresArrosage(parcelle.humidite), maintenant)
+
+        culture?.let {
+            dao.majCulture(it.copy(dernierArrosageMillis = maintenant, arrosages = it.arrosages + 1))
+        }
         dao.sauverEtat(etat.copy(eau = etat.eau - 1))
         return true
     }

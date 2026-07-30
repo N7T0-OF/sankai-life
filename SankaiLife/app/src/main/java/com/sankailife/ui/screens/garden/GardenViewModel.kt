@@ -38,8 +38,20 @@ class GardenViewModel(application: Application) : AndroidViewModel(application) 
         val prete: Boolean = false,
         val besoinEau: Boolean = false,
         val enRepos: Boolean = false,
-        val areneRequise: Int = 1
-    )
+        val areneRequise: Int = 1,
+
+        val x: Int = 0,
+        val y: Int = 0,
+        val deblocage: ExpansionEngine.Deblocage = ExpansionEngine.Deblocage.CACHEE,
+        val terrain: ExpansionEngine.Terrain = ExpansionEngine.Terrain.ORDINAIRE,
+        val humidite: Float = 0.5f,
+        val coutDeblocage: Int = 0,
+        val minutesChantier: Long = 0L
+    ) {
+        val cultivable: Boolean
+            get() = deblocage == ExpansionEngine.Deblocage.DEBLOQUEE
+        val etatHumidite: MoistureEngine.Etat get() = MoistureEngine.etat(humidite)
+    }
 
     private val _chargement = MutableStateFlow(true)
     val chargement: StateFlow<Boolean> = _chargement
@@ -74,31 +86,45 @@ class GardenViewModel(application: Application) : AndroidViewModel(application) 
                 val sol = SoilType.parId(plot.solId)
                 val culture = crops.firstOrNull { it.plotId == plot.id }
                 val graine = culture?.let { seedParId(it.seedId) }
+                val deblocage = runCatching {
+                    ExpansionEngine.Deblocage.valueOf(plot.deblocage)
+                }.getOrDefault(ExpansionEngine.Deblocage.CACHEE)
+                val terrain = ExpansionEngine.Terrain.parNom(plot.terrain)
 
-                // Une parcelle verrouillée s'ouvre dès que l'arène est atteinte.
-                val etatBrut = runCatching { PlotState.valueOf(plot.etat) }
-                    .getOrDefault(PlotState.LOCKED)
-                val etatReel = if (etatBrut == PlotState.LOCKED && areneActuelle >= plot.areneRequise) {
-                    PlotState.UNCLEARED
-                } else etatBrut
+                val commun = ParcelleUi(
+                    id = plot.id,
+                    etat = runCatching { PlotState.valueOf(plot.etat) }
+                        .getOrDefault(PlotState.EMPTY),
+                    sol = sol,
+                    areneRequise = plot.areneRequise,
+                    x = ExpansionEngine.xDe(plot.id),
+                    y = ExpansionEngine.yDe(plot.id),
+                    deblocage = deblocage,
+                    terrain = terrain,
+                    humidite = plot.humidite,
+                    coutDeblocage = ExpansionEngine.cout(plot.id, terrain),
+                    minutesChantier = if (plot.chantierFinMillis > maintenant) {
+                        (plot.chantierFinMillis - maintenant) / 60_000 + 1
+                    } else 0L
+                )
 
                 if (culture == null || graine == null) {
-                    ParcelleUi(plot.id, etatReel, sol, areneRequise = plot.areneRequise)
+                    commun
                 } else {
+                    // L'état de la culture est calculé avec l'humidité réelle
+                    // du sol, pas avec un minuteur d'arrosage : c'est le sol
+                    // qui nourrit la plante, pas le souvenir du dernier geste.
                     val depuisArrosage = (maintenant - culture.dernierArrosageMillis) / 60_000
                     val e = CropGrowthEngine.etat(graine, sol, culture.minutesCumulees, depuisArrosage)
-                    ParcelleUi(
-                        id = plot.id,
+                    commun.copy(
                         etat = if (e.prete) PlotState.READY_TO_HARVEST else PlotState.GROWING,
-                        sol = sol,
                         graine = graine,
                         stage = e.stage,
                         progression = e.progression,
                         minutesRestantes = e.minutesRestantes,
                         prete = e.prete,
-                        besoinEau = e.besoinEau,
-                        enRepos = e.enRepos,
-                        areneRequise = plot.areneRequise
+                        besoinEau = MoistureEngine.aBesoinDEau(plot.humidite, graine),
+                        enRepos = e.enRepos
                     )
                 }
             }
@@ -159,8 +185,15 @@ class GardenViewModel(application: Application) : AndroidViewModel(application) 
         else afficher("Pièces insuffisantes")
     }
 
-    /** Nombre de colonnes du terrain, partagé avec la grille. */
-    val colonnes = 4
+    /** Achète une case découverte et lance son chantier. */
+    fun debloquer(plotId: Int) = viewModelScope.launch {
+        val parcelle = parcelles.value.firstOrNull { it.id == plotId }
+        if (repo.lancerChantier(plotId)) {
+            afficher("Chantier lancé — ${parcelle?.terrain?.libelle ?: "extension"}")
+        } else {
+            afficher("Il faut ${parcelle?.coutDeblocage ?: 0} 🪙")
+        }
+    }
 
     private val _outil = MutableStateFlow<OutilJardin?>(null)
     val outil: StateFlow<OutilJardin?> = _outil
@@ -181,6 +214,9 @@ class GardenViewModel(application: Application) : AndroidViewModel(application) 
     fun appliquerOutil(plotId: Int) = viewModelScope.launch {
         val outilCourant = _outil.value ?: return@launch
         val parcelle = parcelles.value.firstOrNull { it.id == plotId } ?: return@launch
+        // Une case non débloquée ne réagit à aucun outil : le glissement la
+        // traverse sans effet plutôt que de refuser bruyamment.
+        if (!parcelle.cultivable) return@launch
         if (!outilCourant.applicableA(parcelle.etat)) return@launch
 
         when (outilCourant) {
@@ -190,7 +226,9 @@ class GardenViewModel(application: Application) : AndroidViewModel(application) 
                     _outil.value = null
                 }
             OutilJardin.Arrosoir ->
-                if (!repo.arroser(plotId)) {
+                // L'arrosage assisté n'échoue pas bruyamment sur un sol déjà
+                // humide : pendant un glissement, ce serait une alerte par case.
+                if (!repo.arroser(plotId, assiste = true) && (etat.value.eau < 1)) {
                     afficher("Plus d'eau — révise des cartes pour en obtenir")
                     _outil.value = null
                 }

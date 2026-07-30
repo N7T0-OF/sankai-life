@@ -35,6 +35,19 @@ enum class SeedRarity(val libelle: String) {
 }
 
 /**
+ * Soif d'une espèce.
+ *
+ * C'est ce qui rend le choix des graines réellement stratégique : un cactus
+ * n'est pas un tournesol qu'on arrose moins, c'est une plante qui souffre
+ * quand on l'arrose trop.
+ */
+enum class BesoinEau(val libelle: String) {
+    FAIBLE("Préfère un sol sec"),
+    MOYEN("Préfère un sol humide"),
+    FORT("Demande un arrosage régulier")
+}
+
+/**
  * Espèce cultivable.
  *
  * [dureeMinutes] est la durée de base, avant modificateur de sol et avant
@@ -49,7 +62,8 @@ data class Seed(
     val dureeMinutes: Long,
     val prixPieces: Int,
     val rendementPieces: Int,
-    val areneRequise: Int
+    val areneRequise: Int,
+    val besoinEau: BesoinEau = BesoinEau.MOYEN
 )
 
 /**
@@ -58,15 +72,20 @@ data class Seed(
  */
 val ALL_SEEDS = listOf(
     Seed("tournesol", "Tournesol", "🌻", SeedRarity.COMMUNE, SoilType.TERRE,
-        dureeMinutes = 6 * 60, prixPieces = 40, rendementPieces = 70, areneRequise = 1),
+        dureeMinutes = 6 * 60, prixPieces = 40, rendementPieces = 70, areneRequise = 1,
+        besoinEau = BesoinEau.MOYEN),
     Seed("menthe", "Menthe mémoire", "🌿", SeedRarity.COMMUNE, SoilType.TERRE,
-        dureeMinutes = 3 * 60, prixPieces = 25, rendementPieces = 40, areneRequise = 1),
+        dureeMinutes = 3 * 60, prixPieces = 25, rendementPieces = 40, areneRequise = 1,
+        besoinEau = BesoinEau.FORT),
     Seed("cactus", "Cactus des mots", "🌵", SeedRarity.INHABITUELLE, SoilType.SABLE,
-        dureeMinutes = 12 * 60, prixPieces = 80, rendementPieces = 160, areneRequise = 2),
+        dureeMinutes = 12 * 60, prixPieces = 80, rendementPieces = 160, areneRequise = 2,
+        besoinEau = BesoinEau.FAIBLE),
     Seed("lune", "Lune-fleur", "🌙", SeedRarity.RARE, SoilType.NOCTURNE,
-        dureeMinutes = 20 * 60, prixPieces = 200, rendementPieces = 450, areneRequise = 5),
+        dureeMinutes = 20 * 60, prixPieces = 200, rendementPieces = 450, areneRequise = 5,
+        besoinEau = BesoinEau.FAIBLE),
     Seed("lotus", "Lotus mémoire", "🪷", SeedRarity.LEGENDAIRE, SoilType.CRISTALLIN,
-        dureeMinutes = 36 * 60, prixPieces = 600, rendementPieces = 1500, areneRequise = 7)
+        dureeMinutes = 36 * 60, prixPieces = 600, rendementPieces = 1500, areneRequise = 7,
+        besoinEau = BesoinEau.FORT)
 )
 
 fun seedParId(id: String): Seed? = ALL_SEEDS.firstOrNull { it.id == id }

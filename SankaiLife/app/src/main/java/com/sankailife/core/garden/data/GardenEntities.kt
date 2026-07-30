@@ -39,18 +39,38 @@ data class GardenStateEntity(
 /**
  * Une parcelle du jardin.
  *
- * L'identifiant est la position dans la grille : stable, lisible en base, et
- * il évite une table de positions séparée pour un prototype 3 × 3.
+ * L'identifiant est la coordonnée sur le plan, `y * 40 + x`. Il valait
+ * autrefois l'index dans une liste de seize cases lues comme quatre colonnes —
+ * un tableau déguisé en base. Un index linéaire ne peut pas exprimer « la case
+ * au nord de celle-ci », d'où le changement.
+ *
+ * Deux états cohabitent, volontairement séparés : [deblocage] dit si la case
+ * appartient au joueur, [etat] ce qui pousse dessus. Les fusionner créerait
+ * des combinaisons impossibles à représenter — une case ne peut pas être à la
+ * fois « en chantier » et « prête à récolter », mais elle peut être
+ * « débloquée » et « en friche ».
  */
 @Entity(tableName = "garden_plot")
 data class GardenPlotEntity(
     @PrimaryKey val id: Int = 0,
-    /** Valeur de PlotState. */
+    /** Valeur de PlotState : ce qui pousse. */
     val etat: String = "LOCKED",
     /** Identifiant de SoilType. */
     val solId: String = "terre",
-    /** Arène nécessaire pour déverrouiller cette parcelle. */
-    val areneRequise: Int = 1
+    /** Arène nécessaire — conservé pour les anciennes parcelles. */
+    val areneRequise: Int = 1,
+
+    /** Valeur de ExpansionEngine.Deblocage : à qui appartient la case. */
+    val deblocage: String = "CACHEE",
+    /** Valeur de ExpansionEngine.Terrain. */
+    val terrain: String = "ORDINAIRE",
+    /** Fin du chantier en cours, 0 si aucun. */
+    val chantierFinMillis: Long = 0L,
+
+    /** Humidité du sol, de 0 (poussière) à 1 (détrempé). */
+    val humidite: Float = 0.5f,
+    /** Repère du dernier calcul d'évaporation. */
+    val dernierCalculHumidite: Long = 0L
 )
 
 /**

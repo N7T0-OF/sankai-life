@@ -23,7 +23,7 @@ import com.sankailife.core.garden.data.MemoChallengeEntity
                 MemoChallengeEntity::class,
                 GardenCrateEntity::class, GardenInventoryEntity::class,
                 GardenMimoEntity::class],
-    version = 12,
+    version = 13,
     exportSchema = false
 )
 abstract class SankaiDatabase : RoomDatabase() {
@@ -256,11 +256,54 @@ abstract class SankaiDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Le jardin passe d'une liste linéaire à un plan cartésien.
+         *
+         * C'est la seule migration de tout le projet qui réécrit des clés
+         * primaires. Les seize parcelles existantes, indexées 0 à 15 et lues
+         * comme quatre colonnes, sont recentrées autour de (20, 20) sur une
+         * grille de 40 : l'ancien index `i` devient `(18 + i/4) * 40 + (18 + i%4)`.
+         *
+         * Les nouvelles clés valent au minimum 738, les anciennes au maximum
+         * 15. Aucune collision n'est possible pendant la réécriture, ce qui
+         * permet de faire la conversion en deux UPDATE au lieu d'une table
+         * temporaire. `garden_crop.plotId` suit avec la même formule, sinon
+         * les cultures en cours se retrouveraient orphelines.
+         */
+        private val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE garden_plot ADD COLUMN deblocage TEXT NOT NULL DEFAULT 'CACHEE'")
+                db.execSQL("ALTER TABLE garden_plot ADD COLUMN terrain TEXT NOT NULL DEFAULT 'ORDINAIRE'")
+                db.execSQL("ALTER TABLE garden_plot ADD COLUMN chantierFinMillis INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE garden_plot ADD COLUMN humidite REAL NOT NULL DEFAULT 0.5")
+                db.execSQL("ALTER TABLE garden_plot ADD COLUMN dernierCalculHumidite INTEGER NOT NULL DEFAULT 0")
+
+                // Les parcelles déjà cultivables restent acquises : on ne
+                // reprend pas au joueur ce qu'il avait ouvert.
+                db.execSQL(
+                    "UPDATE garden_plot SET deblocage = 'DEBLOQUEE' " +
+                        "WHERE etat != 'LOCKED'"
+                )
+
+                // Recentrage. L'ordre importe : les cultures sont remappées
+                // avant les parcelles, tant que les anciens identifiants sont
+                // encore ceux de la table.
+                db.execSQL(
+                    "UPDATE garden_crop SET plotId = (18 + plotId / 4) * 40 + (18 + plotId % 4) " +
+                        "WHERE plotId < 16"
+                )
+                db.execSQL(
+                    "UPDATE garden_plot SET id = (18 + id / 4) * 40 + (18 + id % 4) " +
+                        "WHERE id < 16"
+                )
+            }
+        }
+
         val MIGRATIONS = arrayOf(
             MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
             MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
             MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
-            MIGRATION_10_11, MIGRATION_11_12
+            MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13
         )
 
         fun getDatabase(context: Context): SankaiDatabase {

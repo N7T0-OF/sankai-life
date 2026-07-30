@@ -28,6 +28,8 @@ import com.sankailife.core.domain.engine.ArenaEngine
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import com.sankailife.core.garden.domain.DayNightEngine
+import com.sankailife.core.garden.domain.ExpansionEngine
+import com.sankailife.core.garden.domain.MoistureEngine
 import com.sankailife.core.garden.domain.MemoChallengeEngine
 import com.sankailife.core.garden.domain.MimoEngine
 import androidx.compose.foundation.verticalScroll
@@ -124,6 +126,7 @@ fun GardenScreen(viewModel: GardenViewModel, onBack: () -> Unit) {
             onPlanter = { g -> viewModel.planter(parcelle.id, g); selection = null },
             onArroser = { viewModel.arroser(parcelle.id); selection = null },
             onRecolter = { haptics.reward(); viewModel.recolter(parcelle.id); selection = null },
+            onDebloquer = { viewModel.debloquer(parcelle.id); selection = null },
             onFermer = { selection = null }
         )
     }
@@ -178,7 +181,6 @@ fun GardenScreen(viewModel: GardenViewModel, onBack: () -> Unit) {
 
                     GrilleJardin(
                         parcelles = parcelles,
-                        colonnes = viewModel.colonnes,
                         outil = outil,
                         modifier = Modifier.fillMaxWidth().weight(1f),
                         onAppliquer = { viewModel.appliquerOutil(it) },
@@ -327,6 +329,104 @@ private fun BandeauDepot(
             )
         }
         Text("›", color = c.textSecondary, fontSize = 20.sp)
+    }
+}
+
+/**
+ * Fiche d'une case à acquérir, ou en chantier.
+ *
+ * Le prix et le temps sont annoncés avant l'achat, pas après : une extension
+ * qu'on découvre longue une fois payée serait vécue comme un piège.
+ */
+@Composable
+private fun FicheExtension(
+    parcelle: GardenViewModel.ParcelleUi,
+    pieces: Int,
+    onDebloquer: () -> Unit
+) {
+    val c = MaterialTheme.sankaiColors
+    val enChantier = parcelle.deblocage == ExpansionEngine.Deblocage.EN_CHANTIER
+
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(if (enChantier) "🚧" else parcelle.terrain.emoji, fontSize = 30.sp)
+        Spacer(Modifier.width(12.dp))
+        Column {
+            Text(
+                if (enChantier) "Chantier en cours" else parcelle.terrain.libelle,
+                color = c.textPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold
+            )
+            Text(parcelle.terrain.note, color = c.textSecondary, fontSize = 12.sp)
+        }
+    }
+
+    Spacer(Modifier.height(16.dp))
+
+    if (enChantier) {
+        Text(
+            "Encore ${formaterDuree(parcelle.minutesChantier)}. " +
+                "Tu peux continuer à jouer ailleurs — le chantier avance même " +
+                "application fermée.",
+            color = c.textSecondary, fontSize = 13.sp
+        )
+        return
+    }
+
+    val duree = ExpansionEngine.dureeChantierMinutes(parcelle.id, parcelle.terrain)
+    Text("Sol : ${parcelle.terrain.sol.emoji} ${parcelle.terrain.sol.libelle}",
+        color = c.textSecondary, fontSize = 12.sp)
+    Text("Défrichage : ${formaterDuree(duree)}", color = c.textSecondary, fontSize = 12.sp)
+    if (parcelle.terrain.aNettoyer) {
+        Text("Terrain encombré — il faudra le nettoyer après le chantier.",
+            color = c.textDisabled, fontSize = 11.sp)
+    }
+
+    Spacer(Modifier.height(18.dp))
+    val abordable = pieces >= parcelle.coutDeblocage
+    SankaiButton(
+        if (abordable) "Défricher • ${parcelle.coutDeblocage} 🪙"
+        else "Il faut ${parcelle.coutDeblocage} 🪙",
+        onClick = onDebloquer,
+        enabled = abordable,
+        modifier = Modifier.fillMaxWidth()
+    )
+}
+
+/**
+ * État du sol.
+ *
+ * Affiché ici et pas en permanence sur la grille : une jauge sur chaque case
+ * rendrait le terrain illisible. La couleur du sol suffit au coup d'œil, le
+ * détail vient à la demande.
+ */
+@Composable
+private fun FicheHumidite(parcelle: GardenViewModel.ParcelleUi) {
+    val c = MaterialTheme.sankaiColors
+    val etat = parcelle.etatHumidite
+    val heures = MoistureEngine.heuresAvantSecheresse(parcelle.humidite, parcelle.sol)
+
+    Row(
+        Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(MoistureEngine.teinteSol(parcelle.humidite)).copy(alpha = 0.35f))
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(etat.emoji, fontSize = 20.sp)
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                "${etat.libelle} • ${(parcelle.humidite * 100).toInt()} %",
+                color = c.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                if (heures <= 0f) "Le sol a besoin d'eau"
+                else "Sec dans environ ${formaterDuree((heures * 60).toLong())}",
+                color = c.textSecondary, fontSize = 11.sp
+            )
+        }
+        parcelle.graine?.let {
+            Text(it.besoinEau.libelle, color = c.textDisabled, fontSize = 10.sp)
+        }
     }
 }
 
@@ -821,6 +921,7 @@ private fun FeuilleParcelle(
     onPlanter: (Seed) -> Unit,
     onArroser: () -> Unit,
     onRecolter: () -> Unit,
+    onDebloquer: () -> Unit,
     onFermer: () -> Unit
 ) {
     val c = MaterialTheme.sankaiColors
@@ -828,15 +929,21 @@ private fun FeuilleParcelle(
     ModalBottomSheet(onDismissRequest = onFermer, containerColor = c.surface1) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 22.dp).padding(bottom = 30.dp)) {
 
+            // Une case pas encore acquise ne parle que d'acquisition : ses
+            // options de culture n'auraient aucun sens tant qu'elle n'est pas
+            // à nous.
+            if (!parcelle.cultivable) {
+                FicheExtension(parcelle = parcelle, pieces = pieces, onDebloquer = onDebloquer)
+                return@Column
+            }
+
+            FicheHumidite(parcelle)
+            Spacer(Modifier.height(16.dp))
+
             when (parcelle.etat) {
                 PlotState.LOCKED -> {
                     Text("Parcelle verrouillée", color = c.textPrimary,
                         fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "Atteins l'arène ${parcelle.areneRequise} pour l'ouvrir.",
-                        color = c.textSecondary, fontSize = 13.sp
-                    )
                 }
 
                 PlotState.UNCLEARED -> {
