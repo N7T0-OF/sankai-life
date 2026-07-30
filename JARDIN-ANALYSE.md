@@ -224,3 +224,57 @@ propre liste, en commençant par ce qui est le plus testable sans appareil —
 le modèle de cartes, la répétition espacée, le plafond anti-abus, la
 croissance temporelle. Le rendu du jardin vient après, quand la mécanique
 est juste.
+
+---
+
+## Journal d'avancement
+
+### Phase 1 — noyau (v1.14 → v1.15)
+
+Livrée. Moteurs purs (`GardenClock`, `CropGrowthEngine`, `LearningRewardEngine`,
+`MemoChallengeEngine`), entités et migrations 7→8, écran du jardin, grille avec
+caméra déplaçable et glisser-appliquer, défi souvenir alimenté par les
+notifications mémo.
+
+### Phase 2 — dépôt et cycle (v1.17.0)
+
+Livrée pour la partie dépôt et temps. Le circuit de la récolte est désormais
+complet : **plante mûre → caisse posée → rangement au dépôt → stock →
+vente au marchand**.
+
+Trois décisions valent d'être notées, parce qu'elles ne sont pas les plus
+simples techniquement et qu'on pourrait vouloir les défaire par erreur.
+
+**La récolte ne rapporte plus rien sur place.** C'était un gain immédiat, c'est
+devenu trois étapes. Techniquement inutile — on pourrait créditer directement.
+Mais sans ce circuit le dépôt n'a aucune fonction, et les Mimos transporteurs
+prévus en phase 3 n'auraient rien à transporter. Le détour est la
+fonctionnalité.
+
+**Le cours du marché est calculé, pas tiré au sort.** Il dérive du couple
+(jour, espèce) par hachage. Un aléatoire stocké finirait par diverger entre
+deux installations hors ligne, et relancer l'application changerait le prix
+affiché — ce qui ressemblerait à un bug même sans en être un.
+
+**Le cycle suit l'heure réelle, sans accélération.** Un cycle compressé façon
+jeu de ferme entrerait en conflit avec la croissance, déjà indexée sur le temps
+réel : un ciel qui change toutes les dix minutes pendant qu'une plante met six
+heures à pousser. Conséquence assumée : qui n'ouvre l'application que le soir
+ne verra jamais le jour. C'est pourquoi **seul le marchand dort** — tout le
+reste du jeu fonctionne la nuit.
+
+Reste de la phase 2 : les chunks nord / sud / est / ouest.
+
+### Ce qui n'a pas bougé
+
+Les deux réserves ci-dessus tiennent toujours.
+
+Les visuels restent le goulot : le jardin est géométrique, emojis compris. Le
+remplacement par de vraies illustrations ne demandera pas de retoucher la
+logique — catalogues et rendu sont séparés — mais il demandera un graphiste.
+
+**L'application n'a toujours jamais été lancée.** Vingt-quatre versions
+publiées, aucun écran vu. Chaque phase ajoutée augmente la surface de ce qui
+peut être faux sans qu'on le sache. Les moteurs sont couverts par 59 tests ;
+la mise en page, les gestes et les migrations en conditions réelles ne le
+sont pas et ne peuvent pas l'être sans appareil.

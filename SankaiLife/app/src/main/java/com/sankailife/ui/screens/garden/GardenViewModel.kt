@@ -268,8 +268,16 @@ class GardenViewModel(application: Application) : AndroidViewModel(application) 
 
     fun vendre(ligne: LigneStock) = viewModelScope.launch {
         val pieces = repo.vendre(ligne.graine.id, ligne.qualite, ligne.quantite)
-        if (pieces != null) afficher("Vendu : +$pieces 🪙")
-        else afficher(DayNightEngine.messageMagasinFerme())
+        afficher(
+            when {
+                pieces != null -> "Vendu : +$pieces 🪙"
+                // Le refus a deux causes possibles ; les confondre ferait dire
+                // « le marchand dort » en plein midi si un second appui arrive
+                // pendant la première vente.
+                !DayNightEngine.magasinOuvert() -> DayNightEngine.messageMagasinFerme()
+                else -> "Ce lot vient d'être vendu"
+            }
+        )
     }
 
     fun vendreTout() = viewModelScope.launch {
