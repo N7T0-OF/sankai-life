@@ -30,7 +30,14 @@ data class UserEntity(
     /** Record personnel, jamais remis à zéro même quand la série se casse. */
     val bestStreak: Int = 0,
     /** Boucliers disponibles : absorbent un jour manqué sans casser la série. */
-    val streakShields: Int = 1
+    val streakShields: Int = 1,
+
+    /**
+     * Jour du dernier coffre quotidien accordé, au format ISO.
+     * Sert de verrou : tant que la date correspond à aujourd'hui, aucun
+     * nouveau coffre quotidien ne peut être créé.
+     */
+    val lastDailyChestDay: String = ""
 )
 
 /**

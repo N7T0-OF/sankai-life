@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sankailife.core.haptics.LocalHaptics
+import com.sankailife.ui.components.LiquidGlassSurface
 import com.sankailife.ui.theme.sankaiColors
 
 data class NavItem(
@@ -69,30 +70,13 @@ fun SankaiBottomNavBar(
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
+        LiquidGlassSurface(
+            modifier = Modifier.fillMaxWidth(),
+            forme = RoundedCornerShape(28.dp)
+        ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(26.dp))
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            c.surface2.copy(alpha = 0.94f),
-                            c.surface1.copy(alpha = 0.98f)
-                        )
-                    )
-                )
-                // Liseré clair en haut : c'est lui qui donne l'impression
-                // d'épaisseur et de matière translucide.
-                .border(
-                    width = 1.dp,
-                    brush = Brush.verticalGradient(
-                        listOf(
-                            Color.White.copy(alpha = 0.10f),
-                            Color.White.copy(alpha = 0.02f)
-                        )
-                    ),
-                    shape = RoundedCornerShape(26.dp)
-                )
                 .padding(horizontal = 4.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
@@ -158,6 +142,7 @@ fun SankaiBottomNavBar(
                     }
                 }
             }
+        }
         }
     }
 }

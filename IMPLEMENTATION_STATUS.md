@@ -40,7 +40,13 @@ Dernière mise à jour : build `assembleDebug` et `assembleRelease` verts.
 | 34 | Refonte Mode Vie / Focus / Mémo / Coffres / Stats / Paramètres | ❌ à faire | — | Sections 10, 12 à 16 du complément UI |
 | 35 | **Jardin — phase 1** | ✅ terminé | `core/garden/`, `ui/screens/garden/` | Boucle complète, 21 tests verts |
 | 36 | Défi souvenir (notifications → jardin) | ✅ terminé | `MemoChallengeEngine.kt`, `GardenRepository.kt` | Verrou SQL anti-rejeu, 11 tests |
-| 37 | Jardin — phases 2 à 4 restantes | ❌ à faire | — | Mimos, météo, zones, Herbier, decks structurés |
+| 37 | Coffre quotidien en double | ✅ corrigé | `GameRepository.kt`, `AllDaos.kt` | Verrou par date en SQL |
+| 38 | Accueil nettoyé (coffres + pub retirés) | ✅ terminé | `HomeScreen.kt` | Pubs uniquement depuis la boutique |
+| 39 | Surface Liquid Glass | ✅ terminé | `ui/components/LiquidGlass.kt` | Appliquée à la barre du bas |
+| 40 | Jardin unique et persistant | ✅ déjà acquis | `GardenRepository.kt` | Une seule instance, les arènes débloquent du contenu |
+| 41 | Jardin — caméra, chunks, glisser-planter | ❌ à faire | — | Phase 2 du dernier cahier des charges |
+| 42 | Jardin — jour/nuit, magasin, dépôt, Mimos | ❌ à faire | — | Phase 3 |
+| 43 | Académie Sankai (modes d'apprentissage) | ❌ à faire | — | Phase 4 : écriture, écoute, dictée, packs |
 | 37 | Visuels du jardin | 🟠 provisoire | `GardenScreen.kt` | Rendu géométrique, substituable sans toucher la logique |
 | 18 | Liens externes cliquables | ✅ terminé | `SettingsScreen.kt` | Grisés hors connexion |
 | 19 | Slot module payant | ✅ terminé | `Models.kt`, `ShopViewModel.kt`, `LifeScreen.kt` | Prix progressif + remboursement si échec |

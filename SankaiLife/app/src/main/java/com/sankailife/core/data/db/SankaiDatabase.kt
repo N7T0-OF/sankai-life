@@ -18,7 +18,7 @@ import com.sankailife.core.garden.data.MemoChallengeEntity
                 ChallengeEntity::class, StatsEntity::class, DayRecordEntity::class,
                 GardenStateEntity::class, GardenPlotEntity::class, GardenCropEntity::class,
                 MemoChallengeEntity::class],
-    version = 9,
+    version = 10,
     exportSchema = false
 )
 abstract class SankaiDatabase : RoomDatabase() {
@@ -196,10 +196,17 @@ abstract class SankaiDatabase : RoomDatabase() {
             }
         }
 
+        /** Verrou par date du coffre quotidien. */
+        private val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE user ADD COLUMN lastDailyChestDay TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
         val MIGRATIONS = arrayOf(
             MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
             MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
-            MIGRATION_7_8, MIGRATION_8_9
+            MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10
         )
 
         fun getDatabase(context: Context): SankaiDatabase {

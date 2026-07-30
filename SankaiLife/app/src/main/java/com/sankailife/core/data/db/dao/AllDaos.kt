@@ -56,6 +56,18 @@ interface UserDao {
 
     @Query("UPDATE user SET streakShields=:shields WHERE id=1")
     suspend fun updateShields(shields: Int)
+
+    /**
+     * Réserve le coffre quotidien pour [jour].
+     *
+     * La clause `lastDailyChestDay != :jour` fait office de verrou atomique :
+     * SQLite ne modifie la ligne qu'une seule fois, même si deux appels
+     * arrivent simultanément. Un second appel renvoie 0 et n'accorde rien.
+     *
+     * @return 1 si le coffre vient d'être réservé, 0 s'il l'était déjà.
+     */
+    @Query("UPDATE user SET lastDailyChestDay=:jour WHERE id=1 AND lastDailyChestDay != :jour")
+    suspend fun reserverCoffreQuotidien(jour: String): Int
 }
 
 @Dao

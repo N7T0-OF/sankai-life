@@ -40,8 +40,10 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
     val moduleContextuel by viewModel.moduleContextuel.collectAsState()
     val c = MaterialTheme.sankaiColors
 
-    // AdMob a besoin de l'Activity pour afficher une pub plein écran.
-    val activity = LocalContext.current as? Activity
+    // Les coffres ne sont plus manipulés depuis l'accueil : on ne garde qu'un
+    // compteur. Les publicités partent d'ici pour de bon — elles restent
+    // accessibles depuis la boutique, sur action volontaire.
+    val coffresPrets = chests.count { it.isReady }
 
     // Dialogs
     if (showLvl) LevelUpDialog(level = lvlNum, coins = lvlNum * 50, onDismiss = { viewModel.dismissLevelUp() })
@@ -108,28 +110,25 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
 
                 Spacer(Modifier.height(10.dp))
 
-                // Bonus discret, volontairement en bas et en secondaire.
-                SankaiButton(
-                    text = when {
-                        !enLigne -> "🔌 Pub indisponible hors ligne"
-                        adCd > 0 -> "⏳ Prochaine pub dans ${adCd}s"
-                        else -> "🎥 Regarder une pub • +5 🪙"
-                    },
-                    onClick = { activity?.let { viewModel.watchAd(it) } },
-                    enabled = adCd <= 0 && enLigne,
-                    secondary = true,
-                    small = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                // Rappel discret des coffres, sans les afficher ici. L'accueil
+                // est un hub : il annonce, il ne fait pas à la place des
+                // écrans dédiés.
+                if (coffresPrets > 0) {
+                    Box(
+                        Modifier.fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(AccentGold.copy(alpha = 0.12f))
+                            .border(1.dp, AccentGold.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
+                            .padding(12.dp)
+                    ) {
+                        Text(
+                            "🎁  $coffresPrets coffre${if (coffresPrets > 1) "s" else ""} " +
+                            "prêt${if (coffresPrets > 1) "s" else ""} dans la boutique",
+                            color = AccentGold, fontSize = 12.sp, fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
             }
-
-            // Barre de coffres, ancrée en bas : une récompense en attente doit
-            // rester visible sans avoir à faire défiler l'écran.
-            BarreCoffres(
-                chests = chests,
-                onOpen = { viewModel.openChest(it) },
-                formatTimer = { viewModel.formatChestTimer(it) }
-            )
         }
 
         // Toast overlay

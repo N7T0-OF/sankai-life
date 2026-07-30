@@ -36,9 +36,28 @@ class GameRepository(private val db: SankaiDatabase) {
     suspend fun hasDailyChest(): Boolean =
         chestDao.getActiveChestsOnce().any { it.type == "DAILY" && !it.isReady.not() }
 
+    /**
+     * Accorde le coffre quotidien, une seule fois par jour.
+     *
+     * L'ancienne version testait seulement l'absence de coffre DAILY non
+     * ouvert : dès que le joueur l'ouvrait, la condition redevenait vraie et
+     * un nouveau coffre apparaissait immédiatement, le même jour.
+     *
+     * La réservation par date sert désormais de verrou. Elle est prise AVANT
+     * la création : si l'insertion échoue, on rend la réservation plutôt que
+     * de risquer un jour sans coffre du tout.
+     */
     suspend fun addDailyChest() {
-        val existing = chestDao.getActiveChestsOnce().any { it.type == "DAILY" }
-        if (!existing) addChest("DAILY")
+        val aujourdhui = LocalDate.now().toString()
+        val userDao = db.userDao()
+
+        if (userDao.reserverCoffreQuotidien(aujourdhui) == 0) return
+
+        if (!addChest("DAILY")) {
+            // File pleine : on libère la réservation pour réessayer plus tard,
+            // sinon le joueur perdrait son coffre du jour sans explication.
+            userDao.reserverCoffreQuotidien("")
+        }
     }
 
     // ── Challenges ────────────────────────────────────────────────────
