@@ -10,6 +10,7 @@ import com.sankailife.core.garden.data.GardenCrateEntity
 import com.sankailife.core.garden.data.GardenCropEntity
 import com.sankailife.core.garden.data.GardenDao
 import com.sankailife.core.garden.data.GardenInventoryEntity
+import com.sankailife.core.garden.data.GardenMimoEntity
 import com.sankailife.core.garden.data.GardenPlotEntity
 import com.sankailife.core.garden.data.GardenStateEntity
 import com.sankailife.core.garden.data.MemoChallengeEntity
@@ -20,8 +21,9 @@ import com.sankailife.core.garden.data.MemoChallengeEntity
                 ChallengeEntity::class, StatsEntity::class, DayRecordEntity::class,
                 GardenStateEntity::class, GardenPlotEntity::class, GardenCropEntity::class,
                 MemoChallengeEntity::class,
-                GardenCrateEntity::class, GardenInventoryEntity::class],
-    version = 11,
+                GardenCrateEntity::class, GardenInventoryEntity::class,
+                GardenMimoEntity::class],
+    version = 12,
     exportSchema = false
 )
 abstract class SankaiDatabase : RoomDatabase() {
@@ -238,11 +240,27 @@ abstract class SankaiDatabase : RoomDatabase() {
             }
         }
 
+        /** Les Mimos. Table neuve, aucun jardin existant n'est touché. */
+        private val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `garden_mimo` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `type` TEXT NOT NULL,
+                        `nom` TEXT NOT NULL,
+                        `embaucheMillis` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
         val MIGRATIONS = arrayOf(
             MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
             MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
             MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
-            MIGRATION_10_11
+            MIGRATION_10_11, MIGRATION_11_12
         )
 
         fun getDatabase(context: Context): SankaiDatabase {

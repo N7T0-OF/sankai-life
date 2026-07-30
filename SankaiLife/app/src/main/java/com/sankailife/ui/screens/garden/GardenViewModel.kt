@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.sankailife.SankaiApplication
 import com.sankailife.core.data.repository.UserRepository
 import com.sankailife.core.garden.data.GardenCrateEntity
+import com.sankailife.core.garden.data.GardenMimoEntity
 import com.sankailife.core.garden.data.GardenRepository
 import com.sankailife.core.garden.data.GardenStateEntity
 import com.sankailife.core.garden.domain.OutilJardin
@@ -116,13 +117,46 @@ class GardenViewModel(application: Application) : AndroidViewModel(application) 
     private val _defi = MutableStateFlow<MemoChallengeEngine.Defi?>(null)
     val defi: StateFlow<MemoChallengeEngine.Defi?> = _defi
 
+    /** Ce que les Mimos ont fait pendant l'absence, montré une seule fois. */
+    private val _rapportMimos = MutableStateFlow<String?>(null)
+    val rapportMimos: StateFlow<String?> = _rapportMimos
+
+    fun fermerRapport() { _rapportMimos.value = null }
+
     init {
         viewModelScope.launch {
-            val verdict = repo.ouvrirJardin()
-            TrustedTimeEngine.message(verdict)?.let { afficher(it) }
+            val ouverture = repo.ouvrirJardin()
+            TrustedTimeEngine.message(ouverture.verdict)?.let { afficher(it) }
+            _rapportMimos.value = MimoEngine.resume(ouverture.rapportMimos)
             _defi.value = runCatching { repo.defiSouvenir() }.getOrNull()
             _chargement.value = false
         }
+    }
+
+    // --- Mimos -------------------------------------------------------------
+
+    val mimos: StateFlow<List<GardenMimoEntity>> = repo.mimosFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** Une offre d'embauche, prix courant compris. */
+    data class OffreMimo(
+        val type: MimoEngine.Type,
+        val employes: Int,
+        val prix: Int
+    )
+
+    val offres: StateFlow<List<OffreMimo>> = mimos
+        .map { liste ->
+            MimoEngine.Type.entries.map { type ->
+                val employes = liste.count { it.type == type.name }
+                OffreMimo(type, employes, repo.coutEmbauche(type, employes))
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun embaucher(type: MimoEngine.Type) = viewModelScope.launch {
+        if (repo.embaucherMimo(type)) afficher("${type.emoji} Un ${type.libelle.lowercase()} rejoint le jardin")
+        else afficher("Pièces insuffisantes")
     }
 
     /** Nombre de colonnes du terrain, partagé avec la grille. */

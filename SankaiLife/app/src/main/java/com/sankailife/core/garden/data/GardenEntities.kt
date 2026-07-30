@@ -85,6 +85,22 @@ data class GardenInventoryEntity(
 )
 
 /**
+ * Un Mimo embauché.
+ *
+ * Aucun état de progression n'est stocké : leur travail est reconstitué à
+ * l'ouverture depuis le temps écoulé. Une file de tâches persistée aurait dû
+ * être réconciliée à chaque changement d'heure, pour un résultat identique.
+ */
+@Entity(tableName = "garden_mimo")
+data class GardenMimoEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0L,
+    /** Valeur de MimoEngine.Type. */
+    val type: String = "",
+    val nom: String = "",
+    val embaucheMillis: Long = 0L
+)
+
+/**
  * Trace d'une notification mémo envoyée, support du défi souvenir.
  *
  * Une ligne est créée à chaque notification réellement partie. Le drapeau

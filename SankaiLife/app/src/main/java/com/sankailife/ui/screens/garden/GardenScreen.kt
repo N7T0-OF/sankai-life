@@ -29,6 +29,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import com.sankailife.core.garden.domain.DayNightEngine
 import com.sankailife.core.garden.domain.MemoChallengeEngine
+import com.sankailife.core.garden.domain.MimoEngine
+import androidx.compose.foundation.verticalScroll
 import com.sankailife.core.garden.domain.OutilJardin
 import com.sankailife.core.garden.domain.PlotState
 import com.sankailife.core.garden.domain.Seed
@@ -66,10 +68,32 @@ fun GardenScreen(viewModel: GardenViewModel, onBack: () -> Unit) {
     val phase by viewModel.phase.collectAsState()
     val magasinOuvert by viewModel.magasinOuvert.collectAsState()
 
+    val mimos by viewModel.mimos.collectAsState()
+    val offres by viewModel.offres.collectAsState()
+    val rapport by viewModel.rapportMimos.collectAsState()
+
     var selection by remember { mutableStateOf<GardenViewModel.ParcelleUi?>(null) }
     var marcheOuvert by remember { mutableStateOf(false) }
+    var mimosOuvert by remember { mutableStateOf(false) }
     val defi by viewModel.defi.collectAsState()
     val outil by viewModel.outil.collectAsState()
+
+    // Le rapport passe avant le défi souvenir : il explique un jardin qui a
+    // changé tout seul, ce qui est plus déroutant qu'une question de révision.
+    rapport?.let { texte ->
+        FeuilleRapportMimos(texte = texte, onFermer = { viewModel.fermerRapport() })
+    }
+
+    if (mimosOuvert) {
+        FeuilleMimos(
+            mimos = mimos,
+            offres = offres,
+            pieces = user.coins,
+            compost = etat.compost,
+            onEmbaucher = { haptics.click(); viewModel.embaucher(it) },
+            onFermer = { mimosOuvert = false }
+        )
+    }
 
     if (marcheOuvert) {
         FeuilleMarche(
@@ -223,12 +247,23 @@ fun GardenScreen(viewModel: GardenViewModel, onBack: () -> Unit) {
                 // Accès permanent au dépôt : même vide, il indique où va la
                 // récolte, ce qui évite de chercher ses légumes après coup.
                 Spacer(Modifier.height(8.dp))
-                BandeauDepot(
-                    lignes = stock.size,
-                    valeur = valeurStock,
-                    ouvert = magasinOuvert,
-                    onOuvrir = { marcheOuvert = true }
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(Modifier.weight(1f)) {
+                        BandeauDepot(
+                            lignes = stock.size,
+                            valeur = valeurStock,
+                            ouvert = magasinOuvert,
+                            onOuvrir = { marcheOuvert = true }
+                        )
+                    }
+                    Box(Modifier.weight(1f)) {
+                        BandeauMimos(
+                            effectif = mimos.size,
+                            compost = etat.compost,
+                            onOuvrir = { mimosOuvert = true }
+                        )
+                    }
+                }
             }
         }
 
@@ -292,6 +327,165 @@ private fun BandeauDepot(
             )
         }
         Text("›", color = c.textSecondary, fontSize = 20.sp)
+    }
+}
+
+/** Accès à la maison des Mimos. Le compost est affiché : c'est leur carburant. */
+@Composable
+private fun BandeauMimos(
+    effectif: Int,
+    compost: Int,
+    onOuvrir: () -> Unit
+) {
+    val c = MaterialTheme.sankaiColors
+    val aFaim = effectif > 0 && compost <= 0
+
+    Row(
+        Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(c.surface2)
+            .border(1.dp, if (aFaim) AccentCyan.copy(alpha = 0.5f) else c.border,
+                RoundedCornerShape(14.dp))
+            .clickable { onOuvrir() }
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text("🏡", fontSize = 18.sp)
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f)) {
+            Text("Mimos", color = c.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Text(
+                when {
+                    effectif == 0 -> "Personne — embauche"
+                    aFaim -> "$effectif • plus de compost"
+                    else -> "$effectif • $compost 🌱"
+                },
+                color = if (aFaim) AccentCyan else c.textSecondary,
+                fontSize = 11.sp
+            )
+        }
+    }
+}
+
+/**
+ * Rapport de retour.
+ *
+ * Sans lui, l'automatisation serait invisible : le joueur retrouverait un
+ * jardin différent sans savoir pourquoi, ce qui ressemble à un bug. Il ne
+ * s'affiche que s'il y a quelque chose à dire.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FeuilleRapportMimos(texte: String, onFermer: () -> Unit) {
+    val c = MaterialTheme.sankaiColors
+
+    ModalBottomSheet(onDismissRequest = onFermer, containerColor = c.surface1) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 22.dp).padding(bottom = 30.dp)) {
+            Text("TON JARDIN A CONTINUÉ", color = SuccessGreen, fontSize = 10.sp,
+                fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+            Spacer(Modifier.height(8.dp))
+            Text("Rapport des Mimos", color = c.textPrimary,
+                fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(12.dp))
+            Text(texte, color = c.textSecondary, fontSize = 14.sp)
+            Spacer(Modifier.height(18.dp))
+            SankaiButton("Continuer", onClick = onFermer, modifier = Modifier.fillMaxWidth())
+        }
+    }
+}
+
+/**
+ * La maison des Mimos.
+ *
+ * Le prix monte à chaque embauche du même métier : sans cela, la stratégie
+ * optimale serait d'aligner dix arroseurs et de ne plus jamais ouvrir le jeu.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FeuilleMimos(
+    mimos: List<com.sankailife.core.garden.data.GardenMimoEntity>,
+    offres: List<GardenViewModel.OffreMimo>,
+    pieces: Int,
+    compost: Int,
+    onEmbaucher: (MimoEngine.Type) -> Unit,
+    onFermer: () -> Unit
+) {
+    val c = MaterialTheme.sankaiColors
+
+    ModalBottomSheet(onDismissRequest = onFermer, containerColor = c.surface1) {
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = 22.dp).padding(bottom = 30.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
+            Text("MAISON DES MIMOS", color = AccentCyan, fontSize = 10.sp,
+                fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+            Spacer(Modifier.height(8.dp))
+            Text("Ils travaillent en ton absence", color = c.textPrimary,
+                fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(
+                "Chaque action coûte 1 🌱 de compost, produit par tes récoltes. " +
+                "Ils dorment la nuit, comme le marchand.",
+                color = c.textSecondary, fontSize = 12.sp
+            )
+
+            if (mimos.isNotEmpty()) {
+                Spacer(Modifier.height(14.dp))
+                Text("Ton équipe • compost : $compost 🌱",
+                    color = c.textSecondary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(6.dp))
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    mimos.forEach { mimo ->
+                        val type = MimoEngine.Type.parNom(mimo.type)
+                        Column(
+                            Modifier.clip(RoundedCornerShape(11.dp))
+                                .background(c.surface2)
+                                .padding(horizontal = 10.dp, vertical = 7.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(type?.emoji ?: "🙂", fontSize = 18.sp)
+                            Text(mimo.nom, color = c.textPrimary, fontSize = 10.sp,
+                                fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+            Text("Embaucher", color = c.textSecondary, fontSize = 11.sp,
+                fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
+
+            offres.forEach { offre ->
+                val abordable = pieces >= offre.prix
+                Row(
+                    Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(c.surface2)
+                        .border(1.dp, c.border, RoundedCornerShape(12.dp))
+                        .clickable(enabled = abordable) { onEmbaucher(offre.type) }
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(offre.type.emoji, fontSize = 22.sp)
+                    Spacer(Modifier.width(10.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            offre.type.libelle +
+                                if (offre.employes > 0) " ×${offre.employes}" else "",
+                            color = if (abordable) c.textPrimary else c.textSecondary,
+                            fontSize = 14.sp, fontWeight = FontWeight.SemiBold
+                        )
+                        Text(offre.type.role, color = c.textSecondary, fontSize = 11.sp)
+                    }
+                    Text("${offre.prix} 🪙",
+                        color = if (abordable) CoinColor else c.textDisabled,
+                        fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
     }
 }
 

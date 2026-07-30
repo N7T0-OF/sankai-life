@@ -105,6 +105,20 @@ interface GardenDao {
     @Query("UPDATE garden_inventory SET quantite = quantite - :n WHERE cle = :cle AND quantite >= :n")
     suspend fun retirerDuStock(cle: String, n: Int): Int
 
+    // --- Mimos -------------------------------------------------------------
+
+    @Query("SELECT * FROM garden_mimo ORDER BY embaucheMillis ASC")
+    fun observerMimos(): Flow<List<GardenMimoEntity>>
+
+    @Query("SELECT * FROM garden_mimo ORDER BY embaucheMillis ASC")
+    suspend fun mimos(): List<GardenMimoEntity>
+
+    @Query("SELECT COUNT(*) FROM garden_mimo WHERE type = :type")
+    suspend fun compterMimosDeType(type: String): Int
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun embaucher(mimo: GardenMimoEntity): Long
+
     // --- Défi souvenir ----------------------------------------------------
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
