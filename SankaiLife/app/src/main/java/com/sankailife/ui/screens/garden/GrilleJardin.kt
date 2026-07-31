@@ -8,8 +8,11 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
+import com.sankailife.core.garden.domain.MimoMondeEngine
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -68,9 +71,13 @@ import kotlin.math.roundToInt
 fun GrilleJardin(
     parcelles: List<GardenViewModel.ParcelleUi>,
     outil: OutilJardin?,
+    zoom: Float,
+    mimos: List<MimoMondeEngine.MimoUi>,
     modifier: Modifier = Modifier,
     onAppliquer: (Int) -> Unit,
-    onOuvrirDetail: (GardenViewModel.ParcelleUi) -> Unit
+    onOuvrirDetail: (GardenViewModel.ParcelleUi) -> Unit,
+    onZoom: (Float) -> Unit,
+    onOuvrirMimo: (MimoMondeEngine.MimoUi) -> Unit
 ) {
     val c = MaterialTheme.sankaiColors
     val haptics = LocalHaptics.current
@@ -84,8 +91,11 @@ fun GrilleJardin(
     // mémoire, un doigt qui tremble sur une case l'arroserait plusieurs fois.
     val dejaTraitees = remember { mutableStateListOf<Int>() }
 
-    val tailleCase = with(densite) { 76.dp.toPx() }
-    val ecart = with(densite) { 8.dp.toPx() }
+    // Le zoom agit sur la taille des cases, pas sur une transformation
+    // graphique : les illustrations restent dessinées à leur résolution
+    // naturelle au lieu d'être étirées, donc elles ne bavent pas.
+    val tailleCase = with(densite) { (76.dp * zoom).toPx() }
+    val ecart = with(densite) { (8.dp * zoom).toPx() }
     val pas = tailleCase + ecart
 
     val parId = remember(parcelles) { parcelles.associateBy { it.id } }
@@ -143,7 +153,15 @@ fun GrilleJardin(
                     cameraInitialisee = true
                 }
             }
-            .pointerInput(outil, parcelles.size) {
+            // Le pincement est capté avant le glissement : sans cet ordre, un
+            // pincement serait interprété comme deux doigts qui déplacent la
+            // caméra et le zoom ne partirait jamais.
+            .pointerInput(Unit) {
+                detectTransformGestures { _, _, changementZoom, _ ->
+                    if (changementZoom != 1f) onZoom(changementZoom)
+                }
+            }
+            .pointerInput(outil, parcelles.size, zoom) {
                 detectDragGestures(
                     onDragStart = { position ->
                         dejaTraitees.clear()
@@ -217,6 +235,27 @@ fun GrilleJardin(
             )
         }
 
+        // Les Mimos, par-dessus les parcelles.
+        //
+        // Au zoom le plus faible ils sont masqués : à cette taille, cinq
+        // personnages sur des cases de trente pixels forment une bouillie
+        // illisible, et c'est justement la vue qu'on utilise pour embrasser
+        // le terrain d'un coup d'œil.
+        if (zoom > 0.75f) {
+            mimos.forEach { mimo ->
+                val cle = mimo.cible ?: mimo.station
+                if (parId.containsKey(cle)) {
+                    MimoDansLeJardin(
+                        mimo = mimo,
+                        modifier = placement(
+                            ExpansionEngine.xDe(cle), ExpansionEngine.yDe(cle)
+                        ),
+                        onClic = { onOuvrirMimo(mimo) }
+                    )
+                }
+            }
+        }
+
         if (outil != null) {
             Box(
                 Modifier.align(Alignment.TopCenter).padding(top = 8.dp)
@@ -230,6 +269,56 @@ fun GrilleJardin(
                     color = c.accent, fontSize = 11.sp, fontWeight = FontWeight.SemiBold
                 )
             }
+        }
+    }
+}
+
+/**
+ * Un Mimo posé sur le terrain.
+ *
+ * Il flotte légèrement quand il travaille, reste immobile quand il n'a rien à
+ * faire, et porte un `Zzz` quand il dort. L'immobilité est un choix : un
+ * personnage qui déambule sans raison donne l'impression d'un travail qui
+ * n'existe pas, alors qu'un personnage arrêté dit tout de suite qu'il est
+ * libre — c'est la convention des jeux de construction, et elle marche.
+ */
+@Composable
+private fun MimoDansLeJardin(
+    mimo: MimoMondeEngine.MimoUi,
+    modifier: Modifier = Modifier,
+    onClic: () -> Unit
+) {
+    val transition = rememberInfiniteTransition(label = "mimo")
+    val flottement by transition.animateFloat(
+        initialValue = 0f, targetValue = if (mimo.actif) 1f else 0f,
+        animationSpec = infiniteRepeatable(tween(1200), RepeatMode.Reverse),
+        label = "flottementMimo"
+    )
+
+    Box(modifier, contentAlignment = Alignment.TopEnd) {
+        Column(
+            Modifier.offset(y = (-6 - flottement * 4).dp).clickable { onClic() },
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // La bulle d'état se lit avant le personnage : c'est elle qui
+            // porte l'information utile.
+            if (mimo.activite.emoji.isNotEmpty() || mimo.endormi) {
+                Box(
+                    Modifier.clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFF0C1611).copy(alpha = 0.85f))
+                        .padding(horizontal = 4.dp, vertical = 1.dp)
+                ) {
+                    Text(
+                        if (mimo.endormi) "💤" else mimo.activite.emoji,
+                        fontSize = 10.sp
+                    )
+                }
+            }
+            Text(
+                mimo.type.emoji,
+                fontSize = 18.sp,
+                modifier = Modifier.alpha(if (mimo.endormi) 0.6f else 1f)
+            )
         }
     }
 }

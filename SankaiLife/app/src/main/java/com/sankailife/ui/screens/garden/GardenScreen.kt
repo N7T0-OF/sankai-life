@@ -40,6 +40,8 @@ import com.sankailife.core.garden.domain.PlotState
 import com.sankailife.core.garden.domain.Seed
 import com.sankailife.core.haptics.LocalHaptics
 import androidx.compose.ui.platform.LocalContext
+import com.sankailife.core.garden.domain.ConseilEngine
+import com.sankailife.ui.navigation.Screen
 import com.sankailife.ui.art.ArtJardin
 import com.sankailife.ui.art.IconeArt
 import com.sankailife.ui.components.SankaiButton
@@ -58,7 +60,11 @@ import com.sankailife.ui.theme.*
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GardenScreen(viewModel: GardenViewModel, onBack: () -> Unit) {
+fun GardenScreen(
+    viewModel: GardenViewModel,
+    onBack: () -> Unit,
+    onNavigate: (String) -> Unit
+) {
     val c = MaterialTheme.sankaiColors
     val haptics = LocalHaptics.current
 
@@ -93,11 +99,64 @@ fun GardenScreen(viewModel: GardenViewModel, onBack: () -> Unit) {
     val offres by viewModel.offres.collectAsState()
     val rapport by viewModel.rapportMimos.collectAsState()
 
+    val conseil by viewModel.conseil.collectAsState()
+    val cartesDues by viewModel.cartesDues.collectAsState()
+    val mimosMonde by viewModel.mimosMonde.collectAsState()
+    val zoom by viewModel.zoom.collectAsState()
+    val interfaceMasquee by viewModel.interfaceMasquee.collectAsState()
+    val defi by viewModel.defi.collectAsState()
+    val outil by viewModel.outil.collectAsState()
+
     var selection by remember { mutableStateOf<GardenViewModel.ParcelleUi?>(null) }
     var marcheOuvert by remember { mutableStateOf(false) }
     var mimosOuvert by remember { mutableStateOf(false) }
-    val defi by viewModel.defi.collectAsState()
-    val outil by viewModel.outil.collectAsState()
+    var sacOuvert by remember { mutableStateOf(false) }
+    var conseilOuvert by remember { mutableStateOf(false) }
+    var mimoSelectionne by remember {
+        mutableStateOf<com.sankailife.core.garden.domain.MimoMondeEngine.MimoUi?>(null)
+    }
+
+    if (sacOuvert) {
+        FeuilleSac(
+            graines = viewModel.grainesDisponibles(user.level),
+            stock = stock,
+            eau = etat.eau,
+            compost = etat.compost,
+            pieces = user.coins,
+            niveauArrosoir = niveauArrosoir,
+            outilTenu = outil,
+            onChoisir = { haptics.click(); viewModel.choisirOutil(it); sacOuvert = false },
+            onOuvrirDepot = { sacOuvert = false; marcheOuvert = true },
+            onOuvrirMimos = { sacOuvert = false; mimosOuvert = true },
+            onFermer = { sacOuvert = false }
+        )
+    }
+
+    conseil?.takeIf { conseilOuvert }?.let { c1 ->
+        FeuilleConseil(
+            conseil = c1,
+            onAgir = {
+                conseilOuvert = false
+                when (c1.type) {
+                    ConseilEngine.Type.CARTES_DUES,
+                    ConseilEngine.Type.PLUS_D_EAU -> onNavigate(Screen.Memo.route)
+                    ConseilEngine.Type.DEPOT_PLEIN -> viewModel.rangerCaisses()
+                    ConseilEngine.Type.RECOLTE_PRETE -> viewModel.toutRecolter()
+                    ConseilEngine.Type.STOCK_VENDABLE -> marcheOuvert = true
+                    else -> Unit
+                }
+            },
+            onFermer = { conseilOuvert = false }
+        )
+    }
+
+    mimoSelectionne?.let { m ->
+        FeuilleMimo(
+            mimo = m,
+            compost = etat.compost,
+            onFermer = { mimoSelectionne = null }
+        )
+    }
 
     // Le rapport passe avant le défi souvenir : il explique un jardin qui a
     // changé tout seul, ce qui est plus déroutant qu'une question de révision.
@@ -198,18 +257,17 @@ fun GardenScreen(viewModel: GardenViewModel, onBack: () -> Unit) {
             Box(
                 Modifier.weight(1f).fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp)
             ) {
-                Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Arbre Sankai : symbole du niveau global, non cultivable.
-                    ArbreSankai(niveau = user.level)
-
-                    GrilleJardin(
-                        parcelles = parcelles,
-                        outil = outil,
-                        modifier = Modifier.fillMaxWidth().weight(1f),
-                        onAppliquer = { viewModel.appliquerOutil(it) },
-                        onOuvrirDetail = { selection = it }
-                    )
-                }
+                GrilleJardin(
+                    parcelles = parcelles,
+                    outil = outil,
+                    zoom = zoom,
+                    mimos = mimosMonde,
+                    modifier = Modifier.fillMaxSize(),
+                    onAppliquer = { viewModel.appliquerOutil(it) },
+                    onOuvrirDetail = { selection = it },
+                    onZoom = { viewModel.majZoom(it) },
+                    onOuvrirMimo = { mimoSelectionne = it }
+                )
 
                 // Ambiance, posée sur le terrain seul.
                 //
@@ -230,79 +288,51 @@ fun GardenScreen(viewModel: GardenViewModel, onBack: () -> Unit) {
                         modifier = Modifier.matchParentSize()
                     )
                 }
-            }
 
-            // Barre d'outils : sélectionner puis glisser sur les parcelles.
-            BarreOutils(
-                outil = outil,
-                graines = viewModel.grainesDisponibles(user.level),
-                onChoisir = { haptics.click(); viewModel.choisirOutil(it) }
-            )
-
-            // Zone d'action unique.
-            //
-            // Une seule action principale à la fois, choisie dans l'ordre du
-            // circuit : ranger avant de récolter, récolter avant de conseiller.
-            // C'est ce qui empêche le joueur de laisser le terrain saturer
-            // sans jamais comprendre pourquoi la récolte est refusée.
-            Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp)) {
-                when {
-                    caisses.isNotEmpty() -> SankaiButton(
-                        "📦  Ranger ${caisses.size} caisse(s) au dépôt",
-                        onClick = { haptics.click(); viewModel.rangerCaisses() },
-                        modifier = Modifier.fillMaxWidth()
+                // Les boutons flottants, posés PAR-DESSUS le terrain plutôt
+                // qu'en dessous : ils ne coûtent aucune hauteur, et c'est tout
+                // l'intérêt de les avoir sortis de la barre fixe.
+                if (!interfaceMasquee) {
+                    BoutonsFlottants(
+                        conseil = conseil,
+                        cartesDues = cartesDues,
+                        caisses = caisses.size,
+                        pretes = pretes,
+                        outilTenu = outil,
+                        modifier = Modifier.matchParentSize(),
+                        onSac = { haptics.click(); sacOuvert = true },
+                        onConseil = { haptics.click(); conseilOuvert = true },
+                        onApprendre = { onNavigate(Screen.Memo.route) },
+                        onRecentrer = { haptics.click(); viewModel.recentrer() },
+                        onAnnulerOutil = { viewModel.choisirOutil(null) },
+                        onActionPrincipale = {
+                            haptics.reward()
+                            if (caisses.isNotEmpty()) viewModel.rangerCaisses()
+                            else viewModel.toutRecolter()
+                        }
                     )
-
-                    pretes > 0 -> SankaiButton(
-                        "🧺  Tout récolter ($pretes)",
-                        onClick = { haptics.reward(); viewModel.toutRecolter() },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    else -> Box(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
-                            .background(c.surface2)
-                            .border(1.dp, c.border, RoundedCornerShape(14.dp))
-                            .padding(12.dp)
-                    ) {
-                        // Une seule phrase, la plus utile du moment. Empiler
-                        // météo, soif et rappel d'usage remplirait la place
-                        // sans aider à décider.
-                        Text(
-                            when {
-                                etat.eau <= 0 ->
-                                    "Plus d'eau. Révise des flash cards pour en obtenir."
-                                meteo.pleut -> WeatherEngine.message(meteo)
-                                aSoif > 0 ->
-                                    "$aSoif parcelle(s) auront soif d'ici ce soir."
-                                else -> "Touche une parcelle pour planter, arroser ou récolter."
-                            },
-                            color = c.textSecondary, fontSize = 12.sp
-                        )
-                    }
                 }
 
-                // Accès permanent au dépôt : même vide, il indique où va la
-                // récolte, ce qui évite de chercher ses légumes après coup.
-                Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Box(Modifier.weight(1f)) {
-                        BandeauDepot(
-                            lignes = stock.size,
-                            valeur = valeurStock,
-                            ouvert = magasinOuvert,
-                            onOuvrir = { marcheOuvert = true }
-                        )
-                    }
-                    Box(Modifier.weight(1f)) {
-                        BandeauMimos(
-                            effectif = mimos.size,
-                            compost = etat.compost,
-                            onOuvrir = { mimosOuvert = true }
-                        )
-                    }
+                // Sortir du mode « vue jardin » doit rester possible sans
+                // deviner : un bouton discret, mais toujours présent.
+                IconButton(
+                    onClick = { viewModel.basculerInterface() },
+                    modifier = Modifier.align(Alignment.TopEnd).padding(4.dp)
+                ) {
+                    Text(
+                        if (interfaceMasquee) "👁" else "🌿",
+                        fontSize = 15.sp
+                    )
                 }
             }
+
+            // La barre fixe d'outils a disparu d'ici. Elle mangeait environ
+            // 90 dp de hauteur en permanence pour des boutons qu'on utilise
+            // par intermittence. Son contenu vit maintenant dans le sac
+            // flottant, posé PAR-DESSUS le terrain — donc à coût nul.
+
+            // Plus rien sous le terrain. Le dépôt, les Mimos, les conseils et
+            // l'action principale sont devenus des boutons flottants.
         }
 
         AnimatedVisibility(
@@ -322,52 +352,6 @@ fun GardenScreen(viewModel: GardenViewModel, onBack: () -> Unit) {
     }
 }
 
-/**
- * Bandeau du dépôt central.
- *
- * Affiche la valeur du stock au cours du jour, et si le marchand est là.
- * Reste visible même vide : c'est le repère qui explique où part la récolte.
- */
-@Composable
-private fun BandeauDepot(
-    lignes: Int,
-    valeur: Int,
-    ouvert: Boolean,
-    onOuvrir: () -> Unit
-) {
-    val c = MaterialTheme.sankaiColors
-
-    Row(
-        Modifier.fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(c.surface2)
-            .border(1.dp, if (ouvert && valeur > 0) AccentGold.copy(alpha = 0.5f) else c.border,
-                RoundedCornerShape(14.dp))
-            .clickable { onOuvrir() }
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        if (ouvert) IconeArt(ArtJardin.magasin, taille = 24.dp)
-        else IconeArt(ArtJardin.phase(DayNightEngine.Phase.NUIT), taille = 24.dp)
-        Spacer(Modifier.width(10.dp))
-        Column(Modifier.weight(1f)) {
-            Text(
-                "Dépôt central",
-                color = c.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                when {
-                    lignes == 0 -> "Vide — récolte puis range tes caisses"
-                    !ouvert -> "$lignes lot(s) en stock • marchand absent"
-                    else -> "$lignes lot(s) • valeur $valeur 🪙"
-                },
-                color = if (ouvert && lignes > 0) CoinColor else c.textSecondary,
-                fontSize = 11.sp
-            )
-        }
-        Text("›", color = c.textSecondary, fontSize = 20.sp)
-    }
-}
 
 /**
  * Fiche d'une case à acquérir, ou en chantier.
@@ -467,42 +451,6 @@ private fun FicheHumidite(parcelle: GardenViewModel.ParcelleUi) {
     }
 }
 
-/** Accès à la maison des Mimos. Le compost est affiché : c'est leur carburant. */
-@Composable
-private fun BandeauMimos(
-    effectif: Int,
-    compost: Int,
-    onOuvrir: () -> Unit
-) {
-    val c = MaterialTheme.sankaiColors
-    val aFaim = effectif > 0 && compost <= 0
-
-    Row(
-        Modifier.fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(c.surface2)
-            .border(1.dp, if (aFaim) AccentCyan.copy(alpha = 0.5f) else c.border,
-                RoundedCornerShape(14.dp))
-            .clickable { onOuvrir() }
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text("🏡", fontSize = 18.sp)
-        Spacer(Modifier.width(10.dp))
-        Column(Modifier.weight(1f)) {
-            Text("Mimos", color = c.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-            Text(
-                when {
-                    effectif == 0 -> "Personne — embauche"
-                    aFaim -> "$effectif • plus de compost"
-                    else -> "$effectif • $compost 🌱"
-                },
-                color = if (aFaim) AccentCyan else c.textSecondary,
-                fontSize = 11.sp
-            )
-        }
-    }
-}
 
 /**
  * Rapport de retour.
@@ -815,99 +763,7 @@ private fun FeuilleDefiSouvenir(
     }
 }
 
-/**
- * Barre d'outils du jardin.
- *
- * Un seul appui sélectionne, un second repose l'outil. Le glissement sur la
- * grille fait le reste : c'est ce qui permet de semer six cases d'un geste
- * sans jamais confirmer.
- */
-@Composable
-private fun BarreOutils(
-    outil: OutilJardin?,
-    graines: List<Seed>,
-    onChoisir: (OutilJardin?) -> Unit
-) {
-    val c = MaterialTheme.sankaiColors
 
-    Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp)) {
-        Row(
-            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            listOf(OutilJardin.Arrosoir, OutilJardin.Panier, OutilJardin.Pioche).forEach { o ->
-                BoutonOutil(ArtJardin.outil(o), o.libelle, outil == o) { onChoisir(o) }
-            }
-            // Les graines gardent leur emoji d'espèce : il n'y a pas encore de
-            // dessin par plante, et un sachet générique pour cinq espèces
-            // rendrait la barre illisible.
-            graines.forEach { graine ->
-                val g = OutilJardin.Graine(graine)
-                val actif = outil is OutilJardin.Graine && outil.seed.id == graine.id
-                Column(
-                    Modifier
-                        .clip(RoundedCornerShape(13.dp))
-                        .background(if (actif) c.accent.copy(alpha = 0.18f) else c.surface2)
-                        .border(
-                            if (actif) 1.5.dp else 1.dp,
-                            if (actif) c.accent else c.border,
-                            RoundedCornerShape(13.dp)
-                        )
-                        .clickable { onChoisir(g) }
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(graine.emoji, fontSize = 19.sp)
-                    Text(
-                        "${graine.prixPieces} 🪙",
-                        color = if (actif) c.accent else c.textSecondary,
-                        fontSize = 9.sp,
-                        fontWeight = if (actif) FontWeight.Bold else FontWeight.Normal
-                    )
-                }
-            }
-        }
-
-        if (outil == null) {
-            Spacer(Modifier.height(4.dp))
-            Text(
-                "Glisse sur le terrain pour te déplacer, ou choisis un outil.",
-                color = c.textDisabled, fontSize = 10.sp
-            )
-        }
-    }
-}
-
-@Composable
-private fun BoutonOutil(
-    @androidx.annotation.DrawableRes art: Int,
-    libelle: String,
-    actif: Boolean,
-    onClic: () -> Unit
-) {
-    val c = MaterialTheme.sankaiColors
-    Column(
-        Modifier
-            .clip(RoundedCornerShape(13.dp))
-            .background(if (actif) c.accent.copy(alpha = 0.18f) else c.surface2)
-            .border(
-                if (actif) 1.5.dp else 1.dp,
-                if (actif) c.accent else c.border,
-                RoundedCornerShape(13.dp)
-            )
-            .clickable { onClic() }
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        IconeArt(art, taille = 26.dp)
-        Text(
-            libelle,
-            color = if (actif) c.accent else c.textSecondary,
-            fontSize = 9.sp,
-            fontWeight = if (actif) FontWeight.Bold else FontWeight.Normal
-        )
-    }
-}
 
 @Composable
 private fun Ressource(

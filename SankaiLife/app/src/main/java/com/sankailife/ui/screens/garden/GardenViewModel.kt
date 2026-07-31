@@ -420,6 +420,95 @@ class GardenViewModel(application: Application) : AndroidViewModel(application) 
             LightingEngine.IntensitePluie.AUCUNE
         )
 
+    // --- Interface flottante -----------------------------------------------
+
+    /**
+     * Cartes réellement dues, tous modules confondus.
+     *
+     * L'heure de référence est reprise à chaque tick : une carte devient due
+     * avec le temps qui passe, pas avec une écriture en base, donc un flux
+     * Room seul ne se réveillerait jamais.
+     */
+    val cartesDues: StateFlow<Int> = tick
+        .flatMapLatest {
+            app.database.memoDao().compterToutesCartesDues(System.currentTimeMillis())
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    /**
+     * Le conseil du moment, ou null.
+     *
+     * Un seul à la fois : la grande carte qu'il remplace affichait toujours
+     * quelque chose, souvent la même phrase générique, et prenait de la hauteur
+     * pour ne rien apprendre.
+     */
+    val conseil: StateFlow<ConseilEngine.Conseil?> = combine(
+        parcelles, caisses, stock, etat, cartesDues
+    ) { liste, lesCaisses, leStock, etatJardin, dues ->
+        // L'heure et la météo sont des fonctions pures de l'instant : les lire
+        // ici évite un septième flux, et surtout évite de dépendre d'une
+        // propriété déclarée plus bas — ce qui planterait à l'initialisation.
+        ConseilEngine.choisir(
+            ConseilEngine.Contexte(
+                cartesDues = dues,
+                eau = etatJardin.eau,
+                compost = etatJardin.compost,
+                nombreMimos = mimos.value.size,
+                parcellesPretes = liste.count { it.prete },
+                parcellesSeches = liste.count { it.cultivable && it.besoinEau },
+                caissesPosees = lesCaisses.size,
+                terrainSature = DepotEngine.terrainSature(lesCaisses.size),
+                valeurStock = leStock.sumOf { it.total },
+                magasinOuvert = DayNightEngine.magasinOuvert(),
+                ilVaPleuvoir = WeatherEngine.meteoActuelle().pleut
+            )
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    /**
+     * Les Mimos tels qu'on les voit dans le jardin.
+     *
+     * Leur activité reflète l'état réel du terrain, mais ce n'est pas une
+     * simulation : leur travail est reconstitué à l'ouverture. Voir
+     * [MimoMondeEngine] pour ce que cette distinction implique.
+     */
+    val mimosMonde: StateFlow<List<MimoMondeEngine.MimoUi>> =
+        combine(mimos, parcelles, caisses, etat) { liste, plots, lesCaisses, etatJardin ->
+            val cultivables = plots.filter { it.cultivable }
+            MimoMondeEngine.placer(
+                mimos = liste.mapNotNull { m ->
+                    MimoEngine.Type.parNom(m.type)?.let { Triple(m.id, m.nom, it) }
+                },
+                etat = MimoMondeEngine.EtatJardin(
+                    parcellesDebloquees = cultivables.map { it.id },
+                    parcellesSeches = cultivables.filter { it.besoinEau }.map { it.id },
+                    parcellesPretes = cultivables.filter { it.prete }.map { it.id },
+                    parcellesLibres = cultivables
+                        .filter { it.etat == PlotState.EMPTY }.map { it.id },
+                    caissesPosees = lesCaisses.size,
+                    stockVendable = valeurStock.value > 0,
+                    compost = etatJardin.compost,
+                    faitJour = DayNightEngine.magasinOuvert()
+                )
+            )
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** Niveau de zoom du terrain, borné par la grille elle-même. */
+    private val _zoom = MutableStateFlow(1f)
+    val zoom: StateFlow<Float> = _zoom
+
+    fun majZoom(facteur: Float) {
+        _zoom.value = (_zoom.value * facteur).coerceIn(ZOOM_MIN, ZOOM_MAX)
+    }
+
+    fun recentrer() { _zoom.value = 1f }
+
+    /** Masque l'interface pour observer le jardin seul. */
+    private val _interfaceMasquee = MutableStateFlow(false)
+    val interfaceMasquee: StateFlow<Boolean> = _interfaceMasquee
+
+    fun basculerInterface() { _interfaceMasquee.value = !_interfaceMasquee.value }
+
     val magasinOuvert: StateFlow<Boolean> = tick
         .map { DayNightEngine.magasinOuvert() }
         .stateIn(
@@ -434,6 +523,16 @@ class GardenViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     companion object {
+        /**
+         * Bornes du zoom.
+         *
+         * En dessous de 0,6 les cases deviennent trop petites pour être visées
+         * au doigt ; au-dessus de 2,2 les illustrations, prévues pour 256 px,
+         * commencent à baver.
+         */
+        const val ZOOM_MIN = 0.6f
+        const val ZOOM_MAX = 2.2f
+
         fun factory(app: SankaiApplication) = viewModelFactory {
             initializer { GardenViewModel(app) }
         }

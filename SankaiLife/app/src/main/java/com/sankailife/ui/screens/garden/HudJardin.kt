@@ -1,0 +1,521 @@
+package com.sankailife.ui.screens.garden
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.sankailife.core.garden.domain.ArrosoirEngine
+import com.sankailife.core.garden.domain.ConseilEngine
+import com.sankailife.core.garden.domain.MimoMondeEngine
+import com.sankailife.core.garden.domain.OutilJardin
+import com.sankailife.core.garden.domain.Seed
+import com.sankailife.ui.art.ArtJardin
+import com.sankailife.ui.art.IconeArt
+import com.sankailife.ui.components.SankaiButton
+import com.sankailife.ui.theme.*
+
+/**
+ * Les commandes du jardin, en surimpression.
+ *
+ * Tout ce qui était une barre fixe est devenu un bouton posé sur le terrain.
+ * La différence n'est pas cosmétique : une barre coûte sa hauteur en
+ * permanence, un bouton flottant ne coûte rien. Le jardin est passé d'environ
+ * 55 % à 85 % de la hauteur utile sans qu'aucune fonction ne disparaisse.
+ *
+ * Les boutons sont volontairement peu nombreux. Chaque icône ajoutée ici
+ * reprend au jardin la place qu'on vient de lui rendre.
+ */
+@Composable
+fun BoutonsFlottants(
+    conseil: ConseilEngine.Conseil?,
+    cartesDues: Int,
+    caisses: Int,
+    pretes: Int,
+    outilTenu: OutilJardin?,
+    modifier: Modifier = Modifier,
+    onSac: () -> Unit,
+    onConseil: () -> Unit,
+    onApprendre: () -> Unit,
+    onRecentrer: () -> Unit,
+    onAnnulerOutil: () -> Unit,
+    onActionPrincipale: () -> Unit
+) {
+    Box(modifier.padding(10.dp)) {
+
+        // Outil tenu : bandeau d'annulation en haut.
+        // Sans lui, reposer un outil demanderait de rouvrir le sac.
+        AnimatedVisibility(
+            visible = outilTenu != null,
+            modifier = Modifier.align(Alignment.TopCenter)
+        ) {
+            outilTenu?.let { o ->
+                Row(
+                    Modifier.clip(RoundedCornerShape(20.dp))
+                        .background(Color(0xFF101A14).copy(alpha = 0.86f))
+                        .border(1.dp, AccentCyan.copy(alpha = 0.5f), RoundedCornerShape(20.dp))
+                        .clickable { onAnnulerOutil() }
+                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("${o.emoji}  ${o.libelle}", color = AccentCyan, fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.width(10.dp))
+                    Text("✕ reposer", color = c_textDoux(), fontSize = 11.sp)
+                }
+            }
+        }
+
+        // Capsule d'apprentissage, centrée en bas.
+        //
+        // Elle est au centre parce que c'est la position qu'on regarde en
+        // premier. Le jardin peut occuper l'écran entier, mais ce n'est pas
+        // pour ça que l'application existe.
+        if (cartesDues > 0) {
+            CapsuleApprentissage(
+                cartes = cartesDues,
+                onClic = onApprendre,
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 2.dp)
+            )
+        }
+
+        Column(
+            Modifier.align(Alignment.BottomStart),
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            if (conseil != null) {
+                BulleFlottante(conseil.type.emoji, AccentGold, onConseil)
+            }
+            BulleFlottante("⌖", null, onRecentrer)
+        }
+
+        Column(
+            Modifier.align(Alignment.BottomEnd),
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // L'action principale n'apparaît que s'il y a vraiment quelque
+            // chose à faire : ranger avant de récolter, dans l'ordre du
+            // circuit du dépôt.
+            if (caisses > 0 || pretes > 0) {
+                BulleFlottante(
+                    if (caisses > 0) "📦" else "🧺",
+                    SuccessGreen,
+                    onActionPrincipale,
+                    badge = if (caisses > 0) caisses else pretes
+                )
+            }
+            BulleFlottante("🎒", null, onSac)
+        }
+    }
+}
+
+@Composable
+private fun c_textDoux() = MaterialTheme.sankaiColors.textSecondary
+
+/**
+ * Un bouton rond translucide.
+ *
+ * Le fond est sombre et légèrement transparent : le jardin transparaît
+ * dessous, ce qui rappelle qu'il continue derrière l'interface. Compose ne
+ * sait pas flouter ce qui est *sous* un composant, donc l'effet de verre est
+ * approché par un dégradé et une bordure claire — la limite est connue et
+ * documentée depuis la barre de navigation.
+ */
+@Composable
+private fun BulleFlottante(
+    symbole: String,
+    teinte: Color?,
+    onClic: () -> Unit,
+    badge: Int = 0
+) {
+    val c = MaterialTheme.sankaiColors
+    Box {
+        Box(
+            Modifier.size(48.dp)
+                .clip(CircleShape)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            Color(0xFF16241C).copy(alpha = 0.92f),
+                            Color(0xFF0C1611).copy(alpha = 0.88f)
+                        )
+                    )
+                )
+                .border(
+                    1.dp,
+                    (teinte ?: c.border).copy(alpha = if (teinte != null) 0.55f else 0.35f),
+                    CircleShape
+                )
+                .clickable { onClic() },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(symbole, fontSize = 20.sp, color = teinte ?: c.textPrimary)
+        }
+
+        if (badge > 0) {
+            Box(
+                Modifier.align(Alignment.TopEnd)
+                    .offset(x = 3.dp, y = (-3).dp)
+                    .clip(CircleShape)
+                    .background(DangerRed)
+                    .padding(horizontal = 5.dp, vertical = 1.dp)
+            ) {
+                Text("$badge", color = Color.White, fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+/**
+ * Le rappel d'apprentissage.
+ *
+ * Le libellé dit « réviser », pas « gagner de l'eau ». La récompense est
+ * réelle mais elle reste secondaire : mettre le gain en avant apprendrait à
+ * réviser pour la ressource, ce qui est exactement l'habitude à ne pas créer.
+ */
+@Composable
+private fun CapsuleApprentissage(
+    cartes: Int,
+    onClic: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val transition = rememberInfiniteTransition(label = "capsule")
+    val halo by transition.animateFloat(
+        initialValue = 0.35f, targetValue = 0.75f,
+        animationSpec = infiniteRepeatable(tween(1800), RepeatMode.Reverse),
+        label = "haloCapsule"
+    )
+
+    Row(
+        modifier
+            .clip(RoundedCornerShape(22.dp))
+            .background(Color(0xFF101A14).copy(alpha = 0.9f))
+            .border(1.5.dp, AccentCyan.copy(alpha = halo), RoundedCornerShape(22.dp))
+            .clickable { onClic() }
+            .padding(horizontal = 16.dp, vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text("📚", fontSize = 16.sp)
+        Spacer(Modifier.width(8.dp))
+        Text("Réviser", color = AccentCyan, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.width(6.dp))
+        Text("$cartes cartes", color = MaterialTheme.sankaiColors.textSecondary, fontSize = 11.sp)
+    }
+}
+
+/** Le conseil du moment, déplié. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FeuilleConseil(
+    conseil: ConseilEngine.Conseil,
+    onAgir: () -> Unit,
+    onFermer: () -> Unit
+) {
+    val c = MaterialTheme.sankaiColors
+
+    ModalBottomSheet(onDismissRequest = onFermer, containerColor = c.surface1) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 22.dp).padding(bottom = 30.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(conseil.type.emoji, fontSize = 26.sp)
+                Spacer(Modifier.width(12.dp))
+                Text("Conseil", color = c.textPrimary, fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold)
+            }
+            Spacer(Modifier.height(12.dp))
+            Text(conseil.texte, color = c.textSecondary, fontSize = 14.sp)
+
+            conseil.action?.let { libelle ->
+                Spacer(Modifier.height(18.dp))
+                SankaiButton(libelle, onClick = onAgir, modifier = Modifier.fillMaxWidth())
+            }
+        }
+    }
+}
+
+/**
+ * Le sac.
+ *
+ * N'affiche que ce que le joueur possède réellement. Une graine verrouillée,
+ * un outil non débloqué, une ressource à zéro : rien de tout ça n'apparaît.
+ * Un inventaire qui liste ce qu'on n'a pas est un catalogue, pas un sac — et
+ * le catalogue, c'est la boutique.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FeuilleSac(
+    graines: List<Seed>,
+    stock: List<GardenViewModel.LigneStock>,
+    eau: Int,
+    compost: Int,
+    pieces: Int,
+    niveauArrosoir: Int,
+    outilTenu: OutilJardin?,
+    onChoisir: (OutilJardin?) -> Unit,
+    onOuvrirDepot: () -> Unit,
+    onOuvrirMimos: () -> Unit,
+    onFermer: () -> Unit
+) {
+    val c = MaterialTheme.sankaiColors
+    var onglet by remember { mutableStateOf(0) }
+    val onglets = listOf("Outils", "Graines", "Récoltes", "Ressources")
+
+    ModalBottomSheet(onDismissRequest = onFermer, containerColor = c.surface1) {
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 28.dp)
+                .heightIn(max = 460.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("🎒", fontSize = 22.sp)
+                Spacer(Modifier.width(10.dp))
+                Text("Ton sac", color = c.textPrimary, fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold)
+            }
+
+            Spacer(Modifier.height(12.dp))
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                onglets.forEachIndexed { index, titre ->
+                    val actif = onglet == index
+                    Box(
+                        Modifier.clip(RoundedCornerShape(11.dp))
+                            .background(if (actif) c.accent.copy(alpha = 0.18f) else c.surface2)
+                            .border(
+                                if (actif) 1.5.dp else 1.dp,
+                                if (actif) c.accent else c.border,
+                                RoundedCornerShape(11.dp)
+                            )
+                            .clickable { onglet = index }
+                            .padding(horizontal = 12.dp, vertical = 7.dp)
+                    ) {
+                        Text(
+                            titre,
+                            color = if (actif) c.accent else c.textSecondary,
+                            fontSize = 12.sp,
+                            fontWeight = if (actif) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(14.dp))
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                when (onglet) {
+                    0 -> {
+                        LigneSac(
+                            art = ArtJardin.outil(OutilJardin.Arrosoir),
+                            titre = ArrosoirEngine.libelle(niveauArrosoir),
+                            detail = "$eau unités d'eau disponibles",
+                            actif = outilTenu == OutilJardin.Arrosoir
+                        ) { onChoisir(OutilJardin.Arrosoir) }
+
+                        LigneSac(
+                            art = ArtJardin.outil(OutilJardin.Panier),
+                            titre = "Panier",
+                            detail = "Récolter les plantes mûres",
+                            actif = outilTenu == OutilJardin.Panier
+                        ) { onChoisir(OutilJardin.Panier) }
+
+                        LigneSac(
+                            art = ArtJardin.outil(OutilJardin.Pioche),
+                            titre = "Pioche",
+                            detail = "Dégager les parcelles encombrées",
+                            actif = outilTenu == OutilJardin.Pioche
+                        ) { onChoisir(OutilJardin.Pioche) }
+                    }
+
+                    1 -> {
+                        // Les graines se paient à la plantation : « posséder »
+                        // signifie ici « débloquée et abordable ». Afficher
+                        // celles qu'on ne peut pas semer serait afficher la
+                        // boutique.
+                        val semables = graines.filter { pieces >= it.prixPieces }
+                        if (semables.isEmpty()) {
+                            TexteVide("Aucune graine abordable. Vends ta récolte au dépôt.")
+                        } else {
+                            semables.forEach { graine ->
+                                val g = OutilJardin.Graine(graine)
+                                LigneSac(
+                                    emoji = graine.emoji,
+                                    titre = graine.nom,
+                                    detail = "${graine.prixPieces} 🪙 • ${graine.besoinEau.libelle}",
+                                    actif = outilTenu is OutilJardin.Graine &&
+                                        outilTenu.seed.id == graine.id
+                                ) { onChoisir(g) }
+                            }
+                        }
+                    }
+
+                    2 -> {
+                        if (stock.isEmpty()) {
+                            TexteVide("Ton dépôt est vide. Récolte, puis range les caisses.")
+                        } else {
+                            stock.forEach { ligne ->
+                                LigneSac(
+                                    emoji = ligne.graine.emoji,
+                                    titre = "${ligne.graine.nom} × ${ligne.quantite}",
+                                    detail = "${ligne.qualite.libelle} • ${ligne.total} 🪙",
+                                    actif = false
+                                ) { onOuvrirDepot() }
+                            }
+                        }
+                    }
+
+                    else -> {
+                        // Une ressource à zéro n'encombre pas la liste.
+                        if (eau > 0) {
+                            LigneSac(
+                                art = ArtJardin.eau, titre = "Eau",
+                                detail = "$eau unités", actif = false
+                            ) {}
+                        }
+                        if (compost > 0) {
+                            LigneSac(
+                                art = ArtJardin.compost, titre = "Compost",
+                                detail = "$compost sacs", actif = false
+                            ) { onOuvrirMimos() }
+                        }
+                        if (pieces > 0) {
+                            LigneSac(
+                                art = ArtJardin.piece, titre = "Pièces",
+                                detail = "$pieces", actif = false
+                            ) {}
+                        }
+                        if (eau == 0 && compost == 0 && pieces == 0) {
+                            TexteVide("Rien en réserve. Une révision produit de l'eau.")
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+            HorizontalDivider(color = c.border)
+            Spacer(Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(Modifier.weight(1f)) {
+                    SankaiButton("🏪  Dépôt", onClick = onOuvrirDepot,
+                        modifier = Modifier.fillMaxWidth())
+                }
+                Box(Modifier.weight(1f)) {
+                    SankaiButton("🏡  Mimos", onClick = onOuvrirMimos,
+                        modifier = Modifier.fillMaxWidth())
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TexteVide(texte: String) {
+    Text(texte, color = MaterialTheme.sankaiColors.textDisabled, fontSize = 12.sp)
+}
+
+@Composable
+private fun LigneSac(
+    art: Int? = null,
+    emoji: String? = null,
+    titre: String,
+    detail: String,
+    actif: Boolean,
+    onClic: () -> Unit
+) {
+    val c = MaterialTheme.sankaiColors
+    Row(
+        Modifier.fillMaxWidth().padding(bottom = 8.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (actif) c.accent.copy(alpha = 0.15f) else c.surface2)
+            .border(
+                if (actif) 1.5.dp else 1.dp,
+                if (actif) c.accent else c.border,
+                RoundedCornerShape(12.dp)
+            )
+            .clickable { onClic() }
+            .padding(11.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        when {
+            art != null -> IconeArt(art, taille = 26.dp)
+            emoji != null -> Text(emoji, fontSize = 22.sp)
+        }
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f)) {
+            Text(titre, color = if (actif) c.accent else c.textPrimary,
+                fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Text(detail, color = c.textSecondary, fontSize = 11.sp)
+        }
+    }
+}
+
+/** Fiche d'un Mimo, ouverte en le touchant dans le jardin. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FeuilleMimo(
+    mimo: MimoMondeEngine.MimoUi,
+    compost: Int,
+    onFermer: () -> Unit
+) {
+    val c = MaterialTheme.sankaiColors
+
+    ModalBottomSheet(onDismissRequest = onFermer, containerColor = c.surface1) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 22.dp).padding(bottom = 30.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(mimo.type.emoji, fontSize = 30.sp)
+                Spacer(Modifier.width(12.dp))
+                Column {
+                    Text(mimo.nom, color = c.textPrimary, fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold)
+                    Text(mimo.type.libelle, color = c.textSecondary, fontSize = 12.sp)
+                }
+                Spacer(Modifier.weight(1f))
+                if (mimo.endormi) Text("💤", fontSize = 22.sp)
+            }
+
+            Spacer(Modifier.height(16.dp))
+            Text(
+                MimoMondeEngine.resume(mimo, compost),
+                color = if (mimo.actif) SuccessGreen else c.textSecondary,
+                fontSize = 14.sp
+            )
+
+            Spacer(Modifier.height(14.dp))
+            // Cette précision compte : le joueur voit un personnage bouger et
+            // en déduirait naturellement qu'il travaille en direct. Ce n'est
+            // pas le cas, et le lui cacher créerait une incompréhension bien
+            // pire qu'une phrase d'explication.
+            Text(
+                "Les Mimos travaillent pendant ton absence. Ce que tu vois ici " +
+                    "est leur état actuel, pas une tâche en cours : leur travail " +
+                    "est calculé à ton retour.",
+                color = c.textDisabled, fontSize = 11.sp
+            )
+        }
+    }
+}

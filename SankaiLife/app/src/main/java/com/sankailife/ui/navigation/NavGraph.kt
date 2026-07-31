@@ -130,7 +130,11 @@ fun SankaiNavGraph() {
             }
             composable(Screen.Garden.route) {
                 val vm: GardenViewModel = viewModel(factory = GardenViewModel.factory(app))
-                GardenScreen(viewModel = vm, onBack = { navController.popBackStack() })
+                GardenScreen(
+                    viewModel = vm,
+                    onBack = { navController.popBackStack() },
+                    onNavigate = { navController.navigate(it) }
+                )
             }
             composable(Screen.Arenas.route) {
                 val vm: ArenasViewModel = viewModel(factory = ArenasViewModel.factory(app))
