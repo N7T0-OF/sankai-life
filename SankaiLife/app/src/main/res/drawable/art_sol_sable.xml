@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Genere par art/generer-assets.py. Ne pas editer a la main. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="96"
+    android:viewportHeight="96">
+    <path
+        android:fillColor="#D8C08A"
+        android:strokeColor="#3B3025"
+        android:strokeWidth="2.4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M11.6,47.0L30.1,37.5L50.0,36.9L70.0,39.7L83.0,46.1L82.8,59.5L66.4,68.4L43.3,70.4L23.3,66.2L12.3,57.5Z" />
+    <group>
+        <clip-path android:pathData="M11.6,47.0L30.1,37.5L50.0,36.9L70.0,39.7L83.0,46.1L82.8,59.5L66.4,68.4L43.3,70.4L23.3,66.2L12.3,57.5Z" />
+        <path
+            android:strokeColor="#6B5B49"
+            android:strokeWidth="1.0"
+            android:strokeAlpha="0.55"
+            android:strokeLineCap="round"
+            android:pathData="M95.7,-33.9L144.8,28.1M89.1,-30.2L138.4,33.1M84.6,-25.1L133.7,37.4M78.9,-20.9L128.2,41.3M72.6,-17.3L122.5,45.5M67.4,-12.5L116.8,50.0M62.7,-8.5L110.9,53.8M57.2,-4.8L106.3,58.6M51.4,0.3L99.5,63.3M45.8,5.0L94.3,66.7M39.7,8.5L89.4,70.9M34.8,13.5L83.7,75.2M29.6,16.8L78.2,79.8M23.2,21.4L72.3,83.9M17.3,25.8L67.4,88.8M13.0,30.8L61.3,92.9M7.2,34.3L56.3,97.5M1.3,39.3L49.9,101.8M-4.1,43.6L44.7,105.4M-9.2,46.9L40.0,110.9M-14.5,51.1L33.7,114.7M-21.2,55.9L28.7,118.4M-26.2,60.4L22.8,123.7M-31.4,64.2L16.7,127.5M-37.0,69.1L11.3,132.0M-43.1,73.1L6.7,136.0" />
+    </group>
+</vector>

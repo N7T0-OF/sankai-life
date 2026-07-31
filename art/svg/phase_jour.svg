@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
+<!-- Sankai Life — genere par art/generer-assets.py, ne pas editer a la main -->
+  <path d="M67.4,45.9L67.1,52.2L62.9,59.2L58.8,62.9L50.9,66.1L45.5,66.4L38.6,62.3L32.0,58.1L28.8,51.8L27.8,46.7L29.2,40.0L32.0,33.2L38.8,27.8L45.0,25.5L51.4,26.6L57.6,28.9L63.4,33.9L67.5,39.5Z" fill="#F0CE7E" stroke="#3B3025" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <clipPath id="cphasejour0"><path d="M67.4,45.9L67.1,52.2L62.9,59.2L58.8,62.9L50.9,66.1L45.5,66.4L38.6,62.3L32.0,58.1L28.8,51.8L27.8,46.7L29.2,40.0L32.0,33.2L38.8,27.8L45.0,25.5L51.4,26.6L57.6,28.9L63.4,33.9L67.5,39.5Z"/></clipPath>
+  <g clip-path="url(#cphasejour0)"><path d="M79.6,-24.8L118.5,15.1M72.9,-18.7L112.9,20.6M67.7,-13.2L107.4,26.3M62.5,-7.3L101.8,31.6M55.7,-1.9L96.8,37.8M51.2,2.9L90.7,42.9M45.1,8.7L85.6,49.4M38.7,15.2L79.3,54.1M34.2,20.5L73.0,60.1M28.0,25.5L67.5,66.6M22.6,31.0L63.0,72.3M16.3,36.9L56.5,76.7M11.4,42.4L51.3,83.3M5.9,48.4L45.2,88.6M0.2,53.9L40.0,94.8M-6.2,60.5L34.3,99.6M-11.5,66.0L27.7,106.1M-17.9,70.8L22.9,111.0" stroke="#D9A441" stroke-width="1.0" fill="none" stroke-opacity="0.55"/></g>
+  <path d="M72.2,46.6L82.7,46.0" fill="none" stroke="#D9A441" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M67.4,61.3L76.1,66.6" fill="none" stroke="#D9A441" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M55.9,70.4L59.1,78.2" fill="none" stroke="#D9A441" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M39.6,70.3L36.8,78.5" fill="none" stroke="#D9A441" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M27.8,60.2L20.6,65.5" fill="none" stroke="#D9A441" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M22.7,45.3L14.2,46.4" fill="none" stroke="#D9A441" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M28.0,30.9L21.2,26.2" fill="none" stroke="#D9A441" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M40.2,21.8L37.7,13.3" fill="none" stroke="#D9A441" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M55.1,21.5L59.3,13.9" fill="none" stroke="#D9A441" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M68.7,31.4L76.1,25.5" fill="none" stroke="#D9A441" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -34,6 +34,9 @@ import com.sankailife.core.garden.domain.MoistureEngine
 import com.sankailife.core.garden.domain.OutilJardin
 import com.sankailife.core.garden.domain.PlotState
 import com.sankailife.core.haptics.LocalHaptics
+import com.sankailife.ui.art.ArtJardin
+import com.sankailife.ui.art.IconeArt
+import androidx.compose.ui.draw.alpha
 import com.sankailife.ui.theme.AccentCyan
 import com.sankailife.ui.theme.AccentGold
 import com.sankailife.ui.theme.sankaiColors
@@ -242,7 +245,7 @@ private fun CaseBrouillard(modifier: Modifier = Modifier) {
             .background(Color(0xFF0A1610).copy(alpha = 0.85f)),
         contentAlignment = Alignment.Center
     ) {
-        Text("🌫️", fontSize = 18.sp, color = Color.White.copy(alpha = 0.25f))
+        IconeArt(ArtJardin.brouillard, taille = 34.dp, modifier = Modifier.alpha(0.4f))
     }
 }
 
@@ -299,20 +302,26 @@ private fun CaseParcelle(
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                when {
-                    parcelle.deblocage == ExpansionEngine.Deblocage.DECOUVERTE ->
-                        parcelle.terrain.emoji
-                    parcelle.deblocage == ExpansionEngine.Deblocage.EN_CHANTIER -> "🚧"
-                    parcelle.etat == PlotState.UNCLEARED -> "🪨"
-                    parcelle.etat == PlotState.EMPTY || parcelle.etat == PlotState.PREPARED -> "＋"
-                    else -> parcelle.stage?.emoji ?: "🌱"
-                },
-                fontSize = 22.sp,
-                color = if (cultivable && parcelle.etat == PlotState.EMPTY) {
-                    c.textSecondary
-                } else Color.Unspecified
-            )
+            // Le chantier reste un emoji : c'est un état passager de
+            // l'interface, pas un élément du jardin qu'un graphiste redessinera.
+            if (parcelle.deblocage == ExpansionEngine.Deblocage.EN_CHANTIER) {
+                Text("🚧", fontSize = 22.sp)
+            } else {
+                IconeArt(
+                    when {
+                        parcelle.deblocage == ExpansionEngine.Deblocage.DECOUVERTE ->
+                            ArtJardin.terrain(parcelle.terrain)
+                        parcelle.etat == PlotState.UNCLEARED ->
+                            ArtJardin.terrain(ExpansionEngine.Terrain.ROCHEUX)
+                        parcelle.stage != null ->
+                            ArtJardin.stade(parcelle.stage, parcelle.prete)
+                        // Sur une parcelle libre, c'est l'humidité qu'on montre :
+                        // elle change d'heure en heure, le type de sol jamais.
+                        else -> ArtJardin.humidite(parcelle.etatHumidite)
+                    },
+                    taille = 38.dp
+                )
+            }
             Spacer(Modifier.height(2.dp))
             Text(
                 when {

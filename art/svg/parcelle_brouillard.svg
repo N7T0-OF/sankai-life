@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
+<!-- Sankai Life — genere par art/generer-assets.py, ne pas editer a la main -->
+  <path d="M25.0,61.0L27.6,48.1L41.6,40.2L58.5,40.8L68.4,49.2L74.9,62.4Z" fill="#8E9AA6" stroke="#3B3025" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <clipPath id="cparcellebrouillard0"><path d="M25.0,61.0L27.6,48.1L41.6,40.2L58.5,40.8L68.4,49.2L74.9,62.4Z"/></clipPath>
+  <g clip-path="url(#cparcellebrouillard0)"><path d="M46.6,-26.5L99.5,-6.5M43.8,-18.7L96.8,0.4M41.0,-11.5L94.7,8.0M39.5,-3.4L91.2,15.9M35.6,3.4L88.8,23.6M34.0,10.7L87.0,30.2M30.2,18.3L83.6,38.0M28.7,26.5L81.2,45.4M25.9,33.7L78.7,53.2M23.2,41.6L75.7,60.6M19.5,48.9L72.5,67.9M17.0,57.0L70.4,75.8M14.8,63.2L66.7,83.3M11.9,70.9L64.4,90.2M9.2,78.7L61.9,98.5M6.2,86.2L58.9,106.3M4.0,93.3L56.5,112.6M1.1,100.8L53.7,120.6" stroke="#9AA0A6" stroke-width="0.9" fill="none" stroke-opacity="0.55"/></g>
+  <path d="M23.3,72.7L29.0,57.4L42.9,48.9L56.9,52.5L68.8,59.3L73.5,71.4Z" fill="#A9B4BE" stroke="#3B3025" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <clipPath id="cparcellebrouillard1"><path d="M23.3,72.7L29.0,57.4L42.9,48.9L56.9,52.5L68.8,59.3L73.5,71.4Z"/></clipPath>
+  <g clip-path="url(#cparcellebrouillard1)"><path d="M47.0,-16.3L100.0,2.4M44.8,-8.9L97.3,9.8M42.3,-1.0L94.9,17.8M39.1,6.6L92.2,25.2M36.8,13.9L89.7,33.3M33.9,21.2L86.9,40.0M30.4,29.4L83.5,47.7M27.6,37.0L80.7,56.3M25.4,43.6L78.5,63.6M22.0,51.1L75.1,70.2M19.7,58.7L73.4,77.7M17.4,67.0L70.5,85.5M14.0,74.4L66.9,93.2M11.4,81.0L64.2,101.0M9.0,89.0L61.3,108.5M6.2,96.8L58.6,115.7M2.9,104.4L56.9,122.7M0.1,112.0L53.0,130.5" stroke="#9AA0A6" stroke-width="0.9" fill="none" stroke-opacity="0.55"/></g>
+</svg>

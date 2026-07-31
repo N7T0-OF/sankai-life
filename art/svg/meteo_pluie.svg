@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
+<!-- Sankai Life — genere par art/generer-assets.py, ne pas editer a la main -->
+  <path d="M23.6,51.7L28.8,37.3L41.1,28.8L57.4,31.8L68.9,39.8L74.4,52.0Z" fill="#F2EADB" stroke="#3B3025" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <clipPath id="cmeteopluie0"><path d="M23.6,51.7L28.8,37.3L41.1,28.8L57.4,31.8L68.9,39.8L74.4,52.0Z"/></clipPath>
+  <g clip-path="url(#cmeteopluie0)"><path d="M46.5,-36.5L99.9,-17.5M44.4,-29.1L97.4,-9.5M41.2,-20.8L94.4,-2.4M38.3,-13.1L92.0,5.3M36.8,-6.7L88.8,12.4M33.7,1.3L86.3,20.9M30.5,8.3L83.9,28.3M28.0,16.5L80.7,36.0M25.9,23.4L77.8,43.7M22.3,31.9L75.2,51.3M19.9,38.8L72.1,58.7M17.6,46.3L70.6,65.9M13.8,53.6L67.3,73.1M10.9,61.7L64.3,80.3M8.7,69.6L62.3,88.7M6.2,76.6L58.9,95.1M3.9,83.8L56.0,103.3M-0.0,92.1L53.6,111.3" stroke="#9AA0A6" stroke-width="0.9" fill="none" stroke-opacity="0.55"/></g>
+  <path d="M30.4,60.1L27.0,76.3" fill="none" stroke="#6FA8C7" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M41.6,59.4L38.9,75.8" fill="none" stroke="#6FA8C7" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M54.4,59.4L50.9,76.4" fill="none" stroke="#6FA8C7" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M65.6,60.5L62.8,75.3" fill="none" stroke="#6FA8C7" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

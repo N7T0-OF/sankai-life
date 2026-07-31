@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
+<!-- Sankai Life — genere par art/generer-assets.py, ne pas editer a la main -->
+  <path d="M48.4,17.7L67.6,43.3L48.7,79.9L27.9,44.8Z" fill="#8A6BB0" stroke="#3B3025" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <clipPath id="cressourcecristal0"><path d="M48.4,17.7L67.6,43.3L48.7,79.9L27.9,44.8Z"/></clipPath>
+  <g clip-path="url(#cressourcecristal0)"><path d="M102.0,-24.7L138.9,39.1M95.9,-21.7L132.9,42.7M89.5,-18.6L127.1,46.5M84.1,-14.9L120.8,48.8M78.0,-11.3L115.5,53.2M71.8,-8.1L108.8,57.1M65.9,-3.7L103.1,59.9M60.4,-0.2L97.0,64.1M53.6,3.3L90.4,66.3M47.2,6.3L85.0,70.8M41.1,10.3L79.0,73.9M35.0,13.5L73.1,78.0M30.0,16.8L66.4,81.4M24.1,20.5L61.0,85.0M16.9,24.5L54.8,88.5M11.6,27.9L47.9,92.1M5.9,31.5L42.2,94.3M-1.1,34.6L36.3,98.4M-6.5,37.6L30.0,101.4M-12.7,41.4L24.5,104.9M-18.8,44.5L17.7,109.5M-24.9,48.5L11.7,112.9M-30.6,52.6L6.0,115.4M-37.5,55.6L-0.5,119.9" stroke="#F2EADB" stroke-width="0.9" fill="none" stroke-opacity="0.55"/></g>
+  <path d="M48.1,18.2L47.7,80.6" fill="none" stroke="#F2EADB" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

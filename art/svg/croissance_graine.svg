@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
+<!-- Sankai Life — genere par art/generer-assets.py, ne pas editer a la main -->
+  <path d="M10.9,68.5L30.2,59.1L50.9,57.7L71.0,59.8L83.7,69.6L84.3,81.0L65.6,90.5L45.2,92.4L23.4,86.9L12.7,81.0Z" fill="#8A6A45" stroke="#3B3025" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <clipPath id="ccroissancegraine0"><path d="M10.9,68.5L30.2,59.1L50.9,57.7L71.0,59.8L83.7,69.6L84.3,81.0L65.6,90.5L45.2,92.4L23.4,86.9L12.7,81.0Z"/></clipPath>
+  <g clip-path="url(#ccroissancegraine0)"><path d="M95.1,-13.1L144.6,49.8M89.7,-8.0L138.8,54.1M83.5,-3.4L132.9,59.3M79.1,1.2L127.2,63.8M73.8,4.3L121.9,67.3M67.1,8.5L117.3,71.7M62.8,12.8L110.8,75.9M56.0,17.8L105.6,80.0M51.8,22.6L100.5,84.3M45.6,26.9L94.8,89.1M40.6,30.9L88.4,93.3M34.2,35.5L83.1,97.3M28.4,39.7L77.8,102.3M24.1,43.6L73.0,106.8M18.5,47.3L67.3,110.2M13.0,52.8L61.6,115.1M6.7,56.3L56.0,119.0M1.8,60.5L50.6,123.1M-4.4,65.7L44.9,127.3M-9.1,70.1L38.7,132.0M-15.0,73.9L34.5,136.9M-20.9,77.9L27.8,141.3M-25.6,82.6L22.5,144.6M-31.4,86.6L16.8,149.3M-37.1,91.7L12.1,153.7M-42.3,95.7L6.4,157.7" stroke="#6B5B49" stroke-width="1.0" fill="none" stroke-opacity="0.55"/></g>
+  <path d="M19.7,69.3L40.8,67.8L61.2,71.8L78.3,68.2" fill="none" stroke="#573F28" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M19.7,78.1L40.7,75.4L61.6,79.8L78.4,77.9" fill="none" stroke="#573F28" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M19.4,85.8L39.9,82.2L62.2,85.8L78.3,83.8" fill="none" stroke="#573F28" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M53.3,66.0L53.2,67.8L51.7,69.8L50.7,70.6L48.8,71.0L47.3,70.6L45.4,70.0L44.4,69.3L42.9,68.0L42.6,65.4L43.9,64.7L44.7,62.7L45.2,62.1L47.7,61.4L49.0,60.6L50.7,61.4L51.3,62.3L52.9,64.3Z" fill="#573F28" stroke="#3B3025" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
+<!-- Sankai Life — genere par art/generer-assets.py, ne pas editer a la main -->
+  <path d="M20.4,50.9L48.1,27.7L76.5,49.2Z" fill="#C4614B" stroke="#3B3025" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M26.9,49.4L69.3,50.0L69.9,79.0L25.4,77.4Z" fill="#9A6E43" stroke="#3B3025" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <clipPath id="clieudepot1"><path d="M26.9,49.4L69.3,50.0L69.9,79.0L25.4,77.4Z"/></clipPath>
+  <g clip-path="url(#clieudepot1)"><path d="M111.4,38.4L111.1,90.5M103.9,37.3L104.1,90.7M96.5,37.5L96.5,89.9M89.9,37.5L89.4,90.6M83.4,38.0L82.6,89.5M75.8,37.7L75.8,89.5M68.5,37.6L69.1,89.4M62.1,38.3L61.9,90.3M55.4,37.7L55.1,90.1M47.4,37.4L48.3,89.4M41.4,37.7L40.8,90.2M33.4,38.5L33.6,89.9M27.7,37.4L26.8,89.7M19.5,38.3L20.1,89.4M12.9,37.3L13.1,89.5M6.5,38.0L5.6,89.9M-1.6,38.3L-0.5,90.6M-8.4,38.1L-8.5,90.5" stroke="#573F28" stroke-width="0.9" fill="none" stroke-opacity="0.55"/></g>
+  <path d="M39.8,58.7L55.3,57.3L55.5,78.1L40.1,78.7Z" fill="#573F28" stroke="#3B3025" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

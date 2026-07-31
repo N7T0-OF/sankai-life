@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
+<!-- Sankai Life — genere par art/generer-assets.py, ne pas editer a la main -->
+  <path d="M22.1,52.0L74.8,52.5L75.0,78.5L19.1,77.4Z" fill="#D9A441" stroke="#3B3025" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <clipPath id="ccoffrelegendaire0"><path d="M22.1,52.0L74.8,52.5L75.0,78.5L19.1,77.4Z"/></clipPath>
+  <g clip-path="url(#ccoffrelegendaire0)"><path d="M92.9,3.8L124.6,56.2M87.7,6.4L117.4,59.7M81.0,10.2L112.6,63.9M75.3,13.6L106.5,67.1M69.4,17.3L100.5,71.0M63.1,20.8L93.4,74.3M56.6,24.1L87.7,78.4M51.1,27.9L82.1,80.5M44.1,31.4L75.9,84.2M38.5,34.2L69.9,87.9M32.7,38.5L63.5,91.5M26.4,42.3L58.0,94.6M20.6,44.6L51.8,98.1M14.4,48.6L44.8,102.6M8.9,51.9L39.7,105.1M1.6,56.0L33.6,108.9M-4.1,58.9L27.0,112.7M-10.0,62.2L21.4,116.1M-16.0,65.6L15.6,119.9M-21.8,69.5L9.0,123.6" stroke="#6B5B49" stroke-width="0.9" fill="none" stroke-opacity="0.55"/></g>
+  <path d="M22.5,51.5L28.9,34.2L68.8,34.4L74.7,51.9Z" fill="#D9A441" stroke="#3B3025" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <clipPath id="ccoffrelegendaire1"><path d="M22.5,51.5L28.9,34.2L68.8,34.4L74.7,51.9Z"/></clipPath>
+  <g clip-path="url(#ccoffrelegendaire1)"><path d="M99.3,-29.6L130.2,26.6M92.6,-25.9L124.1,30.2M86.5,-21.3L118.6,32.7M80.9,-18.1L111.8,36.3M74.1,-15.4L106.2,39.8M69.1,-12.0L100.6,44.1M62.9,-8.2L93.8,47.5M56.0,-4.5L88.0,50.1M50.0,-0.7L82.3,54.0M43.7,2.7L76.1,57.8M37.7,6.0L69.5,61.5M32.7,8.9L63.3,65.1M25.4,12.7L58.4,67.8M20.1,15.9L51.8,72.0M13.5,20.5L45.7,75.0M8.6,24.1L39.3,79.2M1.1,26.4L33.4,82.0M-4.9,30.2L27.1,84.9M-10.3,33.5L21.4,88.7M-16.9,37.4L14.7,92.8M-22.4,41.5L9.2,96.3M-28.3,45.0L3.0,99.5" stroke="#6B5B49" stroke-width="0.9" fill="none" stroke-opacity="0.55"/></g>
+  <path d="M20.5,50.1L76.6,50.1L76.3,55.8L20.3,56.4Z" fill="#F2EADB" stroke="#3B3025" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M43.0,54.3L52.5,53.6L52.8,65.8L43.6,66.2Z" fill="#F2EADB" stroke="#3B3025" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
