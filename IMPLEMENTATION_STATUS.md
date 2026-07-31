@@ -204,3 +204,23 @@ n'importe qui.
 | Secrets de signature GitHub | Settings → Secrets | ❌ non configurés — chaque Release a une signature différente |
 | Lien Ko-fi | `SettingsScreen.kt` | 🟠 valeur provisoire |
 | Politique de confidentialité | Play Console | ❌ à héberger |
+
+---
+
+## v1.24.0 — Assets fournis, pluie et lumière
+
+| Chantier | État | Note |
+|---|---|---|
+| Remplacement icône application | fait | portrait en couche de fond de l'icône adaptative ; monochrome inchangée |
+| Remplacement ressources | partiel | seule la pièce était fournie ; eau, compost, cristal restent vectoriels |
+| Remplacement parcelles | fait | la case est l'image entière, plus une texture posée dessus |
+| Remplacement coffres | non | aucune image fournie |
+| Remplacement outils | non | aucune image fournie |
+| Effet pluie | fait | particules à trois profondeurs, éclaboussures, coupées si animations réduites |
+| Cycle jour/nuit | fait | interpolation continue, plus de saut à heure fixe |
+| Filtres lever/coucher/crépuscule | fait | douze repères, couleurs mélangées composante par composante |
+| Optimisation | fait | 2048² → 128 à 256 px ; APK 3,53 → 4,61 Mo |
+| Tests | fait | 145 verts, dont 10 sur l'éclairage |
+
+Rapports détaillés : [ASSET_MIGRATION_REPORT.md](ASSET_MIGRATION_REPORT.md),
+[UNUSED_ASSETS_REPORT.md](UNUSED_ASSETS_REPORT.md).

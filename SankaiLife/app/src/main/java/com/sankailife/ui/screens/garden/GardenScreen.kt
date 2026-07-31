@@ -39,6 +39,7 @@ import com.sankailife.core.garden.domain.OutilJardin
 import com.sankailife.core.garden.domain.PlotState
 import com.sankailife.core.garden.domain.Seed
 import com.sankailife.core.haptics.LocalHaptics
+import androidx.compose.ui.platform.LocalContext
 import com.sankailife.ui.art.ArtJardin
 import com.sankailife.ui.art.IconeArt
 import com.sankailife.ui.components.SankaiButton
@@ -76,6 +77,17 @@ fun GardenScreen(viewModel: GardenViewModel, onBack: () -> Unit) {
     val meteo by viewModel.meteo.collectAsState()
     val aSoif by viewModel.parcellesASoif.collectAsState()
     val niveauArrosoir by viewModel.niveauArrosoir.collectAsState()
+    val ambiance by viewModel.ambiance.collectAsState()
+    val intensitePluie by viewModel.intensitePluie.collectAsState()
+
+    // Respect du réglage système « réduire les animations ». C'est un réglage
+    // d'accessibilité, pas une préférence esthétique : une pluie animée peut
+    // provoquer des nausées.
+    val animationsReduites = android.provider.Settings.Global.getFloat(
+        LocalContext.current.contentResolver,
+        android.provider.Settings.Global.ANIMATOR_DURATION_SCALE,
+        1f
+    ) == 0f
 
     val mimos by viewModel.mimos.collectAsState()
     val offres by viewModel.offres.collectAsState()
@@ -199,18 +211,23 @@ fun GardenScreen(viewModel: GardenViewModel, onBack: () -> Unit) {
                     )
                 }
 
-                // Voile nocturne, posé sur le terrain seul.
+                // Ambiance, posée sur le terrain seul.
                 //
-                // Il ne couvre ni le bandeau ni les boutons : assombrir les
-                // commandes rendrait l'application pénible à utiliser le soir,
-                // qui est justement le moment où beaucoup l'ouvriront. Sans
-                // modificateur de saisie, ce voile ne capte aucun geste.
-                val nuit = DayNightEngine.intensiteNuit()
-                if (nuit > 0f) {
-                    Box(
-                        Modifier.matchParentSize()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Color(0xFF060C1F).copy(alpha = nuit))
+                // Ni le bandeau ni les boutons ne sont teintés : assombrir les
+                // commandes rendrait l'application pénible le soir, qui est
+                // justement le moment où beaucoup l'ouvriront. Aucune de ces
+                // couches ne porte de modificateur de saisie — les gestes
+                // passent au travers jusqu'aux parcelles.
+                //
+                // L'ordre est celui du cahier des charges : décor, plantes,
+                // lumière, météo, particules. L'interface reste au-dessus.
+                Box(Modifier.matchParentSize().clip(RoundedCornerShape(14.dp))) {
+                    VoileAmbiance(ambiance, Modifier.matchParentSize())
+                    CielEtoile(ambiance.etoiles, Modifier.matchParentSize())
+                    PluieAnimee(
+                        intensite = intensitePluie,
+                        animationsReduites = animationsReduites,
+                        modifier = Modifier.matchParentSize()
                     )
                 }
             }

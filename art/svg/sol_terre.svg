@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
 <!-- Sankai Life — genere par art/generer-assets.py, ne pas editer a la main -->
-  <path d="M12.4,46.2L29.5,38.1L50.6,35.9L71.0,39.5L83.9,46.6L83.6,59.9L66.3,68.7L44.9,69.4L25.0,65.6L12.5,58.3Z" fill="#8A6A45" stroke="#3B3025" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-  <clipPath id="csolterre0"><path d="M12.4,46.2L29.5,38.1L50.6,35.9L71.0,39.5L83.9,46.6L83.6,59.9L66.3,68.7L44.9,69.4L25.0,65.6L12.5,58.3Z"/></clipPath>
-  <g clip-path="url(#csolterre0)"><path d="M95.3,-33.7L144.9,28.0M90.3,-30.1L138.0,33.1M83.7,-25.8L132.7,36.8M79.1,-21.2L127.8,41.0M73.5,-17.5L121.8,46.2M67.2,-12.5L116.0,49.2M62.7,-8.8L111.4,54.7M56.6,-3.6L106.1,58.2M51.6,0.4L99.6,62.9M45.7,4.4L95.2,66.7M39.9,8.1L89.1,71.1M34.0,12.4L84.0,75.7M29.2,17.9L77.4,79.5M23.2,21.4L72.0,83.9M18.0,26.6L66.7,89.3M12.7,30.1L61.4,93.0M7.0,34.2L55.4,96.7M2.0,38.9L50.9,102.1M-4.1,43.4L45.6,105.8M-9.6,47.1L40.0,109.9M-14.6,52.3L33.7,114.0M-21.0,56.7L28.1,118.5M-25.6,60.5L23.1,123.8M-32.1,64.8L17.2,127.6M-37.6,69.2L12.5,132.1M-42.6,73.7L6.3,136.5" stroke="#6B5B49" stroke-width="1.0" fill="none" stroke-opacity="0.55"/></g>
-  <path d="M20.7,47.0L40.6,45.4L62.1,48.0L78.1,47.3" fill="none" stroke="#573F28" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M19.1,55.3L39.3,54.5L62.6,56.7L77.6,54.7" fill="none" stroke="#573F28" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M19.8,62.2L40.4,60.9L61.8,64.4L77.8,63.0" fill="none" stroke="#573F28" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M10.9,46.5L30.2,37.1L50.9,35.7L71.0,37.8L83.7,47.6L84.3,59.0L65.6,68.5L45.2,70.4L23.4,64.9L12.7,59.0Z" fill="#8A6A45" stroke="#3B3025" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <clipPath id="csolterre0"><path d="M10.9,46.5L30.2,37.1L50.9,35.7L71.0,37.8L83.7,47.6L84.3,59.0L65.6,68.5L45.2,70.4L23.4,64.9L12.7,59.0Z"/></clipPath>
+  <g clip-path="url(#csolterre0)"><path d="M95.1,-35.1L144.6,27.8M89.7,-30.0L138.8,32.1M83.5,-25.4L132.9,37.3M79.1,-20.8L127.2,41.8M73.8,-17.7L121.9,45.3M67.1,-13.5L117.3,49.7M62.8,-9.2L110.8,53.9M56.0,-4.2L105.6,58.0M51.8,0.6L100.5,62.3M45.6,4.9L94.8,67.1M40.6,8.9L88.4,71.3M34.2,13.5L83.1,75.3M28.4,17.7L77.8,80.3M24.1,21.6L73.0,84.8M18.5,25.3L67.3,88.2M13.0,30.8L61.6,93.1M6.7,34.3L56.0,97.0M1.8,38.5L50.6,101.1M-4.4,43.7L44.9,105.3M-9.1,48.1L38.7,110.0M-15.0,51.9L34.5,114.9M-20.9,55.9L27.8,119.3M-25.6,60.6L22.5,122.6M-31.4,64.6L16.8,127.3M-37.1,69.7L12.1,131.7M-42.3,73.7L6.4,135.7" stroke="#6B5B49" stroke-width="1.0" fill="none" stroke-opacity="0.55"/></g>
+  <path d="M19.7,47.3L40.8,45.8L61.2,49.8L78.3,46.2" fill="none" stroke="#573F28" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M19.7,56.1L40.7,53.4L61.6,57.8L78.4,55.9" fill="none" stroke="#573F28" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M19.4,63.8L39.9,60.2L62.2,63.8L78.3,61.8" fill="none" stroke="#573F28" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

@@ -210,7 +210,7 @@ fun DioramaJardin(niveau: Int, onEntrer: () -> Unit) {
                         contentAlignment = Alignment.Center
                     ) {
                         IconeArt(
-                            ArtJardin.stade(stade, prete = index == 4),
+                            ArtJardin.plante(stade, prete = index == 4),
                             taille = 32.dp
                         )
                     }

@@ -36,7 +36,10 @@ import com.sankailife.core.garden.domain.PlotState
 import com.sankailife.core.haptics.LocalHaptics
 import com.sankailife.ui.art.ArtJardin
 import com.sankailife.ui.art.IconeArt
+import androidx.compose.foundation.Image
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import com.sankailife.ui.theme.AccentCyan
 import com.sankailife.ui.theme.AccentGold
 import com.sankailife.ui.theme.sankaiColors
@@ -275,54 +278,64 @@ private fun CaseParcelle(
     )
 
     val cultivable = parcelle.cultivable
-    val fond = when {
-        !cultivable -> Color(0xFF14201A)
-        parcelle.prete -> Color(0xFF3B2F16)
-        else -> teinteCible.copy(alpha = 0.55f + 0.45f * melange)
-    }
     val bordure = when {
         parcelle.deblocage == ExpansionEngine.Deblocage.DECOUVERTE -> AccentCyan.copy(alpha = 0.45f)
         parcelle.deblocage == ExpansionEngine.Deblocage.EN_CHANTIER -> AccentGold.copy(alpha = 0.5f)
         parcelle.prete -> AccentGold.copy(alpha = pulse)
-        parcelle.etat == PlotState.UNCLEARED -> Color(0xFF4A413A)
-        else -> Color(0xFF6B4B30)
+        else -> Color.Transparent
     }
 
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(13.dp))
-            .background(fond)
-            .border(
-                width = if (surbrillance || parcelle.prete) 2.dp else 1.dp,
-                // La surbrillance guide le geste : seules les cases où l'outil
-                // agit vraiment s'allument.
-                color = if (surbrillance) AccentCyan else bordure,
-                shape = RoundedCornerShape(13.dp)
-            ),
-        contentAlignment = Alignment.Center
-    ) {
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+
+        // Couche 1 — la case elle-même.
+        //
+        // L'illustration porte sa propre forme, ses bords irréguliers et sa
+        // texture : aucun fond ni arrondi n'est dessiné par l'interface. Poser
+        // une couleur derrière ferait réapparaître le carré que l'image est
+        // justement censée remplacer.
+        if (cultivable) {
+            Image(
+                painter = painterResource(ArtJardin.parcelle(parcelle.etatHumidite)),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                // Le fondu suit l'humidité : un sol qui vire brutalement au
+                // brun sombre ressemblerait à un défaut d'affichage plutôt
+                // qu'à de l'eau qui pénètre la terre.
+                alpha = 0.88f + 0.12f * melange,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            Box(
+                Modifier.fillMaxSize()
+                    .clip(RoundedCornerShape(13.dp))
+                    .background(Color(0xFF14201A))
+            )
+        }
+
+        // Couche 2 — ce qui pousse dessus, ou l'état de la case.
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            // Le chantier reste un emoji : c'est un état passager de
-            // l'interface, pas un élément du jardin qu'un graphiste redessinera.
-            if (parcelle.deblocage == ExpansionEngine.Deblocage.EN_CHANTIER) {
-                Text("🚧", fontSize = 22.sp)
-            } else {
-                IconeArt(
-                    when {
-                        parcelle.deblocage == ExpansionEngine.Deblocage.DECOUVERTE ->
-                            ArtJardin.terrain(parcelle.terrain)
-                        parcelle.etat == PlotState.UNCLEARED ->
-                            ArtJardin.terrain(ExpansionEngine.Terrain.ROCHEUX)
-                        parcelle.stage != null ->
-                            ArtJardin.stade(parcelle.stage, parcelle.prete)
-                        // Sur une parcelle libre, c'est l'humidité qu'on montre :
-                        // elle change d'heure en heure, le type de sol jamais.
-                        else -> ArtJardin.humidite(parcelle.etatHumidite)
-                    },
-                    taille = 38.dp
-                )
+            when {
+                parcelle.deblocage == ExpansionEngine.Deblocage.EN_CHANTIER ->
+                    Text("🚧", fontSize = 22.sp)
+
+                parcelle.deblocage == ExpansionEngine.Deblocage.DECOUVERTE ->
+                    IconeArt(ArtJardin.terrain(parcelle.terrain), taille = 34.dp)
+
+                parcelle.etat == PlotState.UNCLEARED ->
+                    IconeArt(
+                        ArtJardin.terrain(ExpansionEngine.Terrain.ROCHEUX),
+                        taille = 34.dp
+                    )
+
+                parcelle.stage != null ->
+                    IconeArt(
+                        ArtJardin.plante(parcelle.stage, parcelle.prete),
+                        taille = 46.dp
+                    )
+
+                else -> Spacer(Modifier.height(30.dp))
             }
-            Spacer(Modifier.height(2.dp))
+            Spacer(Modifier.height(1.dp))
             Text(
                 when {
                     parcelle.deblocage == ExpansionEngine.Deblocage.DECOUVERTE ->
@@ -343,6 +356,23 @@ private fun CaseParcelle(
                 },
                 fontSize = 8.sp,
                 textAlign = TextAlign.Center
+            )
+        }
+
+        // Couche 3 — le cadre de guidage.
+        //
+        // Posé par-dessus l'illustration plutôt que dessiné avec elle : c'est
+        // une indication d'interface, pas une partie du jardin. La surbrillance
+        // ne s'allume que là où l'outil tenu agit vraiment.
+        val cadre = if (surbrillance) AccentCyan else bordure
+        if (cadre != Color.Transparent) {
+            Box(
+                Modifier.fillMaxSize()
+                    .border(
+                        width = if (surbrillance || parcelle.prete) 2.dp else 1.dp,
+                        color = cadre,
+                        shape = RoundedCornerShape(13.dp)
+                    )
             )
         }
     }

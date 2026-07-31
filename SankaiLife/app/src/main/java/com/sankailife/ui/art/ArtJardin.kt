@@ -39,21 +39,25 @@ import com.sankailife.core.garden.domain.WeatherEngine
 object ArtJardin {
 
     /**
-     * Dessin d'une culture.
+     * La plante seule, sans son sol.
+     *
+     * Les illustrations fournies sont détourées : elles se **superposent** à
+     * la parcelle au lieu de la remplacer. C'est ce qui permet à une même
+     * plante de pousser sur une terre sèche ou détrempée sans dessiner six
+     * variantes de chaque stade.
      *
      * `prete` n'est pas un stade de [CropStage] mais un état calculé : une
-     * plante mûre reste MATURE une fois récoltable. Le distinguer visuellement
-     * compte plus que la nuance de vocabulaire — c'est le seul moment où le
-     * joueur doit agir.
+     * plante mûre reste MATURE une fois récoltable. Le distinguer compte plus
+     * que la nuance de vocabulaire — c'est le seul moment où il faut agir.
      */
     @DrawableRes
-    fun stade(stage: CropStage, prete: Boolean = false): Int = when {
-        prete -> R.drawable.art_croissance_recoltable
-        stage == CropStage.GRAINE -> R.drawable.art_croissance_graine
-        stage == CropStage.GERME -> R.drawable.art_croissance_germe
-        stage == CropStage.POUSSE -> R.drawable.art_croissance_pousse
-        stage == CropStage.JEUNE -> R.drawable.art_croissance_jeune
-        else -> R.drawable.art_croissance_mature
+    fun plante(stage: CropStage, prete: Boolean = false): Int = when {
+        prete -> R.drawable.plant_stage_5_ready
+        stage == CropStage.GRAINE -> R.drawable.plant_stage_0_seed
+        stage == CropStage.GERME -> R.drawable.plant_stage_1
+        stage == CropStage.POUSSE -> R.drawable.plant_stage_2
+        stage == CropStage.JEUNE -> R.drawable.plant_stage_3
+        else -> R.drawable.plant_stage_4
     }
 
     @DrawableRes
@@ -67,19 +71,24 @@ object ArtJardin {
     }
 
     /**
-     * Sol teinté par son humidité.
+     * La case de parcelle entière : forme, terre, bords, texture.
      *
-     * Prioritaire sur [sol] pour une parcelle cultivable : l'humidité est
-     * l'information qui change d'heure en heure, le type de sol ne bouge
-     * jamais. Montrer le second cacherait le premier.
+     * Ce n'est pas une teinte posée sur un carré dessiné par l'interface,
+     * c'est l'image complète de la case. Les bords irréguliers viennent de
+     * l'illustration, pas d'un `RoundedCornerShape`.
+     *
+     * Trois illustrations couvrent les cinq paliers d'humidité : la nuance
+     * entre « sec » et « un peu sec » se lit mal sur une case de 76 dp, et
+     * inventer deux variantes intermédiaires par retouche numérique jurerait
+     * avec le reste.
      */
     @DrawableRes
-    fun humidite(etat: MoistureEngine.Etat): Int = when (etat) {
-        MoistureEngine.Etat.SEC -> R.drawable.art_humidite_sec
-        MoistureEngine.Etat.LEGEREMENT_SEC -> R.drawable.art_humidite_legerement
-        MoistureEngine.Etat.HUMIDE -> R.drawable.art_humidite_humide
-        MoistureEngine.Etat.BIEN_ARROSE -> R.drawable.art_humidite_bien
-        MoistureEngine.Etat.DETREMPE -> R.drawable.art_humidite_detrempe
+    fun parcelle(etat: MoistureEngine.Etat): Int = when (etat) {
+        MoistureEngine.Etat.SEC,
+        MoistureEngine.Etat.LEGEREMENT_SEC -> R.drawable.plot_empty
+        MoistureEngine.Etat.HUMIDE -> R.drawable.plot_prepared
+        MoistureEngine.Etat.BIEN_ARROSE,
+        MoistureEngine.Etat.DETREMPE -> R.drawable.plot_watered
     }
 
     @DrawableRes
@@ -142,7 +151,7 @@ object ArtJardin {
     @DrawableRes val depot = R.drawable.art_lieu_depot
     @DrawableRes val magasin = R.drawable.art_lieu_magasin
     @DrawableRes val arbre = R.drawable.art_lieu_arbre
-    @DrawableRes val piece = R.drawable.art_ressource_piece
+    @DrawableRes val piece = R.drawable.currency_coin
     @DrawableRes val eau = R.drawable.art_ressource_eau
     @DrawableRes val compost = R.drawable.art_ressource_compost
     @DrawableRes val cristal = R.drawable.art_ressource_cristal

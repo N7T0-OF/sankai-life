@@ -1,6 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Icone adaptative.
+
+  L'illustration est pleine page : elle sert donc de couche de FOND, et la
+  couche avant reste vide. C'est l'inverse de l'usage habituel, mais c'est ce
+  qu'impose une image sans sujet detourable.
+
+  Android rogne 18 dp de chaque cote sur 108 selon le masque du telephone —
+  cercle, carre arrondi, goutte. Le visage etant centre, il survit a tous.
+
+  La couche monochrome garde le trace vectoriel d'origine : elle doit etre une
+  silhouette d'une seule couleur, ce qu'un portrait peint ne peut pas fournir.
+-->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background android:drawable="@color/ic_launcher_background" />
-    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <background android:drawable="@mipmap/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground_vide" />
     <monochrome android:drawable="@drawable/ic_launcher_monochrome" />
 </adaptive-icon>

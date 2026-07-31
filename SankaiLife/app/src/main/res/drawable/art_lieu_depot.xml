@@ -11,22 +11,22 @@
         android:strokeWidth="2.4"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
-        android:pathData="M20.4,50.9L48.1,27.7L76.5,49.2Z" />
+        android:pathData="M20.7,49.0L47.2,28.1L75.3,50.6Z" />
     <path
         android:fillColor="#9A6E43"
         android:strokeColor="#3B3025"
         android:strokeWidth="2.4"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
-        android:pathData="M26.9,49.4L69.3,50.0L69.9,79.0L25.4,77.4Z" />
+        android:pathData="M25.4,50.0L69.3,49.7L70.8,78.7L26.2,77.6Z" />
     <group>
-        <clip-path android:pathData="M26.9,49.4L69.3,50.0L69.9,79.0L25.4,77.4Z" />
+        <clip-path android:pathData="M25.4,50.0L69.3,49.7L70.8,78.7L26.2,77.6Z" />
         <path
             android:strokeColor="#573F28"
             android:strokeWidth="0.9"
             android:strokeAlpha="0.55"
             android:strokeLineCap="round"
-            android:pathData="M111.4,38.4L111.1,90.5M103.9,37.3L104.1,90.7M96.5,37.5L96.5,89.9M89.9,37.5L89.4,90.6M83.4,38.0L82.6,89.5M75.8,37.7L75.8,89.5M68.5,37.6L69.1,89.4M62.1,38.3L61.9,90.3M55.4,37.7L55.1,90.1M47.4,37.4L48.3,89.4M41.4,37.7L40.8,90.2M33.4,38.5L33.6,89.9M27.7,37.4L26.8,89.7M19.5,38.3L20.1,89.4M12.9,37.3L13.1,89.5M6.5,38.0L5.6,89.9M-1.6,38.3L-0.5,90.6M-8.4,38.1L-8.5,90.5" />
+            android:pathData="M111.3,37.8L111.7,90.6M104.3,37.8L104.5,90.8M97.5,38.2L97.5,90.5M89.9,38.0L89.5,89.7M82.9,37.5L82.6,90.5M75.7,37.5L76.5,90.8M69.1,38.6L69.3,89.5M61.4,37.9L62.4,90.8M54.6,38.3L54.7,89.9M48.4,38.5L48.3,89.8M40.7,38.0L41.1,90.7M33.5,38.3L34.4,90.7M26.9,37.9L26.4,89.5M19.4,38.1L20.1,90.7M13.0,37.3L13.3,90.1M6.5,37.8L5.8,90.4M-1.2,38.1L-1.7,90.4M-8.1,38.3L-7.7,90.6" />
     </group>
     <path
         android:fillColor="#573F28"
@@ -34,5 +34,5 @@
         android:strokeWidth="1.8"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
-        android:pathData="M39.8,58.7L55.3,57.3L55.5,78.1L40.1,78.7Z" />
+        android:pathData="M39.7,58.0L55.4,58.0L55.2,77.7L39.5,78.7Z" />
 </vector>

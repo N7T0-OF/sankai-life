@@ -328,16 +328,6 @@ def aube():
 
 CATALOGUE = {
     # Étapes de croissance — les six stades de CropStage.
-    "croissance_graine":      sol(C["terre"], motif="sillons", dy=22) + [
-                                  forme(cercle(48, 66, 5, 0.6), fill=C["terre_fonce"], w=1.8)],
-    "croissance_germe":       sol(C["terre"], motif="sillons", dy=22) + tige(14, 1),
-    "croissance_pousse":      sol(C["terre"], motif="sillons", dy=22) + tige(28, 2),
-    "croissance_jeune":       sol(C["terre"], motif="sillons", dy=22) + tige(40, 3),
-    "croissance_mature":      sol(C["terre"], motif="sillons", dy=22) + tige(50, 4),
-    "croissance_recoltable":  sol(C["terre"], motif="sillons", dy=22) +
-                              tige(48, 4, fleur=(C["or"], 13)),
-
-    # Types de sol — SoilType.
     "sol_terre":      sol(C["terre"], motif="sillons"),
     "sol_riche":      sol(C["terre_fonce"], motif="sillons"),
     "sol_sable":      sol(C["sable"]),
@@ -348,17 +338,9 @@ CATALOGUE = {
     # États de parcelle — PlotState et Deblocage.
     "parcelle_encombree": sol(C["terre"], motif="cailloux"),
     "parcelle_vide":      sol(C["terre"]),
-    "parcelle_preparee":  sol(C["terre"], motif="sillons"),
     "parcelle_brouillard": nuage("#8E9AA6", 48) + nuage("#A9B4BE", 58),
 
     # Humidité — MoistureEngine.Etat.
-    "humidite_sec":          sol("#A98A5E"),
-    "humidite_legerement":   sol("#8A6A45"),
-    "humidite_humide":       sol("#6F5335"),
-    "humidite_bien":         sol("#573F28"),
-    "humidite_detrempe":     sol("#3E2C1B", motif="flaques"),
-
-    # Météo — WeatherEngine.Meteo.
     "meteo_soleil":   meteo_soleil(),
     # La canicule doit se distinguer du grand soleil au premier coup d'œil :
     # même dessin dans deux couleurs ne dirait rien au joueur.
@@ -377,7 +359,6 @@ CATALOGUE = {
     "phase_nuit":       lune(),
 
     # Ressources et monnaies.
-    "ressource_piece":   piece(),
     "ressource_eau":     goutte(),
     "ressource_compost": sac(C["terre"], C["vert"]),
     "ressource_cristal": [forme(polyligne([(48, 18), (68, 44), (48, 80), (28, 44)], 0.9),
@@ -386,12 +367,6 @@ CATALOGUE = {
                           forme(polyligne([(48, 18), (48, 80)], 0.6, fermer=False),
                                 stroke=C["blanc"], w=1.4)],
     "ressource_graines": sac(C["sable"], C["vert_fonce"]),
-    "ressource_bois":    [forme(cercle(36, 52, 12, 0.9, aplat_y=1.0), fill=C["bois"], w=2.2),
-                          forme(cercle(60, 58, 12, 0.9), fill=C["bois"], w=2.2),
-                          forme(cercle(36, 52, 5, 0.6), stroke=C["terre_fonce"], w=1.4),
-                          forme(cercle(60, 58, 5, 0.6), stroke=C["terre_fonce"], w=1.4)],
-
-    # Outils — OutilJardin et améliorations.
     "outil_arrosoir": [
         forme(polyligne([(28, 44), (64, 44), (62, 74), (30, 74)], 1.0),
               fill=C["pierre"], w=2.4,
@@ -413,24 +388,6 @@ CATALOGUE = {
         forme(polyligne([(30, 34), (48, 26), (66, 34), (48, 40)], 0.9),
               fill=C["pierre"], w=2.2),
     ],
-    "outil_pelle": [
-        outil_manche(48, 78, 48, 40, 5.0),
-        forme(polyligne([(38, 40), (58, 40), (54, 66), (42, 66)], 0.9),
-              fill=C["pierre"], w=2.2),
-    ],
-    "outil_gants": [
-        forme(polyligne([(30, 44), (44, 30), (52, 34), (48, 48), (60, 44),
-                         (66, 54), (52, 74), (32, 68)], 1.1),
-              fill=C["rouge"], w=2.4,
-              hach=(hachures(28, 28, 68, 76, 40, 7), C["trait_clair"], 0.9)),
-    ],
-    "outil_binette": [
-        outil_manche(34, 78, 60, 32, 5.0),
-        forme(polyligne([(48, 30), (72, 34), (70, 42), (46, 38)], 0.9),
-              fill=C["pierre"], w=2.2),
-    ],
-
-    # Coffres — les types de ChestEngine.
     "coffre_commun":      coffre(C["bois"], C["pierre"]),
     "coffre_graines":     coffre(C["vert"], C["or"]),
     "coffre_recolte":     coffre(C["terre"], C["or"]),
@@ -457,13 +414,6 @@ CATALOGUE = {
         forme(polyligne([(38, 56), (58, 56), (58, 78), (38, 78)], 0.8),
               fill=C["bois"], w=1.8),
     ],
-    "lieu_serre": [
-        forme(polyligne([(20, 46), (48, 24), (76, 46), (76, 78), (20, 78)], 1.1),
-              fill=C["cristal"], w=2.4, alpha=0.9),
-        forme(polyligne([(48, 24), (48, 78)], 0.6, fermer=False), w=1.8),
-        forme(polyligne([(20, 52), (76, 52)], 0.6, fermer=False), w=1.8),
-        forme(polyligne([(20, 66), (76, 66)], 0.6, fermer=False), w=1.8),
-    ],
     "lieu_arbre": [
         forme(polyligne([(42, 80), (44, 54), (52, 54), (54, 80)], 0.9),
               fill=C["bois"], w=2.4),
@@ -474,18 +424,6 @@ CATALOGUE = {
     ],
 
     # Badges de progression.
-    "badge_graine":   [forme(polyligne([(48, 16), (78, 32), (78, 62), (48, 82),
-                                        (18, 62), (18, 32)], 1.0),
-                             fill=C["vert"], w=2.6,
-                             hach=(hachures(18, 16, 78, 82, 55, 8), C["vert_fonce"], 1.0))],
-    "badge_recolte":  [forme(polyligne([(48, 16), (78, 32), (78, 62), (48, 82),
-                                        (18, 62), (18, 32)], 1.0),
-                             fill=C["or"], w=2.6,
-                             hach=(hachures(18, 16, 78, 82, 55, 8), C["terre"], 1.0))],
-    "badge_maitre":   [forme(polyligne([(48, 16), (78, 32), (78, 62), (48, 82),
-                                        (18, 62), (18, 32)], 1.0),
-                             fill=C["violet"], w=2.6,
-                             hach=(hachures(18, 16, 78, 82, 55, 8), C["blanc"], 1.0))],
 }
 
 

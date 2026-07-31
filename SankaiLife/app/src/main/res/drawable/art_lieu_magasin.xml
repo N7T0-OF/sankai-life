@@ -11,22 +11,22 @@
         android:strokeWidth="2.4"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
-        android:pathData="M17.9,43.7L78.4,44.2L78.3,78.0L18.1,78.3Z" />
+        android:pathData="M18.7,44.2L78.2,44.8L78.6,77.2L18.8,78.2Z" />
     <path
         android:fillColor="#C4614B"
         android:strokeColor="#3B3025"
         android:strokeWidth="2.4"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
-        android:pathData="M14.8,43.6L82.4,43.5L75.6,29.8L20.5,29.3Z" />
+        android:pathData="M14.1,44.2L81.2,43.6L75.8,29.0L19.9,29.2Z" />
     <group>
-        <clip-path android:pathData="M14.8,43.6L82.4,43.5L75.6,29.8L20.5,29.3Z" />
+        <clip-path android:pathData="M14.1,44.2L81.2,43.6L75.8,29.0L19.9,29.2Z" />
         <path
             android:strokeColor="#F2EADB"
             android:strokeWidth="1.2"
             android:strokeAlpha="0.55"
             android:strokeLineCap="round"
-            android:pathData="M127.6,3.2L128.0,72.3M120.1,2.8L119.8,73.1M112.3,3.2L111.4,73.5M104.3,3.1L104.6,72.4M96.2,2.8L96.2,72.5M87.4,2.7L88.0,72.2M80.7,2.5L80.2,72.4M71.4,3.0L71.5,72.5M64.1,3.5L63.7,73.0M56.3,3.1L56.0,72.6M48.4,2.9L48.5,73.2M39.5,3.6L39.8,72.9M32.0,3.2L32.0,72.7M23.7,3.6L23.5,72.5M15.9,2.8L16.0,73.3M7.7,3.5L8.7,72.9M0.7,2.9L-0.6,73.4M-7.4,3.7L-7.9,72.5M-15.5,3.6L-15.5,73.6M-23.8,3.5L-23.7,73.6" />
+            android:pathData="M128.0,2.9L127.6,72.9M120.1,3.3L119.5,73.5M112.7,3.1L112.2,73.3M104.1,3.5L104.2,72.5M95.6,3.7L95.6,73.0M87.3,2.7L87.4,73.1M80.3,3.4L80.0,72.5M72.4,3.7L71.6,72.9M64.4,3.1L63.3,73.1M55.8,3.7L56.1,73.1M48.5,2.6L47.5,72.3M40.3,3.7L40.1,72.7M32.3,2.5L32.6,72.5M23.5,3.1L23.9,73.6M15.6,2.7L16.4,73.4M8.1,3.5L7.9,72.3M0.1,3.7L-0.5,72.5M-8.5,2.9L-8.1,72.5M-16.6,3.5L-15.6,73.0M-24.4,2.5L-24.2,72.7" />
     </group>
     <path
         android:fillColor="#9A6E43"
@@ -34,5 +34,5 @@
         android:strokeWidth="1.8"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
-        android:pathData="M38.1,56.3L57.3,56.1L58.4,77.4L37.8,77.9Z" />
+        android:pathData="M37.8,55.3L57.4,55.6L58.1,77.3L38.1,78.4Z" />
 </vector>

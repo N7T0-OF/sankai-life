@@ -399,6 +399,27 @@ class GardenViewModel(application: Application) : AndroidViewModel(application) 
         .map { DayNightEngine.phase() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DayNightEngine.phase())
 
+    /**
+     * Ambiance lumineuse, recalculée chaque minute.
+     *
+     * Une interpolation continue sur l'heure : à 19 h 30 on est exactement à
+     * mi-chemin entre le coucher de soleil et le crépuscule, sans qu'aucune
+     * règle ne le dise.
+     */
+    val ambiance: StateFlow<LightingEngine.Ambiance> = tick
+        .map { LightingEngine.ambiance() }
+        .stateIn(
+            viewModelScope, SharingStarted.WhileSubscribed(5000),
+            LightingEngine.ambiance()
+        )
+
+    val intensitePluie: StateFlow<LightingEngine.IntensitePluie> = meteo
+        .map { LightingEngine.intensitePluie(it) }
+        .stateIn(
+            viewModelScope, SharingStarted.WhileSubscribed(5000),
+            LightingEngine.IntensitePluie.AUCUNE
+        )
+
     val magasinOuvert: StateFlow<Boolean> = tick
         .map { DayNightEngine.magasinOuvert() }
         .stateIn(

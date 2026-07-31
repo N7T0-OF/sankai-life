@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
 <!-- Sankai Life — genere par art/generer-assets.py, ne pas editer a la main -->
-  <path d="M29.0,39.9L66.1,40.5L71.6,75.4L23.7,76.2Z" fill="#8A6A45" stroke="#3B3025" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-  <clipPath id="cressourcecompost0"><path d="M29.0,39.9L66.1,40.5L71.6,75.4L23.7,76.2Z"/></clipPath>
-  <g clip-path="url(#cressourcecompost0)"><path d="M99.4,1.0L124.2,56.1M91.9,4.0L117.4,58.6M85.6,7.3L111.8,61.7M80.1,10.6L104.4,64.7M73.5,12.6L98.5,67.1M66.4,16.0L92.1,70.1M60.8,18.8L86.0,72.8M53.9,22.1L79.1,76.7M48.0,25.4L72.9,79.3M42.2,27.5L66.7,81.6M35.6,30.8L60.0,85.7M29.3,34.4L54.2,88.7M22.7,36.7L47.8,90.9M15.9,40.1L41.0,93.4M9.9,42.1L35.5,97.4M3.2,46.1L28.9,99.9M-3.2,47.9L22.2,102.7M-9.8,52.2L15.7,105.4M-15.3,55.0L10.0,108.8M-21.7,57.4L3.0,111.8" stroke="#6B5B49" stroke-width="0.9" fill="none" stroke-opacity="0.55"/></g>
-  <path d="M34.3,39.2L37.4,27.8L57.9,28.5L62.1,40.2Z" fill="#8A6A45" stroke="#3B3025" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M34.4,38.2L61.8,38.1" fill="none" stroke="#3B3025" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M56.2,58.8L56.1,61.9L55.0,64.0L53.3,66.3L49.1,66.2L46.2,67.7L43.1,66.5L40.4,63.2L40.3,61.3L39.2,57.8L39.8,54.3L41.0,52.2L43.2,50.8L46.4,49.7L48.9,49.3L53.1,50.8L54.3,51.7L56.1,54.8Z" fill="#6E9B57" stroke="#3B3025" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M29.7,41.0L65.4,40.8L71.1,75.2L24.9,76.3Z" fill="#8A6A45" stroke="#3B3025" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <clipPath id="cressourcecompost0"><path d="M29.7,41.0L65.4,40.8L71.1,75.2L24.9,76.3Z"/></clipPath>
+  <g clip-path="url(#cressourcecompost0)"><path d="M99.0,1.0L124.3,55.0M92.4,4.2L117.5,59.1M86.1,7.6L110.8,61.7M80.3,10.6L104.5,64.0M73.1,12.9L99.1,67.2M66.7,15.5L93.0,70.3M60.6,19.6L85.7,73.6M54.1,22.1L79.3,76.1M47.7,25.1L72.7,78.6M41.7,28.4L67.0,81.8M35.2,30.2L60.7,84.9M29.6,34.0L54.2,87.4M22.5,37.4L48.0,91.3M16.5,39.6L42.2,94.3M10.2,43.3L35.1,97.3M3.3,45.0L28.4,99.7M-2.4,48.9L22.1,103.2M-8.6,51.5L15.7,105.8M-14.8,55.1L10.4,108.6M-21.8,57.9L4.2,111.7" stroke="#6B5B49" stroke-width="0.9" fill="none" stroke-opacity="0.55"/></g>
+  <path d="M34.7,40.8L37.4,28.6L58.6,28.7L62.2,40.4Z" fill="#8A6A45" stroke="#3B3025" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M33.7,38.6L62.5,38.4" fill="none" stroke="#3B3025" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M57.0,57.2L56.0,61.1L55.1,63.7L52.9,65.3L49.5,66.3L46.6,66.7L44.1,65.1L41.3,63.1L39.3,61.7L39.1,58.0L39.4,55.5L41.6,52.8L43.7,49.6L46.0,49.2L49.3,49.6L52.6,50.5L54.6,53.0L55.7,55.7Z" fill="#6E9B57" stroke="#3B3025" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
