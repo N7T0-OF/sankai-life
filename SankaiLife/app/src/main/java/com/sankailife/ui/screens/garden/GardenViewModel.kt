@@ -228,7 +228,7 @@ class GardenViewModel(application: Application) : AndroidViewModel(application) 
             OutilJardin.Arrosoir ->
                 // L'arrosage assisté n'échoue pas bruyamment sur un sol déjà
                 // humide : pendant un glissement, ce serait une alerte par case.
-                if (!repo.arroser(plotId, assiste = true) && (etat.value.eau < 1)) {
+                if (repo.arroserZone(plotId) == 0 && etat.value.eau < 1) {
                     afficher("Plus d'eau — révise des cartes pour en obtenir")
                     _outil.value = null
                 }
@@ -367,6 +367,34 @@ class GardenViewModel(application: Application) : AndroidViewModel(application) 
      * L'heure n'est relue qu'à chaque tick d'une minute. Un flux plus fin
      * ferait recomposer l'écran en continu pour un ciel qui bouge à peine.
      */
+    // --- Météo et arrosoir --------------------------------------------------
+
+    val meteo: StateFlow<WeatherEngine.Meteo> = tick
+        .map { WeatherEngine.meteoActuelle() }
+        .stateIn(
+            viewModelScope, SharingStarted.WhileSubscribed(5000),
+            WeatherEngine.meteoActuelle()
+        )
+
+    /** Prévision d'arrosage : combien de parcelles auront soif d'ici ce soir. */
+    val parcellesASoif: StateFlow<Int> = combine(repo.parcellesFlow, tick) { _, _ ->
+        runCatching { repo.parcellesASoifAvant(8f) }.getOrDefault(0)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    val niveauArrosoir: StateFlow<Int> = etat
+        .map { it.niveauArrosoir }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 1)
+
+    fun ameliorerArrosoir() = viewModelScope.launch {
+        val niveau = niveauArrosoir.value
+        val cout = ArrosoirEngine.coutAmelioration(niveau)
+        when {
+            cout == null -> afficher("Ton arrosoir est déjà au maximum")
+            repo.ameliorerArrosoir() -> afficher(ArrosoirEngine.libelle(niveau + 1))
+            else -> afficher("Il faut $cout 🪙")
+        }
+    }
+
     val phase: StateFlow<DayNightEngine.Phase> = tick
         .map { DayNightEngine.phase() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DayNightEngine.phase())

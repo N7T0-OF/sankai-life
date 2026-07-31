@@ -23,7 +23,7 @@ import com.sankailife.core.garden.data.MemoChallengeEntity
                 MemoChallengeEntity::class,
                 GardenCrateEntity::class, GardenInventoryEntity::class,
                 GardenMimoEntity::class],
-    version = 13,
+    version = 14,
     exportSchema = false
 )
 abstract class SankaiDatabase : RoomDatabase() {
@@ -299,11 +299,19 @@ abstract class SankaiDatabase : RoomDatabase() {
             }
         }
 
+        /** Niveau de l'arrosoir. Tout le monde repart du niveau 1. */
+        private val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE garden_state ADD COLUMN niveauArrosoir INTEGER NOT NULL DEFAULT 1")
+            }
+        }
+
         val MIGRATIONS = arrayOf(
             MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
             MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
             MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
-            MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13
+            MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
+            MIGRATION_13_14
         )
 
         fun getDatabase(context: Context): SankaiDatabase {

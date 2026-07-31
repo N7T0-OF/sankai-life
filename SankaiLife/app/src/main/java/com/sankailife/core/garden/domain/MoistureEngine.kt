@@ -79,13 +79,20 @@ object MoistureEngine {
         humidite: Float,
         minutes: Long,
         sol: SoilType,
-        partNocturne: Float = 0f
+        partNocturne: Float = 0f,
+        meteo: WeatherEngine.Meteo = WeatherEngine.Meteo.NUAGEUX
     ): Float {
         if (minutes <= 0) return humidite.coerceIn(0f, 1f)
 
+        val heures = minutes / 60f
         val facteurNuit = 1f - 0.5f * partNocturne.coerceIn(0f, 1f)
-        val perte = EVAPORATION_HORAIRE * (minutes / 60f) * retentionInverse(sol) * facteurNuit
-        return (humidite - perte).coerceIn(0f, 1f)
+        val perte = EVAPORATION_HORAIRE * heures * retentionInverse(sol) *
+            facteurNuit * meteo.facteurEvaporation
+
+        // La pluie s'ajoute après l'évaporation : elle mouille un sol qui
+        // séchait, elle ne l'empêche pas d'avoir séché.
+        val apport = meteo.pluieParHeure * heures
+        return (humidite - perte + apport).coerceIn(0f, 1f)
     }
 
     /** Plus la valeur est haute, plus le sol sèche vite. */

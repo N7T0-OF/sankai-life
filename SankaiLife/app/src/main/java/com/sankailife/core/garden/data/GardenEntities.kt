@@ -33,7 +33,10 @@ data class GardenStateEntity(
     val dernierElapsedRealtime: Long = 0L,
 
     /** Zone actuellement affichée, pour les extensions futures. */
-    val zoneActive: String = "central"
+    val zoneActive: String = "central",
+
+    /** Niveau de l'arrosoir : détermine le nombre de cases couvertes. */
+    val niveauArrosoir: Int = 1
 )
 
 /**

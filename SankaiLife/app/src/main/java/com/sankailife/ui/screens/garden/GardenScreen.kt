@@ -27,9 +27,11 @@ import androidx.compose.ui.unit.sp
 import com.sankailife.core.domain.engine.ArenaEngine
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import com.sankailife.core.garden.domain.ArrosoirEngine
 import com.sankailife.core.garden.domain.DayNightEngine
 import com.sankailife.core.garden.domain.ExpansionEngine
 import com.sankailife.core.garden.domain.MoistureEngine
+import com.sankailife.core.garden.domain.WeatherEngine
 import com.sankailife.core.garden.domain.MemoChallengeEngine
 import com.sankailife.core.garden.domain.MimoEngine
 import androidx.compose.foundation.verticalScroll
@@ -69,6 +71,9 @@ fun GardenScreen(viewModel: GardenViewModel, onBack: () -> Unit) {
     val valeurStock by viewModel.valeurStock.collectAsState()
     val phase by viewModel.phase.collectAsState()
     val magasinOuvert by viewModel.magasinOuvert.collectAsState()
+    val meteo by viewModel.meteo.collectAsState()
+    val aSoif by viewModel.parcellesASoif.collectAsState()
+    val niveauArrosoir by viewModel.niveauArrosoir.collectAsState()
 
     val mimos by viewModel.mimos.collectAsState()
     val offres by viewModel.offres.collectAsState()
@@ -104,6 +109,9 @@ fun GardenScreen(viewModel: GardenViewModel, onBack: () -> Unit) {
             ouvert = magasinOuvert,
             onVendre = { haptics.reward(); viewModel.vendre(it) },
             onVendreTout = { haptics.reward(); viewModel.vendreTout(); marcheOuvert = false },
+            niveauArrosoir = niveauArrosoir,
+            pieces = user.coins,
+            onAmeliorerArrosoir = { haptics.click(); viewModel.ameliorerArrosoir() },
             onFermer = { marcheOuvert = false }
         )
     }
@@ -159,8 +167,9 @@ fun GardenScreen(viewModel: GardenViewModel, onBack: () -> Unit) {
                         color = c.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold
                     )
                     Text(
-                        "${phase.emoji} ${phase.libelle}",
-                        color = c.textSecondary, fontSize = 11.sp
+                        "${phase.emoji} ${phase.libelle} • ${meteo.emoji} ${meteo.libelle}",
+                        color = if (meteo.pleut) AccentCyan else c.textSecondary,
+                        fontSize = 11.sp
                     )
                 }
                 Ressource("💧", "${etat.eau}", AccentCyan)
@@ -237,10 +246,18 @@ fun GardenScreen(viewModel: GardenViewModel, onBack: () -> Unit) {
                             .border(1.dp, c.border, RoundedCornerShape(14.dp))
                             .padding(12.dp)
                     ) {
+                        // Une seule phrase, la plus utile du moment. Empiler
+                        // météo, soif et rappel d'usage remplirait la place
+                        // sans aider à décider.
                         Text(
-                            if (etat.eau <= 0)
-                                "Plus d'eau. Révise des flash cards pour en obtenir."
-                            else "Touche une parcelle pour planter, arroser ou récolter.",
+                            when {
+                                etat.eau <= 0 ->
+                                    "Plus d'eau. Révise des flash cards pour en obtenir."
+                                meteo.pleut -> WeatherEngine.message(meteo)
+                                aSoif > 0 ->
+                                    "$aSoif parcelle(s) auront soif d'ici ce soir."
+                                else -> "Touche une parcelle pour planter, arroser ou récolter."
+                            },
                             color = c.textSecondary, fontSize = 12.sp
                         )
                     }
@@ -605,6 +622,9 @@ private fun FeuilleMarche(
     ouvert: Boolean,
     onVendre: (GardenViewModel.LigneStock) -> Unit,
     onVendreTout: () -> Unit,
+    niveauArrosoir: Int,
+    pieces: Int,
+    onAmeliorerArrosoir: () -> Unit,
     onFermer: () -> Unit
 ) {
     val c = MaterialTheme.sankaiColors
@@ -671,6 +691,57 @@ private fun FeuilleMarche(
                     onClick = onVendreTout,
                     enabled = ouvert,
                     modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            // L'atelier vit chez le marchand plutôt que dans une barre d'outils
+            // de plus : on y vient déjà pour vendre, et c'est là qu'on a les
+            // pièces en tête.
+            Spacer(Modifier.height(22.dp))
+            HorizontalDivider(color = c.border)
+            Spacer(Modifier.height(16.dp))
+
+            Text("ATELIER", color = AccentGold, fontSize = 10.sp,
+                fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+            Spacer(Modifier.height(10.dp))
+
+            val cout = ArrosoirEngine.coutAmelioration(niveauArrosoir)
+            Row(
+                Modifier.fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(c.surface2)
+                    .border(1.dp, c.border, RoundedCornerShape(12.dp))
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("💧", fontSize = 22.sp)
+                Spacer(Modifier.width(10.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(ArrosoirEngine.libelle(niveauArrosoir),
+                        color = c.textPrimary, fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold)
+                    Text(
+                        if (cout == null) "Niveau maximum atteint"
+                        else ArrosoirEngine.description(niveauArrosoir + 1),
+                        color = c.textSecondary, fontSize = 11.sp
+                    )
+                }
+            }
+
+            if (cout != null) {
+                Spacer(Modifier.height(8.dp))
+                SankaiButton(
+                    "Améliorer • $cout 🪙",
+                    onClick = onAmeliorerArrosoir,
+                    enabled = ouvert && pieces >= cout,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "Un meilleur arrosoir couvre plus de cases d'un geste. " +
+                        "Il ne crée pas d'eau : chaque parcelle arrosée coûte " +
+                        "toujours une unité.",
+                    color = c.textDisabled, fontSize = 10.sp
                 )
             }
         }

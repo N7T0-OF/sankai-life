@@ -392,12 +392,23 @@ class GardenRepository(
 
         val cultures = dao.culturesEnCours().associateBy { it.plotId }
 
+        // Une absence longue traverse plusieurs journées, donc plusieurs
+        // météos. Appliquer celle du retour à toute la période ferait pleuvoir
+        // rétroactivement sur des journées qui avaient été sèches.
+        val segments = WeatherEngine.segments(debut, maintenant)
+
         for (parcelle in dao.parcelles()) {
             if (parcelle.deblocage != ExpansionEngine.Deblocage.DEBLOQUEE.name) continue
 
             val sol = SoilType.parId(parcelle.solId)
             val avant = parcelle.humidite
-            val apres = MoistureEngine.apresEcoulement(avant, minutes, sol, partNocturne)
+            var courante = avant
+            for (segment in segments) {
+                courante = MoistureEngine.apresEcoulement(
+                    courante, segment.minutes, sol, partNocturne, segment.meteo
+                )
+            }
+            val apres = courante
             val moyenne = (avant + apres) / 2f
 
             dao.majHumidite(parcelle.id, apres, maintenant)
@@ -481,6 +492,55 @@ class GardenRepository(
 
     /** Ce qu'une récolte a produit, pour que l'écran puisse la nommer. */
     data class Recolte(val graine: Seed, val qualite: HarvestQuality)
+
+    /**
+     * Arrose la zone couverte par l'arrosoir depuis la case visée.
+     *
+     * L'arrosoir ne crée pas d'eau : chaque case arrosée coûte son unité. Un
+     * meilleur arrosoir fait gagner des gestes, pas des ressources — l'eau
+     * reste ce que l'apprentissage a produit, et c'est le seul lien entre le
+     * jeu et les révisions.
+     *
+     * @return le nombre de parcelles réellement arrosées.
+     */
+    suspend fun arroserZone(cle: Int, assiste: Boolean = true): Int {
+        val niveau = dao.etat()?.niveauArrosoir ?: 1
+        var faites = 0
+        for (cible in ArrosoirEngine.zone(niveau, cle)) {
+            if ((dao.etat()?.eau ?: 0) < 1) break
+            if (arroser(cible, assiste)) faites++
+        }
+        return faites
+    }
+
+    /** Améliore l'arrosoir d'un niveau. */
+    suspend fun ameliorerArrosoir(): Boolean {
+        val etat = dao.etat() ?: return false
+        val cout = ArrosoirEngine.coutAmelioration(etat.niveauArrosoir) ?: return false
+        if (!userRepo.spendCoins(cout)) return false
+        // L'état est relu : `spendCoins` n'y touche pas, mais rien ne garantit
+        // qu'un autre appel n'ait pas modifié l'eau entre-temps.
+        val courant = dao.etat() ?: return false
+        dao.sauverEtat(courant.copy(niveauArrosoir = courant.niveauArrosoir + 1))
+        return true
+    }
+
+    /**
+     * Combien de parcelles seront sèches dans [heures].
+     * Sert à annoncer le besoin au lieu de laisser découvrir un jardin fané.
+     */
+    suspend fun parcellesASoifAvant(heures: Float): Int {
+        val meteo = WeatherEngine.meteoActuelle()
+        return dao.parcelles().count { parcelle ->
+            if (parcelle.deblocage != ExpansionEngine.Deblocage.DEBLOQUEE.name) return@count false
+            val future = MoistureEngine.apresEcoulement(
+                parcelle.humidite, (heures * 60).toLong(),
+                SoilType.parId(parcelle.solId), meteo = meteo
+            )
+            val graine = dao.cultureSurParcelle(parcelle.id)?.let { seedParId(it.seedId) }
+            MoistureEngine.aBesoinDEau(future, graine)
+        }
+    }
 
     /**
      * Récolte une culture arrivée à maturité.
