@@ -27,7 +27,10 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.Brush
 import com.sankailife.core.data.db.entities.ChestEntity
 import com.sankailife.core.domain.engine.ArenaEngine
+import com.sankailife.core.garden.domain.CropStage
 import com.sankailife.core.garden.domain.DayNightEngine
+import com.sankailife.ui.art.ArtJardin
+import com.sankailife.ui.art.IconeArt
 import com.sankailife.ui.components.*
 import com.sankailife.ui.navigation.Screen
 import com.sankailife.ui.screens.arenas.CarteResumeArene
@@ -183,26 +186,34 @@ fun DioramaJardin(niveau: Int, onEntrer: () -> Unit) {
     ) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(arene.emoji, fontSize = 26.sp)
+                IconeArt(ArtJardin.arbre, taille = 30.dp)
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
                     Text("Ton jardin", color = c.textPrimary,
                         fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                    Text("${phase.emoji} ${phase.libelle}",
-                        color = c.textSecondary, fontSize = 11.sp)
+                    Text(phase.libelle, color = c.textSecondary, fontSize = 11.sp)
                 }
+                IconeArt(ArtJardin.phase(phase), taille = 26.dp)
             }
             Spacer(Modifier.height(10.dp))
             // Rangée décorative : une silhouette de terrain, pas une grille
             // fonctionnelle. Elle donne l'échelle sans rien promettre.
             Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                listOf("🌱", "🌿", "🪴", "🌻", "🌾").forEach {
+                listOf(
+                    CropStage.GERME, CropStage.POUSSE, CropStage.JEUNE,
+                    CropStage.MATURE, CropStage.MATURE
+                ).forEachIndexed { index, stade ->
                     Box(
-                        Modifier.weight(1f).height(34.dp)
+                        Modifier.weight(1f).height(38.dp)
                             .clip(RoundedCornerShape(8.dp))
                             .background(Color(0xFF3E2C1B)),
                         contentAlignment = Alignment.Center
-                    ) { Text(it, fontSize = 15.sp) }
+                    ) {
+                        IconeArt(
+                            ArtJardin.stade(stade, prete = index == 4),
+                            taille = 32.dp
+                        )
+                    }
                 }
             }
         }
@@ -347,11 +358,8 @@ fun ChestSlotUI(chest: ChestEntity?, onOpen: () -> Unit, timer: String, modifier
             Text("—", color = c.textDisabled, fontSize = 20.sp)
         } else {
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(6.dp)) {
-                Text(
-                    when(chest.type) { "RARE"->"🟦"; "EPIC"->"💜"; "DAILY"->"🎁"; "LEGENDARY"->"👑"; else->"📦" },
-                    fontSize = 26.sp
-                )
-                Spacer(Modifier.height(4.dp))
+                IconeArt(ArtJardin.coffre(chest.type), taille = 34.dp)
+                Spacer(Modifier.height(2.dp))
                 if (isReady) {
                     Text("OUVRIR", color = chestColor, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 } else {

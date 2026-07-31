@@ -115,14 +115,15 @@ object ArtJardin {
      * commun plutôt que de faire planter l'écran.
      */
     @DrawableRes
-    fun coffre(type: String, ouvert: Boolean = false): Int = when {
-        ouvert -> R.drawable.art_coffre_ouvert
-        type.equals("DAILY", true) -> R.drawable.art_coffre_graines
-        type.equals("SILVER", true) -> R.drawable.art_coffre_recolte
-        type.equals("GOLD", true) -> R.drawable.art_coffre_rare
-        type.equals("EPIC", true) -> R.drawable.art_coffre_epique
-        type.equals("LEGENDARY", true) -> R.drawable.art_coffre_legendaire
-        else -> R.drawable.art_coffre_commun
+    fun coffre(type: String, ouvert: Boolean = false): Int = when (type.uppercase()) {
+        "DAILY" -> R.drawable.art_coffre_graines
+        "RARE" -> R.drawable.art_coffre_rare
+        "EPIC" -> R.drawable.art_coffre_epique
+        "LEGENDARY" -> R.drawable.art_coffre_legendaire
+        "WEEKLY" -> R.drawable.art_coffre_recolte
+        // COMMON, et tout type écrit par une version future ou par une donnée
+        // abîmée : mieux vaut un coffre en bois qu'un écran qui plante.
+        else -> if (ouvert) R.drawable.art_coffre_ouvert else R.drawable.art_coffre_commun
     }
 
     @DrawableRes

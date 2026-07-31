@@ -39,6 +39,8 @@ import com.sankailife.core.garden.domain.OutilJardin
 import com.sankailife.core.garden.domain.PlotState
 import com.sankailife.core.garden.domain.Seed
 import com.sankailife.core.haptics.LocalHaptics
+import com.sankailife.ui.art.ArtJardin
+import com.sankailife.ui.art.IconeArt
 import com.sankailife.ui.components.SankaiButton
 import com.sankailife.ui.theme.*
 
@@ -172,11 +174,11 @@ fun GardenScreen(viewModel: GardenViewModel, onBack: () -> Unit) {
                         fontSize = 11.sp
                     )
                 }
-                Ressource("💧", "${etat.eau}", AccentCyan)
+                Ressource(ArtJardin.eau, "${etat.eau}", AccentCyan)
                 Spacer(Modifier.width(6.dp))
-                Ressource("🪙", "${user.coins}", CoinColor)
+                Ressource(ArtJardin.piece, "${user.coins}", CoinColor)
                 Spacer(Modifier.width(6.dp))
-                Ressource("🌱", "${etat.compost}", SuccessGreen)
+                Ressource(ArtJardin.compost, "${etat.compost}", SuccessGreen)
             }
 
             // La grille prend tout l'espace restant : c'est ce qui rend
@@ -328,7 +330,8 @@ private fun BandeauDepot(
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(if (ouvert) "🏪" else "🌙", fontSize = 18.sp)
+        if (ouvert) IconeArt(ArtJardin.magasin, taille = 24.dp)
+        else IconeArt(ArtJardin.phase(DayNightEngine.Phase.NUIT), taille = 24.dp)
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
             Text(
@@ -816,15 +819,35 @@ private fun BarreOutils(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             listOf(OutilJardin.Arrosoir, OutilJardin.Panier, OutilJardin.Pioche).forEach { o ->
-                BoutonOutil(o.emoji, o.libelle, outil == o) { onChoisir(o) }
+                BoutonOutil(ArtJardin.outil(o), o.libelle, outil == o) { onChoisir(o) }
             }
+            // Les graines gardent leur emoji d'espèce : il n'y a pas encore de
+            // dessin par plante, et un sachet générique pour cinq espèces
+            // rendrait la barre illisible.
             graines.forEach { graine ->
                 val g = OutilJardin.Graine(graine)
-                BoutonOutil(
-                    graine.emoji,
-                    "${graine.prixPieces} 🪙",
-                    outil is OutilJardin.Graine && outil.seed.id == graine.id
-                ) { onChoisir(g) }
+                val actif = outil is OutilJardin.Graine && outil.seed.id == graine.id
+                Column(
+                    Modifier
+                        .clip(RoundedCornerShape(13.dp))
+                        .background(if (actif) c.accent.copy(alpha = 0.18f) else c.surface2)
+                        .border(
+                            if (actif) 1.5.dp else 1.dp,
+                            if (actif) c.accent else c.border,
+                            RoundedCornerShape(13.dp)
+                        )
+                        .clickable { onChoisir(g) }
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(graine.emoji, fontSize = 19.sp)
+                    Text(
+                        "${graine.prixPieces} 🪙",
+                        color = if (actif) c.accent else c.textSecondary,
+                        fontSize = 9.sp,
+                        fontWeight = if (actif) FontWeight.Bold else FontWeight.Normal
+                    )
+                }
             }
         }
 
@@ -840,7 +863,7 @@ private fun BarreOutils(
 
 @Composable
 private fun BoutonOutil(
-    emoji: String,
+    @androidx.annotation.DrawableRes art: Int,
     libelle: String,
     actif: Boolean,
     onClic: () -> Unit
@@ -859,7 +882,7 @@ private fun BoutonOutil(
             .padding(horizontal = 12.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(emoji, fontSize = 19.sp)
+        IconeArt(art, taille = 26.dp)
         Text(
             libelle,
             color = if (actif) c.accent else c.textSecondary,
@@ -870,14 +893,18 @@ private fun BoutonOutil(
 }
 
 @Composable
-private fun Ressource(emoji: String, valeur: String, couleur: Color) {
+private fun Ressource(
+    @androidx.annotation.DrawableRes art: Int,
+    valeur: String,
+    couleur: Color
+) {
     val c = MaterialTheme.sankaiColors
     Row(
         Modifier.clip(RoundedCornerShape(10.dp)).background(c.surface2)
-            .padding(horizontal = 7.dp, vertical = 5.dp),
+            .padding(horizontal = 7.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(emoji, fontSize = 11.sp)
+        IconeArt(art, taille = 16.dp)
         Spacer(Modifier.width(3.dp))
         Text(valeur, color = couleur, fontSize = 11.sp, fontWeight = FontWeight.Bold)
     }
