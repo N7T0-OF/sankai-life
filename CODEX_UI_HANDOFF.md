@@ -119,3 +119,136 @@ ancien rapport de build.
 
 Le détail « avant/après/pourquoi/impact/fichiers/à vérifier » de chaque lot se
 trouve dans `UI_REFACTOR.md`.
+
+---
+
+# Reprise par Claude — 1er août 2026
+
+Le lot Codex ci-dessus a été **commité tel quel avant toute modification**
+(`10b818e`), sans rien retoucher : il n'existait qu'en un exemplaire dans le
+worktree. Vérifié avant commit — compilation d'accord, 274 tests, 0 échec.
+
+Ce qui suit s'ajoute par-dessus et ne touche qu'aux points que la passation
+déclarait « conservés » : la caméra et la météo.
+
+## Caméra du Jardin
+
+### Ancien système
+
+Trois `pointerInput` empilés dans `GrilleJardin.kt`, un énuméré `ModeGeste`, et
+la géométrie écrite à même le composable.
+
+### Cause du bug
+
+Quatre défauts distincts, dont un qui expliquait l'essentiel du tremblement :
+
+1. **`.pointerInput(outil, parcelles.size, zoom)`** — le détecteur de
+   glissement était **keyé sur `zoom`**. Or `onZoom()` modifie `zoom` à chaque
+   frame du pincement : Compose détruisait et recréait le détecteur **au milieu
+   du geste**, en boucle. C'est le défaut principal.
+2. **Caméra jamais bornée pendant le zoom.** Elle partait libre, puis un
+   `LaunchedEffect(pas, …)` la rattrapait une fois le geste fini — d'où le saut
+   de fin de geste.
+3. **Aucune zone morte** : seul `facteur == 1f` exactement était filtré. Deux
+   doigts posés ne sont jamais immobiles.
+4. **Aucune stabilisation** après le pincement : les doigts ne se lèvent jamais
+   ensemble, et le dernier encore posé partait aussitôt en glissement.
+
+### Nouveau système
+
+`core/garden/domain/CameraJardinEngine.kt` — flottants purs, aucune dépendance
+à Compose, donc testable sans téléphone.
+
+- `franchitSeuil()` — zone morte à **1,5 %**, rejette aussi `NaN`, l'infini et
+  les facteurs négatifs qu'un doigt apparaissant en cours de geste peut produire ;
+- `pincer()` — applique le **rapport réellement obtenu** et non le facteur
+  demandé (aux bornes du zoom, le facteur est écrêté), puis **borne dans le même
+  calcul**, avec le pas de la *nouvelle* échelle ;
+- `peutDeplacer()` — refuse le glissement pendant le pincement et **90 ms**
+  après.
+
+Le détecteur de glissement n'a plus `zoom` en clé ; l'échelle est relue par
+`rememberUpdatedState`, qui ne recrée rien.
+
+### Valeurs de zoom
+
+`ZOOM_MIN` / `ZOOM_MAX` inchangés (`GardenViewModel`). Seuil de zone morte
+`SEUIL_ZOOM = 0.015f`, stabilisation `STABILISATION_MS = 90L`.
+
+## Ombres de nuages
+
+### Cause
+
+L'**ordre de rendu était déjà correct** — nuages au-dessus du terrain, des
+plantes et des Mimos, sous la pluie et le HUD. Rien à corriger de ce côté, et le
+dire est plus utile que de prétendre l'avoir réparé.
+
+Le vrai défaut était dans les valeurs, et il était inversé : **l'orage (0,13)
+assombrissait moins qu'un ciel simplement nuageux (0,14)**. S'ajoutait la
+pondération des couches au dessin (0,72 / 0,46 / 0,31), qui ramenait un ciel
+nuageux à 0,10 réel — d'où des ombres qu'on devinait à peine.
+
+### Valeurs d'opacité des nuages
+
+| Météo | Avant | Après | Fourchette demandée |
+|---|---|---|---|
+| Nuageux | 0,14 | **0,18** | 0,14 – 0,22 |
+| Pluie | 0,16 | **0,23** | 0,18 – 0,28 |
+| Orage | 0,13 | **0,28** | 0,22 – 0,34 |
+
+Teinte déjà conforme (gris bleu `0xFF536878`), atténuation nocturne conservée.
+Un test verrouille l'ordre nuageux < pluie < orage.
+
+## Arbre Sankai
+
+Voir `ASSET_MIGRATION_REPORT.md` pour le détail. En résumé : ancien vectoriel
+**supprimé**, PNG réduit de 6,2 Mo à 204 ko, ancrage du tronc **mesuré**
+(0,519 / 0,934) et non supposé, système d'emprise 1/2/3/4 cases testé.
+
+## Fichiers modifiés
+
+- `core/garden/domain/CameraJardinEngine.kt` *(nouveau)*
+- `core/garden/domain/ArbreSankaiEngine.kt` *(nouveau)*
+- `core/garden/domain/WeatherVisualEngine.kt`
+- `ui/screens/garden/GrilleJardin.kt`
+- `ui/art/ArtJardin.kt`
+- `res/drawable-nodpi/tree_sankai.png` *(nouveau)*
+- `res/drawable/art_lieu_arbre.xml` *(supprimé)*
+- trois fichiers de tests
+
+## Tests effectués
+
+**308 tests, 0 échec** (274 hérités + 34 ajoutés), `lintRelease` sans erreur,
+`assembleRelease` d'accord — APK 4,99 Mo.
+
+Dont, pour la caméra : point sous les doigts conservé, zoom hors du centre,
+priorité du bornage au bord, non-glissement aux bornes du zoom, **vingt
+pincements enchaînés sans dérive**, terrain plus petit que l'écran, fenêtre de
+stabilisation.
+
+## Travail restant — et pourquoi il n'a pas été fait
+
+**L'Arbre Sankai n'est pas encore posé dans le Jardin.** Le moteur d'emprise est
+complet et testé, mais le poser demande une décision qui n'est pas technique :
+la grille n'a **aucune couche de décor**, et réserver les cases centrales
+**supprimerait des parcelles que le joueur possède déjà**. Faire disparaître des
+parcelles cultivées sans prévenir n'est pas un choix à prendre à sa place. Les
+options sont : le poser sur des cases neuves offertes avec l'arbre, l'autoriser
+uniquement en bordure, ou accepter la perte contre compensation.
+
+L'arbre est en revanche **déjà visible** : il remplace pour de bon l'icône du
+Hub, ancienne comprise.
+
+Non livré, et signalé comme tel plutôt que bâclé :
+
+- les pistes sonores — aucun fichier original ou sous licence n'est fourni, et
+  il n'est pas question de redistribuer de la musique tierce pour combler le
+  vide ;
+- les illustrations propres à chaque biome d'Arène ;
+- le pathfinding complet des ouvriers ;
+- les événements, visiteurs et graines rares pilotés par données ;
+- le vrai rendu 3D et le vrai flou d'arrière-plan.
+
+Le brouillard n'a pas été retouché : il avait été **retiré** sur demande
+explicite (« retire le fog au final »), et le point 8 du nouveau cahier des
+charges demandait de le refondre. Il n'a pas été réintroduit sans confirmation.

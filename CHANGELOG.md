@@ -1,5 +1,18 @@
 # Changelog Sankai Life
 
+## 1.44.0 - 1er aout 2026
+
+- **Refonte UI/UX** du Hub, des Arenes, du Jardin, de la Boutique et des Memos
+  (lot realise par Codex).
+- **Zoom du Jardin corrige.** Le detecteur de deplacement etait recree a chaque
+  frame du pincement : c'est de la que venait l'essentiel du tremblement. La vue
+  ne saute plus en fin de geste, un tremblement de doigt ne declenche plus de
+  zoom, et le point situe entre les doigts reste sous les doigts.
+- **Ombres de nuages visibles.** L'orage assombrissait moins qu'un ciel
+  nuageux : l'ordre etait inverse et les trois valeurs trop basses.
+- **Nouvel Arbre Sankai.** L'illustration remplace pour de bon l'ancien dessin
+  genere, qui a ete supprime. Son tronc est pose au sol au pixel pres.
+
 ## 1.43.0 — 1er août 2026
 
 - **Écouter les cartes.** Après avoir répondu, un bouton « Écouter » prononce

@@ -37,6 +37,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sankailife.core.garden.domain.CameraJardinEngine
 import com.sankailife.core.garden.domain.ExpansionEngine
 import com.sankailife.core.garden.domain.GardenWeatherVisualState
 import com.sankailife.core.garden.domain.GraphicsQuality
@@ -113,6 +114,13 @@ fun GrilleJardin(
     // Le geste en cours. Un seul à la fois, explicitement.
     var mode by remember { mutableStateOf(ModeGeste.REPOS) }
 
+    // Instant de la dernière variation de zoom.
+    //
+    // Les doigts ne se lèvent jamais ensemble : sans ce délai de grâce, le
+    // dernier doigt encore posé est aussitôt compris comme un glissement, et la
+    // vue part de côté juste après un zoom réussi.
+    var dernierZoomMs by remember { mutableStateOf(0L) }
+
     // Le maintien en cours, s'il y en a un.
     var maintien by remember { mutableStateOf<Maintien?>(null) }
     var progression by remember { mutableStateOf(0f) }
@@ -170,32 +178,34 @@ fun GrilleJardin(
     val largeurTotale = colonnes * pas
     val hauteurTotale = lignes * pas
 
+    // Toute la géométrie de caméra vit dans CameraJardinEngine.
+    //
+    // Le tremblement et le saut de fin de geste étaient des erreurs
+    // d'arithmétique, pas de rendu : les laisser ici ne permettait de les
+    // constater qu'à la main, sur un téléphone.
+
+    /** Cadre correspondant à une échelle donnée, pas compris. */
+    fun cadrePour(echelle: Float): CameraJardinEngine.Cadre {
+        val pasEchelle = with(densite) { (78.dp * echelle).toPx() }.let { floor(it) }
+        return CameraJardinEngine.Cadre(
+            largeurVue = tailleVue.x.toFloat(),
+            hauteurVue = tailleVue.y.toFloat(),
+            minX = minX, maxX = maxX, minY = minY, maxY = maxY,
+            pas = pasEchelle
+        )
+    }
+
     /** Position de l'origine absolue du monde qui centre le terrain connu. */
-    fun cameraCentree(): Offset = Offset(
-        (tailleVue.x - largeurTotale) / 2f - minX * pas,
-        (tailleVue.y - hauteurTotale) / 2f - minY * pas
-    )
+    fun cameraCentree(): Offset =
+        CameraJardinEngine.centree(cadrePour(zoomCourant.value))
+            .let { Offset(it.x, it.y) }
 
     /** Garde le terrain visible et centre les dimensions plus petites. */
-    fun bornerCamera(candidate: Offset): Offset {
-        val x = if (largeurTotale <= tailleVue.x) {
-            (tailleVue.x - largeurTotale) / 2f - minX * pas
-        } else {
-            candidate.x.coerceIn(
-                tailleVue.x - (maxX + 1) * pas,
-                -minX * pas
-            )
-        }
-        val y = if (hauteurTotale <= tailleVue.y) {
-            (tailleVue.y - hauteurTotale) / 2f - minY * pas
-        } else {
-            candidate.y.coerceIn(
-                tailleVue.y - (maxY + 1) * pas,
-                -minY * pas
-            )
-        }
-        return Offset(x, y)
-    }
+    fun bornerCamera(candidate: Offset): Offset =
+        CameraJardinEngine.borner(
+            CameraJardinEngine.Point(candidate.x, candidate.y),
+            cadrePour(zoomCourant.value)
+        ).let { Offset(it.x, it.y) }
 
     // La camera vit dans la grille pour garder les gestes fluides. Ce jeton
     // rend toutefois la commande de recentrage du ViewModel effective.
@@ -273,29 +283,55 @@ fun GrilleJardin(
             // ce qui supprime le saut de caméra juste après un zoom.
             .pointerInput(parcelles.size) {
                 detectTransformGestures(panZoomLock = true) { centroide, _, facteur, _ ->
-                    if (facteur == 1f) return@detectTransformGestures
+                    // Zone morte. Deux doigts posés ne sont jamais immobiles :
+                    // sans ce seuil, chaque micro-tremblement de la main
+                    // recalculait la caméra et le terrain vibrait alors que
+                    // personne n'avait voulu zoomer.
+                    if (!CameraJardinEngine.franchitSeuil(facteur)) {
+                        return@detectTransformGestures
+                    }
                     mode = ModeGeste.ZOOM
+                    dernierZoomMs = System.currentTimeMillis()
 
-                    val avant = zoomCourant.value
-                    val apres = (avant * facteur).coerceIn(
-                        GardenViewModel.ZOOM_MIN, GardenViewModel.ZOOM_MAX
+                    val resultat = CameraJardinEngine.pincer(
+                        camera = CameraJardinEngine.Point(camera.x, camera.y),
+                        centroide = CameraJardinEngine.Point(centroide.x, centroide.y),
+                        echelleAvant = zoomCourant.value,
+                        facteur = facteur,
+                        zoomMin = GardenViewModel.ZOOM_MIN,
+                        zoomMax = GardenViewModel.ZOOM_MAX,
+                        cadreApres = ::cadrePour
                     )
-                    // Le point du jardin sous les doigts doit rester sous les
-                    // doigts. On raisonne sur le rapport réel, pas sur le
-                    // facteur demandé : aux bornes du zoom, le facteur est
-                    // écrêté et l'appliquer tel quel décalerait la vue.
-                    val rapport = apres / avant
-                    camera = centroide - (centroide - camera) * rapport
-                    onZoom(apres)
+                    // La caméra rendue est déjà bornée, avec le pas de la
+                    // nouvelle échelle. C'était la cause du saut de fin de
+                    // geste : elle partait libre pendant le pincement et un
+                    // effet différé la ramenait d'un coup une fois les doigts
+                    // levés.
+                    camera = Offset(resultat.camera.x, resultat.camera.y)
+                    onZoom(resultat.echelle)
                 }
             }
-            .pointerInput(outil, parcelles.size, zoom) {
+            // Volontairement pas de `zoom` en clé.
+            //
+            // Il y était, et c'était le défaut le plus grave : `onZoom()`
+            // modifie `zoom` à chaque frame du pincement, ce qui détruisait et
+            // recréait ce détecteur au milieu du geste. Le glissement se
+            // trouvait annulé en boucle, et c'est de là que venait l'essentiel
+            // du tremblement. L'échelle est relue par `zoomCourant`, qui ne
+            // recrée rien.
+            .pointerInput(outil, parcelles.size) {
                 detectDragGestures(
                     onDragStart = { position ->
                         // Un glissement qui commence pendant ou juste après un
-                        // pincement est ignoré. Le mode ne redevient REPOS qu'à
-                        // la fin du geste précédent.
-                        if (mode == ModeGeste.ZOOM) return@detectDragGestures
+                        // pincement est ignoré : le mode reste ZOOM jusqu'à la
+                        // levée des doigts, puis la stabilisation prend le
+                        // relais le temps que la seconde main se retire.
+                        if (!CameraJardinEngine.peutDeplacer(
+                                enZoom = mode == ModeGeste.ZOOM,
+                                maintenantMs = System.currentTimeMillis(),
+                                dernierZoomMs = dernierZoomMs
+                            )
+                        ) return@detectDragGestures
                         if (outil == null) {
                             mode = ModeGeste.DEPLACEMENT
                             return@detectDragGestures
@@ -309,7 +345,12 @@ fun GrilleJardin(
                     onDragCancel = { maintien = null; mode = ModeGeste.REPOS }
                 ) { changement, delta ->
                     changement.consume()
-                    if (mode == ModeGeste.ZOOM) return@detectDragGestures
+                    if (!CameraJardinEngine.peutDeplacer(
+                            enZoom = mode == ModeGeste.ZOOM,
+                            maintenantMs = System.currentTimeMillis(),
+                            dernierZoomMs = dernierZoomMs
+                        )
+                    ) return@detectDragGestures
                     if (outil == null) {
                         // Déplacement borné : sortir des limites donnerait
                         // l'impression d'un jardin perdu dans le vide. Quand le

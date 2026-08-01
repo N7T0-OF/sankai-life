@@ -155,14 +155,22 @@ object ArtJardin {
         ExpansionEngine.Terrain.HUMIDE -> R.drawable.art_sol_humide
         ExpansionEngine.Terrain.SABLEUX -> R.drawable.art_sol_sable
         ExpansionEngine.Terrain.ROCHEUX -> R.drawable.art_parcelle_encombree
-        ExpansionEngine.Terrain.FORESTIER -> R.drawable.art_lieu_arbre
+        ExpansionEngine.Terrain.FORESTIER -> R.drawable.tree_sankai
         ExpansionEngine.Terrain.ABANDONNE -> R.drawable.art_parcelle_encombree
     }
 
     @DrawableRes val parcelleVide = R.drawable.art_parcelle_vide
     @DrawableRes val depot = R.drawable.art_lieu_depot
     @DrawableRes val magasin = R.drawable.art_lieu_magasin
-    @DrawableRes val arbre = R.drawable.art_lieu_arbre
+    /**
+     * L'Arbre Sankai. Illustration fournie par l'auteur du projet, elle
+     * remplace le vectoriel genere qui tenait lieu de brouillon.
+     *
+     * Son tronc n'est ni au centre ni au bas du fichier : voir
+     * [com.sankailife.core.garden.domain.ArbreSankaiEngine] pour l'ancrage
+     * mesure. Une image simplement centree flotte au-dessus du sol.
+     */
+    @DrawableRes val arbre = R.drawable.tree_sankai
     @DrawableRes val piece = R.drawable.currency_coin
     @DrawableRes val eau = R.drawable.art_ressource_eau
     @DrawableRes val compost = R.drawable.art_ressource_compost

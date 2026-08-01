@@ -179,3 +179,59 @@ elles se joignent bord à bord et forment un sol continu.
 - **une case verrouillée garde la texture du monde** — l'herbe — et reçoit un
   voile sombre plus un cadenas en couche indépendante. Le cadenas disparaît
   seul au déblocage, sans qu'il faille changer le sol.
+
+---
+
+## Arbre Sankai — 1er août 2026
+
+Remplacement réel, pas une superposition.
+
+| Ancien arbre | Nouveau PNG | Fichiers modifiés | État | Ancien supprimé |
+|---|---|---|---|---|
+| `drawable/art_lieu_arbre.xml` (vectoriel généré) | `drawable-nodpi/tree_sankai.png` | `ui/art/ArtJardin.kt` | Actif | **Oui** — fichier effacé |
+
+`grep art_lieu_arbre` ne renvoie plus rien dans `app/src/main/`.
+
+### Ce que la source ne permettait pas de faire tel quel
+
+`AA RESOURCES/Arbre.png` fait **2048 × 2048 et 6,2 Mo**, pour une application
+qui pesait 4,76 Mo entière. L'embarquer sans retouche aurait plus que doublé
+l'APK pour un seul dessin.
+
+Deux réductions, dans cet ordre :
+
+1. **Suppression du halo diffus.** Le fichier entoure la couronne d'un nuage
+   vert granuleux. Ce bruit ne se compresse pas et coûtait à lui seul près de
+   100 ko une fois réduit — pour un effet invisible à la taille d'affichage. Le
+   seuil d'alpha est *remappé* et non tranché, ce qui conserve l'antialiasing du
+   contour.
+2. **Réduction à 512 × 512.** Les parcelles du jeu sont dessinées à 256 px par
+   case ; un arbre de deux cases de côté est donc à sa résolution naturelle, ni
+   étiré ni suréchantillonné.
+
+Résultat : **204 ko**, soit **+218 ko sur l'APK** (4,76 → 4,99 Mo).
+
+### Ancrage mesuré, pas estimé
+
+Le tronc n'est **ni au centre ni au bas** du fichier :
+
+| Mesure | Valeur | Conséquence d'un centrage naïf |
+|---|---|---|
+| Centre horizontal du tronc | **0,519** | l'arbre glisse de 2 % vers la gauche |
+| Base du tronc | **0,934** | l'arbre lévite de 6,6 % de sa hauteur |
+
+Le feuillage est décentré vers la gauche : se fier à la boîte englobante donne
+une autre valeur, et fausse. Les deux constantes vivent dans
+`ArbreSankaiEngine` et un test échoue si quelqu'un les « arrondit » à 0,5 et
+1,0.
+
+### Emprise multi-cases
+
+`ArbreSankaiEngine` fournit les quatre tailles demandées (1, 2, 3 et 4 cases),
+avec centre de masse calculé — sur deux cases le tronc tombe sur leur frontière,
+pas sur celle de gauche ; sur quatre, à leur intersection.
+
+**Réserve honnête sur la variante 3 cases** : le feuillage est rond. Une emprise
+en L laisse une case libre que la couronne recouvre quand même, et un joueur
+peut y planter sans plus rien voir pousser. La forme est livrée parce qu'elle
+est demandée ; pour ce dessin, seules 1, 2 et 4 cases ne mentent pas.

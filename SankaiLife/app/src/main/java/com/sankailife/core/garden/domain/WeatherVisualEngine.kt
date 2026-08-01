@@ -69,10 +69,23 @@ object WeatherVisualEngine {
             GraphicsQuality.HIGH -> 3
         }
 
+        // Opacité des ombres de nuages.
+        //
+        // Les trois valeurs étaient trop basses, et surtout dans le désordre :
+        // l'orage (0,13) assombrissait moins qu'un simple ciel nuageux (0,14).
+        // Un orage plus lumineux qu'une journée grise se lit comme un défaut
+        // d'affichage.
+        //
+        // Elles paraissent faibles parce qu'elles ne sont pas ce qu'on voit :
+        // chaque couche est encore pondérée (0,72 / 0,46 / 0,31) au dessin. Le
+        // ciel nuageux plafonnait donc à 0,10 réel, d'où des ombres qu'on
+        // devinait à peine.
+        //
+        // L'ordre est désormais garanti par un test : nuageux < pluie < orage.
         val (density, baseOpacity, scale) = when (weather) {
-            WeatherEngine.Meteo.NUAGEUX -> Triple(0.58f, 0.14f, 1.25f)
-            WeatherEngine.Meteo.PLUIE -> Triple(0.78f, 0.16f, 1.12f)
-            WeatherEngine.Meteo.ORAGE -> Triple(0.92f, 0.13f, 1.04f)
+            WeatherEngine.Meteo.NUAGEUX -> Triple(0.58f, 0.18f, 1.25f)
+            WeatherEngine.Meteo.PLUIE -> Triple(0.78f, 0.23f, 1.12f)
+            WeatherEngine.Meteo.ORAGE -> Triple(0.92f, 0.28f, 1.04f)
             else -> Triple(0f, 0f, 1.25f)
         }
         val phaseMultiplier = when (phase) {

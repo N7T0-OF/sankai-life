@@ -30,6 +30,44 @@ class WeatherVisualEngineTest {
     }
 
     @Test
+    fun `plus le temps se degrade, plus l'ombre est marquee`() {
+        // Le défaut d'origine : l'orage (0,13) assombrissait moins qu'un ciel
+        // simplement nuageux (0,14). Un orage plus lumineux qu'une journée
+        // grise se lit comme un défaut d'affichage.
+        val nuageux = state(weather = WeatherEngine.Meteo.NUAGEUX).clouds.opacity
+        val pluie = state(weather = WeatherEngine.Meteo.PLUIE).clouds.opacity
+        val orage = state(weather = WeatherEngine.Meteo.ORAGE).clouds.opacity
+
+        assertTrue("pluie ($pluie) devrait depasser nuageux ($nuageux)", pluie > nuageux)
+        assertTrue("orage ($orage) devrait depasser pluie ($pluie)", orage > pluie)
+    }
+
+    @Test
+    fun `les ombres restent visibles sans noircir le jardin`() {
+        // Bornes hautes et basses. Trop faible, l'ombre ne se voit pas ; trop
+        // forte, elle passe pour une panne d'affichage.
+        for (meteo in listOf(
+            WeatherEngine.Meteo.NUAGEUX, WeatherEngine.Meteo.PLUIE, WeatherEngine.Meteo.ORAGE
+        )) {
+            val o = state(weather = meteo).clouds.opacity
+            assertTrue("$meteo : ombre trop faible ($o)", o >= 0.14f)
+            assertTrue("$meteo : ombre trop sombre ($o)", o <= 0.34f)
+        }
+    }
+
+    @Test
+    fun `la nuit attenue les ombres sans les supprimer`() {
+        // Une ombre portée en pleine nuit n'aurait pas de source ; l'annuler
+        // ferait toutefois disparaître le ciel couvert d'un coup.
+        val jour = state(weather = WeatherEngine.Meteo.ORAGE).clouds.opacity
+        val nuit = state(
+            weather = WeatherEngine.Meteo.ORAGE, phase = DayNightEngine.Phase.NUIT
+        ).clouds.opacity
+        assertTrue(nuit < jour)
+        assertTrue(nuit > 0f)
+    }
+
+    @Test
     fun `la qualite choisit exactement une deux ou trois couches`() {
         assertEquals(1, state(quality = GraphicsQuality.LOW).clouds.layers)
         assertEquals(2, state(quality = GraphicsQuality.NORMAL).clouds.layers)
