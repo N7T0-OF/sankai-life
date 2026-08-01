@@ -80,6 +80,7 @@ fun IslandScreen(
     val batiments by viewModel.batiments.collectAsState()
     val stock by viewModel.stock.collectAsState()
     val stockOuvert by viewModel.stockOuvert.collectAsState()
+    val eau by viewModel.eau.collectAsState()
     val couleurs = MaterialTheme.sankaiColors
     val snackbar = remember { SnackbarHostState() }
 
@@ -156,8 +157,8 @@ fun IslandScreen(
                     .padding(horizontal = 12.dp, vertical = 6.dp)
             ) {
                 Text(
-                    "🪙 ${utilisateur.coins}   •   ${parcelles.size}/" +
-                        "${IslandSlotEngine.plafond(utilisateur.level)} parcelles",
+                    "🪙 ${utilisateur.coins}   💧 $eau   " +
+                        "🌱 ${parcelles.size}/${IslandSlotEngine.plafond(utilisateur.level)}",
                     color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold
                 )
             }

@@ -66,6 +66,16 @@ class IslandViewModel(application: Application) : AndroidViewModel(application) 
     val batiments: StateFlow<List<IslandBuildingEntity>> = depot.observerBatiments()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    /**
+     * Eau restante.
+     *
+     * La même réserve que le Jardin : c'est l'eau du joueur, pas celle d'un
+     * lieu. Elle ne s'achète pas, elle se gagne en révisant — c'est ce qui
+     * relie l'île à l'apprentissage.
+     */
+    val eau: StateFlow<Int> = depot.observerEau()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
     /** Récoltes entreposées. */
     val stock: StateFlow<List<IslandStockEntity>> = depot.observerStock()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())

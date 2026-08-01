@@ -12,6 +12,26 @@ interface GardenDao {
 
     // --- État global ------------------------------------------------------
 
+    /**
+     * Retire de l'eau, uniquement s'il y en a assez.
+     *
+     * La condition vit dans le `WHERE` : c'est ce qui empeche deux arrosages
+     * concurrents de puiser deux fois dans la meme goutte. Renvoie 0 quand la
+     * reserve est insuffisante, sans rien modifier.
+     */
+    @Query(
+        "UPDATE garden_state SET eau = eau - :quantite " +
+            "WHERE id = 1 AND :quantite > 0 AND eau >= :quantite"
+    )
+    suspend fun depenserEauSiAssez(quantite: Int): Int
+
+    /** Rend de l'eau : sert au remboursement d'un arrosage qui n'a pas eu lieu. */
+    @Query("UPDATE garden_state SET eau = eau + :quantite WHERE id = 1 AND :quantite > 0")
+    suspend fun crediterEau(quantite: Int): Int
+
+    @Query("SELECT IFNULL((SELECT eau FROM garden_state WHERE id = 1), 0)")
+    fun observerEau(): Flow<Int>
+
     @Query("SELECT * FROM garden_state WHERE id = 1 LIMIT 1")
     fun observerEtat(): Flow<GardenStateEntity?>
 

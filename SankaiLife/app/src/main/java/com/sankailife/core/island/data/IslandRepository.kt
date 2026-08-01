@@ -193,6 +193,9 @@ class IslandRepository(
     // Cultures
     // ------------------------------------------------------------------
 
+    /** Coût d'un arrosage, en unités d'eau. */
+    private val EAU_PAR_ARROSAGE = 1
+
     /** Résultat d'une action agricole. */
     sealed interface Geste {
         data class Fait(val message: String) : Geste
@@ -295,14 +298,40 @@ class IslandRepository(
         Geste.Fait("${graine.nom} semée.")
     }
 
-    /** Arrose une culture. */
+    /**
+     * Arrose une culture, aux frais de la réserve d'eau.
+     *
+     * C'est ce qui relie l'île à l'apprentissage. L'eau ne s'achète pas : elle
+     * se gagne en révisant. Sans ce coût, l'île serait un jeu de ferme posé à
+     * côté d'une application d'apprentissage, et réviser n'y servirait à rien.
+     *
+     * La réserve est celle du Jardin, volontairement : c'est l'eau du joueur,
+     * pas celle d'un lieu. Deux réserves séparées obligeraient à choisir où
+     * réviser « rapporte », ce qui n'a aucun sens.
+     *
+     * Le débit passe avant l'arrosage et porte sa propre condition ; il est
+     * rendu si la parcelle s'avère vide, pour ne jamais facturer un geste qui
+     * n'a pas eu lieu.
+     */
     suspend fun arroser(x: Int, y: Int): Geste = agir(x, y) { parcelle ->
-        if (dao.arroserSiCulture(parcelle.cle, System.currentTimeMillis()) == 0) {
-            Geste.Refuse("Il n'y a rien à arroser.")
-        } else {
-            Geste.Fait("Parcelle arrosée.")
+        if (parcelle.graineId.isBlank()) {
+            return@agir Geste.Refuse("Il n'y a rien à arroser.")
         }
+        val jardin = db.gardenDao()
+        if (jardin.depenserEauSiAssez(EAU_PAR_ARROSAGE) == 0) {
+            return@agir Geste.Refuse("Plus d'eau. Révise des cartes pour en regagner.")
+        }
+        if (dao.arroserSiCulture(parcelle.cle, System.currentTimeMillis()) == 0) {
+            // La culture a disparu entre le controle et l'ecriture : on rend
+            // l'eau plutot que de facturer un arrosage qui n'a pas eu lieu.
+            jardin.crediterEau(EAU_PAR_ARROSAGE)
+            return@agir Geste.Refuse("Il n'y a rien à arroser.")
+        }
+        Geste.Fait("Parcelle arrosée. −$EAU_PAR_ARROSAGE 💧")
     }
+
+    /** Eau restante, pour l'affichage. */
+    fun observerEau() = db.gardenDao().observerEau()
 
     /**
      * Récolte une culture mûre et crédite le joueur.
