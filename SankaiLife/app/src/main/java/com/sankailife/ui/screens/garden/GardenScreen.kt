@@ -124,6 +124,7 @@ fun GardenScreen(
             compost = etat.compost,
             pieces = user.coins,
             niveauArrosoir = niveauArrosoir,
+            niveau = user.level,
             outilTenu = outil,
             onChoisir = { haptics.click(); viewModel.choisirOutil(it); sacOuvert = false },
             onOuvrirDepot = { sacOuvert = false; marcheOuvert = true },

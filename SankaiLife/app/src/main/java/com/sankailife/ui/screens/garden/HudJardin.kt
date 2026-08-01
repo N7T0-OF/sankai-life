@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sankailife.core.garden.domain.ArrosoirEngine
+import com.sankailife.core.domain.engine.DeblocageEngine
 import com.sankailife.core.garden.domain.ConseilEngine
 import com.sankailife.core.garden.domain.MimoMondeEngine
 import com.sankailife.core.garden.domain.OutilJardin
@@ -276,6 +277,7 @@ fun FeuilleSac(
     compost: Int,
     pieces: Int,
     niveauArrosoir: Int,
+    niveau: Int,
     outilTenu: OutilJardin?,
     onChoisir: (OutilJardin?) -> Unit,
     onOuvrirDepot: () -> Unit,
@@ -419,14 +421,35 @@ fun FeuilleSac(
             Spacer(Modifier.height(12.dp))
             HorizontalDivider(color = c.border)
             Spacer(Modifier.height(10.dp))
+
+            // Le marché et les Mimos s'ouvrent avec le niveau. Les boutons
+            // restent visibles et grisés : savoir qu'ils existent donne un
+            // cap, les cacher ferait croire que le jardin s'arrête là.
+            val verrouDepot = DeblocageEngine.verrou(
+                DeblocageEngine.Fonction.BOUTIQUE_JARDIN, niveau
+            )
+            val verrouMimos = DeblocageEngine.verrou(
+                DeblocageEngine.Fonction.MIMOS, niveau
+            )
+
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(Modifier.weight(1f)) {
-                    SankaiButton("🏪  Dépôt", onClick = onOuvrirDepot,
-                        modifier = Modifier.fillMaxWidth())
+                    SankaiButton(
+                        if (verrouDepot != null) "🔒  Niv. ${verrouDepot.fonction.niveauRequis}"
+                        else "🏪  Dépôt",
+                        onClick = onOuvrirDepot,
+                        enabled = verrouDepot == null,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
                 Box(Modifier.weight(1f)) {
-                    SankaiButton("🏡  Mimos", onClick = onOuvrirMimos,
-                        modifier = Modifier.fillMaxWidth())
+                    SankaiButton(
+                        if (verrouMimos != null) "🔒  Niv. ${verrouMimos.fonction.niveauRequis}"
+                        else "🏡  Mimos",
+                        onClick = onOuvrirMimos,
+                        enabled = verrouMimos == null,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
         }

@@ -17,6 +17,8 @@ import com.sankailife.core.data.db.entities.MemoProfileEntity
 import com.sankailife.core.domain.engine.EconomyEngine
 import com.sankailife.ui.components.*
 import com.sankailife.ui.navigation.Screen
+import com.sankailife.core.domain.engine.DeblocageEngine
+import com.sankailife.ui.navigation.FeuilleVerrou
 import com.sankailife.ui.theme.*
 
 @Composable
@@ -26,22 +28,41 @@ fun LifeScreen(viewModel: LifeViewModel, onNavigate: (String) -> Unit) {
     val objectifsEnCours by viewModel.objectivesPending.collectAsState()
     val c = MaterialTheme.sankaiColors
 
+    // Le verrou qu'on vient de toucher. Même fiche que dans la navigation :
+    // un cadenas doit s'expliquer de la même façon partout, sinon on croit
+    // avoir affaire à deux systèmes différents.
+    var verrouAffiche by remember { mutableStateOf<DeblocageEngine.Verrou?>(null) }
+    verrouAffiche?.let { v ->
+        FeuilleVerrou(verrou = v, onFermer = { verrouAffiche = null })
+    }
+
     Column(Modifier.fillMaxSize().background(c.background)) {
         ResourceBar(user.level, user.xp, user.xpNext, user.coins, user.gems)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
             Text("Mode Vie", color = c.textPrimary, fontSize = 24.sp, fontWeight = FontWeight.Bold)
             Text("Tes modules actifs", color = c.textSecondary, fontSize = 13.sp)
 
-            // Focus module
+            // Focus module.
+            //
+            // Verrouillé jusqu'au niveau 2 : c'est la première chose que les
+            // niveaux ouvrent, donc le premier moment où monter en niveau veut
+            // dire quelque chose.
             SectionTitle("Focus Timer")
+            val verrouFocus = DeblocageEngine.verrou(
+                DeblocageEngine.Fonction.FOCUS, user.level
+            )
             ModuleCard(
-                icon = "⏱️",
+                icon = if (verrouFocus != null) "🔒" else "⏱️",
                 title = "Focus Timer",
-                subtitle = "Sessions de concentration Pomodoro",
-                isActive = true,
+                subtitle = verrouFocus?.explication
+                    ?: "Sessions de concentration Pomodoro",
+                isActive = verrouFocus == null,
                 accentColor = AccentViolet,
                 onToggle = {},
-                onEdit = { onNavigate(Screen.Focus.route) }
+                onEdit = {
+                    if (verrouFocus != null) verrouAffiche = verrouFocus
+                    else onNavigate(Screen.Focus.route)
+                }
             )
 
             // Objectifs module
