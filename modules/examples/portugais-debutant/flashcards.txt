@@ -1,0 +1,20 @@
+Olá | Bonjour
+Bom dia | Bonjour (le matin)
+Boa tarde | Bonjour (l'après-midi)
+Boa noite | Bonsoir
+Obrigado | Merci (dit par un homme)
+Obrigada | Merci (dit par une femme)
+Por favor | S'il vous plaît
+Desculpe | Pardon
+Sim | Oui
+Não | Non
+Como está? | Comment allez-vous ?
+Tudo bem | Ça va
+Não entendo | Je ne comprends pas
+Fala francês? | Parlez-vous français ?
+Quanto custa? | Combien ça coûte ?
+Onde fica? | Où se trouve… ?
+Água | Eau
+Pão | Pain
+Hoje | Aujourd'hui
+Amanhã | Demain

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "raccourcis-blender",
+  "name": "Raccourcis Blender",
+  "version": "1.0.0",
+  "author": "Sankai Life",
+  "description": "Les raccourcis clavier a connaitre.",
+  "license": "CC BY 4.0",
+  "offline": true,
+  "flashcardsFile": "flashcards.txt"
+}

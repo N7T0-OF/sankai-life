@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Module d'apprentissage Sankai Life",
+  "description": "Un module contient UNIQUEMENT des donnees. Aucun champ n'est executable, et l'application n'appelle aucun interpreteur : c'est ce qui permet d'installer le module d'un inconnu sans risque.",
+  "type": "object",
+  "required": ["schemaVersion", "id", "name", "version"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{1,63}$",
+      "description": "Identifiant stable, en minuscules. Sert a reconnaitre une mise a jour du meme module."
+    },
+    "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "version": { "type": "string", "pattern": "^[0-9]+\.[0-9]+\.[0-9]+$" },
+    "language": { "type": "string", "description": "Langue enseignee, code ISO 639-1." },
+    "sourceLanguage": { "type": "string", "description": "Langue depuis laquelle on apprend." },
+    "author": { "type": "string", "maxLength": 80 },
+    "description": { "type": "string", "maxLength": 500 },
+    "license": { "type": "string", "maxLength": 80 },
+    "offline": { "type": "boolean", "const": true },
+    "flashcardsFile": { "type": "string", "pattern": "^[a-zA-Z0-9_.-]+$" }
+  }
+}

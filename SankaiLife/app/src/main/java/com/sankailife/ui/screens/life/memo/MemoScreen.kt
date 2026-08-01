@@ -107,6 +107,7 @@ fun MemoScreen(viewModel: MemoViewModel, onBack: () -> Unit, onEdit: (Long) -> U
                         viewModel.createNewProfile()
                     }, secondary = true, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp))
                 }
+                item { ImportModuleBouton() }
             }
             item { Spacer(Modifier.height(24.dp)) }
         }
