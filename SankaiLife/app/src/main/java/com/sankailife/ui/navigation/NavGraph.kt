@@ -129,7 +129,12 @@ fun SankaiNavGraph() {
                 val vm: MemoViewModel = viewModel(factory = MemoViewModel.factory(app))
                 MemoScreen(viewModel = vm,
                     onBack = { navController.popBackStack() },
-                    onEdit = { id -> navController.navigate(Screen.MemoEditor.createRoute(id)) })
+                    onEdit = { id -> navController.navigate(Screen.MemoEditor.createRoute(id)) },
+                    onReviserErreurs = {
+                        navController.navigate(
+                            Screen.Flashcards.createRoute(FlashcardsViewModel.PROFIL_ERREURS)
+                        )
+                    })
             }
             composable(Screen.MemoEditor.route) { backEntry ->
                 val profileId = backEntry.arguments?.getString("profileId")?.toLongOrNull() ?: -1L

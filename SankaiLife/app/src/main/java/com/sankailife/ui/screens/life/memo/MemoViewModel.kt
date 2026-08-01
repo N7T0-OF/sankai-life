@@ -7,6 +7,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.sankailife.SankaiApplication
 import com.sankailife.core.data.db.entities.MemoLineEntity
 import com.sankailife.core.data.db.entities.MemoProfileEntity
+import com.sankailife.core.domain.engine.ErreursEngine
 import com.sankailife.core.domain.engine.MemoEngine
 import com.sankailife.core.domain.engine.PartageMemoEngine
 import com.sankailife.core.data.repository.MemoActivationRepository
@@ -168,6 +169,24 @@ class MemoViewModel(application: Application) : AndroidViewModel(application) {
         }
         _currentLines.value = dao.getLinesOnce(pid)
     }
+
+    /**
+     * Combien de cartes résistent, tous modules confondus.
+     *
+     * Recalculé à la demande plutôt qu'observé : ce nombre ne bouge qu'après
+     * une session de révision, et un flux Room se réveillerait à chaque
+     * écriture de carte sans rien changer à l'affichage.
+     */
+    suspend fun nombreCartesDifficiles(): Int =
+        ErreursEngine.selectionner(
+            dao.cartesDifficiles(ErreursEngine.REVISIONS_MINIMUM).map {
+                ErreursEngine.Historique(
+                    id = it.id, texte = it.text, boite = it.box,
+                    revisions = it.reviewCount, reussites = it.successCount
+                )
+            },
+            limite = Int.MAX_VALUE
+        ).size
 
     /**
      * Texte partageable d'un module.

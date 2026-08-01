@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.sankailife.SankaiApplication
 import com.sankailife.core.data.repository.UserRepository
 import com.sankailife.core.domain.engine.ExerciceEngine
+import com.sankailife.core.domain.engine.ErreursEngine
 import com.sankailife.core.domain.engine.FlashcardEngine
 import com.sankailife.core.garden.data.GardenRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -66,12 +67,31 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
         cartesReintroduites.clear()
 
         viewModelScope.launch {
-            val profil = memoDao.getProfile(profileId)
-            val lignes = memoDao.getCartesDues(
-                profileId = profileId,
-                maintenant = System.currentTimeMillis(),
-                limite = FlashcardEngine.CARTES_PAR_SESSION
-            )
+            val modeErreurs = profileId == PROFIL_ERREURS
+
+            val lignes = if (modeErreurs) {
+                // Les cartes qui résistent, tous modules confondus. La sélection
+                // est faite par le moteur : la requête ne fait qu'écarter ce qui
+                // est manifestement hors sujet.
+                val difficiles = memoDao.cartesDifficiles(ErreursEngine.REVISIONS_MINIMUM)
+                val choisies = ErreursEngine.selectionner(
+                    difficiles.map {
+                        ErreursEngine.Historique(
+                            id = it.id, texte = it.text, boite = it.box,
+                            revisions = it.reviewCount, reussites = it.successCount
+                        )
+                    }
+                ).map { it.id }.toSet()
+                difficiles.filter { it.id in choisies }
+            } else {
+                memoDao.getCartesDues(
+                    profileId = profileId,
+                    maintenant = System.currentTimeMillis(),
+                    limite = FlashcardEngine.CARTES_PAR_SESSION
+                )
+            }
+
+            val profil = if (modeErreurs) null else memoDao.getProfile(profileId)
             val cartes = lignes.map { ligne ->
                 val (recto, verso) = FlashcardEngine.decouper(ligne.text)
                 FlashcardEngine.Carte(ligne.id, recto, verso, ligne.box)
@@ -79,17 +99,32 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
             // Les leurres viennent de tout le module, pas seulement des cartes
             // dues : une session courte n'offrirait pas assez de propositions
             // crédibles, et l'exercice se dégraderait en saisie systématique.
-            reservoirLeurres = memoDao.getLinesOnce(profileId).map { ligne ->
-                val (recto, verso) = FlashcardEngine.decouper(ligne.text)
-                FlashcardEngine.Carte(ligne.id, recto, verso, ligne.box)
+            reservoirLeurres = if (modeErreurs) {
+                // En mode erreurs les cartes viennent de plusieurs modules : les
+                // leurres aussi, sinon un QCM proposerait des réponses d'un
+                // autre sujet, reconnaissables d'un coup d'œil.
+                lignes.map { ligne ->
+                    val (recto, verso) = FlashcardEngine.decouper(ligne.text)
+                    FlashcardEngine.Carte(ligne.id, recto, verso, ligne.box)
+                }
+            } else {
+                memoDao.getLinesOnce(profileId).map { ligne ->
+                    val (recto, verso) = FlashcardEngine.decouper(ligne.text)
+                    FlashcardEngine.Carte(ligne.id, recto, verso, ligne.box)
+                }
             }
 
             _etat.value = EtatSession(
                 chargement = false,
-                nomModule = profil?.name.orEmpty().ifBlank { "Mémo" },
+                nomModule = if (modeErreurs) "Mes erreurs"
+                else profil?.name.orEmpty().ifBlank { "Mémo" },
                 cartes = cartes,
                 terminee = cartes.isEmpty(),
-                messageFin = if (cartes.isEmpty()) "Aucune carte à réviser pour l'instant" else "",
+                messageFin = when {
+                    cartes.isNotEmpty() -> ""
+                    modeErreurs -> "Aucune carte ne te résiste pour l'instant"
+                    else -> "Aucune carte à réviser pour l'instant"
+                },
                 exercice = cartes.firstOrNull()?.let { exercicePour(it) }
             )
         }
@@ -232,6 +267,16 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     companion object {
+        /**
+         * Identifiant sentinelle : « toutes mes erreurs », tous modules confondus.
+         *
+         * La route de navigation ne transporte qu'un identifiant de module. Une
+         * valeur négative ne peut jamais entrer en collision avec une clé Room,
+         * qui est auto-incrémentée à partir de 1 — c'est ce qui rend la
+         * sentinelle sûre plutôt qu'astucieuse.
+         */
+        const val PROFIL_ERREURS = -2L
+
         fun factory(app: SankaiApplication) = viewModelFactory {
             initializer { FlashcardsViewModel(app) }
         }

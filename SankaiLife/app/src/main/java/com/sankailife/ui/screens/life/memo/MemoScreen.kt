@@ -23,7 +23,12 @@ import com.sankailife.ui.components.SectionTitle
 import com.sankailife.ui.theme.*
 
 @Composable
-fun MemoScreen(viewModel: MemoViewModel, onBack: () -> Unit, onEdit: (Long) -> Unit) {
+fun MemoScreen(
+    viewModel: MemoViewModel,
+    onBack: () -> Unit,
+    onEdit: (Long) -> Unit,
+    onReviserErreurs: () -> Unit = {}
+) {
     val contexte = LocalContext.current
     val portee = rememberCoroutineScope()
     val profiles by viewModel.profiles.collectAsState()
@@ -117,6 +122,7 @@ fun MemoScreen(viewModel: MemoViewModel, onBack: () -> Unit, onEdit: (Long) -> U
                         viewModel.createNewProfile()
                     }, secondary = true, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp))
                 }
+                item { CarteMesErreurs(viewModel, onReviser = onReviserErreurs) }
                 item { ImportModuleBouton() }
             }
             item { Spacer(Modifier.height(24.dp)) }
@@ -124,6 +130,54 @@ fun MemoScreen(viewModel: MemoViewModel, onBack: () -> Unit, onEdit: (Long) -> U
       }
       SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(16.dp))
     }
+}
+
+/**
+ * Raccourci vers une session ciblée sur les cartes qui résistent.
+ *
+ * La carte disparaît entièrement quand rien ne résiste, plutôt que d'afficher
+ * « 0 » : un compteur à zéro sur un écran neuf se lit comme « tout est su »,
+ * alors qu'il signifie seulement « pas encore assez de révisions ».
+ */
+@Composable
+fun CarteMesErreurs(viewModel: MemoViewModel, onReviser: () -> Unit) {
+    val c = MaterialTheme.sankaiColors
+    var nombre by remember { mutableStateOf(0) }
+
+    // Recompté à chaque affichage de l'écran : on y revient juste après une
+    // session, et un nombre figé donnerait l'impression que réviser n'a servi
+    // à rien.
+    LaunchedEffect(Unit) { nombre = viewModel.nombreCartesDifficiles() }
+
+    val resume = com.sankailife.core.domain.engine.ErreursEngine.resume(nombre) ?: return
+
+    Box(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
+            .background(DangerRed.copy(0.08f))
+            .border(1.dp, DangerRed.copy(0.35f), RoundedCornerShape(16.dp))
+            .padding(14.dp)
+    ) {
+        Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("🎯", fontSize = 24.sp)
+                Spacer(Modifier.width(10.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("Mes erreurs", color = c.textPrimary,
+                        fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    Text(resume, color = c.textSecondary, fontSize = 12.sp)
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            Text(
+                "Une session courte, tous modules confondus, sur ce que tu rates le plus souvent.",
+                color = c.textSecondary, fontSize = 12.sp
+            )
+            Spacer(Modifier.height(10.dp))
+            SankaiButton("Réviser mes erreurs", onClick = onReviser,
+                modifier = Modifier.fillMaxWidth())
+        }
+    }
+    Spacer(Modifier.height(8.dp))
 }
 
 @Composable

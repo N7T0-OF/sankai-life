@@ -161,6 +161,22 @@ interface MemoDao {
     """)
     fun compterToutesCartesDues(maintenant: Long): Flow<Int>
 
+    /**
+     * Cartes assez révisées pour qu'un taux d'échec veuille dire quelque chose.
+     *
+     * Le tri fin — taux, priorité, taille de session — est fait par
+     * `ErreursEngine`. SQLite ne doit pas porter une règle pédagogique qu'on ne
+     * pourrait pas tester sans base ; la requête se contente d'écarter ce qui
+     * est manifestement hors sujet et de borner le volume.
+     */
+    @Query("""
+        SELECT * FROM memo_line
+        WHERE reviewCount >= :revisionsMinimum AND successCount < reviewCount
+        ORDER BY (reviewCount - successCount) DESC
+        LIMIT 200
+    """)
+    suspend fun cartesDifficiles(revisionsMinimum: Int): List<MemoLineEntity>
+
     @Query("""
         UPDATE memo_line
         SET box = :box,
