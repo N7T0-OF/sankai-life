@@ -327,10 +327,26 @@ fun GrilleJardin(
 
 
         parcelles.forEach { parcelle ->
+            // Bords à adoucir : ceux qui donnent sur autre chose que de la
+            // terre cultivée. C'est ce qui remplace un autotiling à seize
+            // variantes — les quatre textures fournies sont uniformes, donc un
+            // dégradé posé sur l'arête suffit à faire une lisière.
+            val bordsHerbe = if (!parcelle.cultivable) emptySet() else buildSet {
+                val x = parcelle.x
+                val y = parcelle.y
+                fun cultivee(cx: Int, cy: Int) =
+                    parId[ExpansionEngine.cle(cx, cy)]?.cultivable == true
+                if (!cultivee(x, y - 1)) add(Bord.HAUT)
+                if (!cultivee(x, y + 1)) add(Bord.BAS)
+                if (!cultivee(x - 1, y)) add(Bord.GAUCHE)
+                if (!cultivee(x + 1, y)) add(Bord.DROITE)
+            }
+
             CaseParcelle(
                 parcelle = parcelle,
                 surbrillance = parcelle.cultivable &&
                     outil?.applicableA(parcelle.etat) == true,
+                bordsHerbe = bordsHerbe,
                 modifier = placement(parcelle.x, parcelle.y)
             )
         }
@@ -446,6 +462,7 @@ private fun MimoDansLeJardin(
 private fun CaseParcelle(
     parcelle: GardenViewModel.ParcelleUi,
     surbrillance: Boolean,
+    bordsHerbe: Set<Bord> = emptySet(),
     modifier: Modifier = Modifier
 ) {
     val c = MaterialTheme.sankaiColors
@@ -499,6 +516,32 @@ private fun CaseParcelle(
             alpha = if (cultivable) 0.9f + 0.1f * melange else 1f,
             modifier = Modifier.fillMaxSize()
         )
+
+        // Lisière : l'herbe déborde sur les bords qui donnent sur du non-cultivé.
+        //
+        // Un autotiling classique demanderait seize variantes de texture. Les
+        // quatre images fournies sont uniformes, donc un simple dégradé posé
+        // sur l'arête produit le même effet : la terre ne s'arrête plus net,
+        // elle s'efface dans l'herbe.
+        if (bordsHerbe.isNotEmpty()) {
+            Canvas(Modifier.fillMaxSize()) {
+                val epaisseur = size.minDimension * 0.28f
+                bordsHerbe.forEach { bord ->
+                    val (debut, fin) = when (bord) {
+                        Bord.HAUT -> Offset(0f, 0f) to Offset(0f, epaisseur)
+                        Bord.BAS -> Offset(0f, size.height) to Offset(0f, size.height - epaisseur)
+                        Bord.GAUCHE -> Offset(0f, 0f) to Offset(epaisseur, 0f)
+                        Bord.DROITE -> Offset(size.width, 0f) to Offset(size.width - epaisseur, 0f)
+                    }
+                    drawRect(
+                        brush = Brush.linearGradient(
+                            listOf(COULEUR_HERBE.copy(alpha = 0.85f), Color.Transparent),
+                            start = debut, end = fin
+                        )
+                    )
+                }
+            }
+        }
 
         // Voile de désaturation sur ce qui n'est pas encore à nous. Assez
         // léger pour qu'on reconnaisse le terrain qu'on s'apprête à acheter.
@@ -578,6 +621,18 @@ private fun CaseParcelle(
  * terrain glissait pendant qu'on essayait de l'agrandir.
  */
 private enum class ModeGeste { REPOS, DEPLACEMENT, ZOOM, OUTIL }
+
+/** Les quatre côtés d'une case. */
+private enum class Bord { HAUT, BAS, GAUCHE, DROITE }
+
+/**
+ * Vert moyen de la texture d'herbe.
+ *
+ * Repris de l'illustration plutôt que choisi : un dégradé vers une couleur
+ * légèrement différente créerait un liseré visible, exactement l'inverse de
+ * l'effet recherché.
+ */
+private val COULEUR_HERBE = Color(0xFF3D7A34)
 
 /** Doigt posé sur une case, en attente de validation. */
 private data class Maintien(val cle: Int, val position: Offset)
