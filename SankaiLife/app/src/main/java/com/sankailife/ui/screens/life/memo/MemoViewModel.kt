@@ -130,11 +130,19 @@ class MemoViewModel(application: Application) : AndroidViewModel(application) {
         replanifier()
     }
 
-    fun createNewProfile() = viewModelScope.launch {
+    /**
+     * Crée un profil vide et signale son identifiant.
+     *
+     * L'appelant enchaîne sur l'éditeur : sans cela, appuyer sur « + » ajoute
+     * une ligne « Nouveau mémo » dans la liste et laisse l'utilisateur deviner
+     * qu'il doit la rouvrir pour la remplir.
+     */
+    fun createNewProfile(onCreated: (Long) -> Unit = {}) = viewModelScope.launch {
         val newId = dao.upsertProfile(MemoProfileEntity(name = "Nouveau mémo"))
         _currentProfileId.value = newId
         _profileName.value = "Nouveau mémo"
         _currentLines.value = emptyList()
+        onCreated(newId)
     }
 
     fun deleteProfile(profileId: Long) = viewModelScope.launch {

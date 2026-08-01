@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -50,14 +51,11 @@ fun MemoScreen(
             horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Filled.ArrowBack, null, tint = c.textSecondary)
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = c.textSecondary)
                 }
                 Text("Mémo Intelligent", color = c.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
             }
-            IconButton(onClick = {
-                viewModel.createNewProfile()
-                // navigate to editor after creation
-            }) {
+            IconButton(onClick = { viewModel.createNewProfile(onCreated = onEdit) }) {
                 Icon(Icons.Filled.Add, null, tint = c.accent)
             }
         }
@@ -89,7 +87,7 @@ fun MemoScreen(
                             Text("Aucun profil mémo", color = c.textSecondary, fontSize = 15.sp)
                             Spacer(Modifier.height(12.dp))
                             SankaiButton("+ Créer mon premier mémo", onClick = {
-                                viewModel.createNewProfile()
+                                viewModel.createNewProfile(onCreated = onEdit)
                             }, modifier = Modifier.fillMaxWidth())
                         }
                     }
@@ -119,7 +117,7 @@ fun MemoScreen(
                 }
                 item {
                     SankaiButton("+ Nouveau profil", onClick = {
-                        viewModel.createNewProfile()
+                        viewModel.createNewProfile(onCreated = onEdit)
                     }, secondary = true, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp))
                 }
                 item { CarteMesErreurs(viewModel, onReviser = onReviserErreurs) }

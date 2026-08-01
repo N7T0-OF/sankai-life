@@ -5,6 +5,8 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -67,7 +69,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit) {
     Column(Modifier.fillMaxSize().background(c.background)) {
         // TopBar
         Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, null, tint = c.textSecondary) }
+            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = c.textSecondary) }
             Text("Paramètres", color = c.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         }
 
@@ -440,7 +442,7 @@ fun SettingLink(url: String, label: String, emoji: String, enabled: Boolean) {
             )
         }
         Icon(
-            Icons.Filled.OpenInNew, null,
+            Icons.AutoMirrored.Filled.OpenInNew, null,
             tint = if (enabled) c.accent else c.textDisabled,
             modifier = Modifier.size(18.dp)
         )
