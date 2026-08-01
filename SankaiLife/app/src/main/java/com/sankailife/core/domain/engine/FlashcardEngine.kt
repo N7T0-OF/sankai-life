@@ -47,7 +47,13 @@ object FlashcardEngine {
         val id: Long,
         val recto: String,
         val verso: String?,
-        val box: Int
+        val box: Int,
+        /**
+         * Langue du recto, au format BCP-47. Vide si le module n'en déclare
+         * aucune — une session « Mes erreurs » mélange plusieurs modules, donc
+         * la langue se porte par carte et non par session.
+         */
+        val langue: String = ""
     ) {
         val aDeuxFaces: Boolean get() = verso != null
     }

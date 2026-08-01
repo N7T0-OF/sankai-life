@@ -92,10 +92,25 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
             }
 
             val profil = if (modeErreurs) null else memoDao.getProfile(profileId)
-            val cartes = lignes.map { ligne ->
-                val (recto, verso) = FlashcardEngine.decouper(ligne.text)
-                FlashcardEngine.Carte(ligne.id, recto, verso, ligne.box)
+
+            // La langue se porte par carte : une session « Mes erreurs »
+            // mélange les modules, et lire du portugais avec une voix
+            // française apprendrait une prononciation fausse.
+            val langues: Map<Long, String> = if (modeErreurs) {
+                memoDao.getAllProfilesOnce().associate { it.id to it.langue }
+            } else {
+                mapOf(profileId to profil?.langue.orEmpty())
             }
+            fun carte(ligne: com.sankailife.core.data.db.entities.MemoLineEntity):
+                FlashcardEngine.Carte {
+                val (recto, verso) = FlashcardEngine.decouper(ligne.text)
+                return FlashcardEngine.Carte(
+                    ligne.id, recto, verso, ligne.box,
+                    langue = langues[ligne.profileId].orEmpty()
+                )
+            }
+
+            val cartes = lignes.map(::carte)
             // Les leurres viennent de tout le module, pas seulement des cartes
             // dues : une session courte n'offrirait pas assez de propositions
             // crédibles, et l'exercice se dégraderait en saisie systématique.
@@ -103,15 +118,9 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
                 // En mode erreurs les cartes viennent de plusieurs modules : les
                 // leurres aussi, sinon un QCM proposerait des réponses d'un
                 // autre sujet, reconnaissables d'un coup d'œil.
-                lignes.map { ligne ->
-                    val (recto, verso) = FlashcardEngine.decouper(ligne.text)
-                    FlashcardEngine.Carte(ligne.id, recto, verso, ligne.box)
-                }
+                cartes
             } else {
-                memoDao.getLinesOnce(profileId).map { ligne ->
-                    val (recto, verso) = FlashcardEngine.decouper(ligne.text)
-                    FlashcardEngine.Carte(ligne.id, recto, verso, ligne.box)
-                }
+                memoDao.getLinesOnce(profileId).map(::carte)
             }
 
             _etat.value = EtatSession(

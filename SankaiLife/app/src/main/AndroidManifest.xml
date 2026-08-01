@@ -35,6 +35,18 @@
     <!-- Publicité personnalisée : optionnelle, l'app tourne sans. -->
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
 
+    <!--
+      Synthèse vocale. Depuis Android 11, une application ne voit les autres
+      paquets que si elle les déclare : sans ce bloc, TextToSpeech ne trouve
+      aucun moteur et l'écoute échoue en silence sur les appareils récents,
+      alors qu'elle fonctionne en test sur les anciens.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
+
     <application
         android:name=".SankaiApplication"
         android:allowBackup="true"

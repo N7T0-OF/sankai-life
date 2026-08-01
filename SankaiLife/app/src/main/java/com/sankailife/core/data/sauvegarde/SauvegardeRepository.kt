@@ -572,6 +572,7 @@ class SauvegardeRepository(
         put("randomEndMinute", randomEndMinute)
         put("activeDays", activeDays)
         put("nextTriggerAtMillis", nextTriggerAtMillis)
+        put("langue", langue)
     }
 
     private fun MemoLineEntity.enJson() = JSONObject().apply {
@@ -755,6 +756,10 @@ class SauvegardeRepository(
         randomEndHour = optInt("randomEndHour", base.randomEndHour),
         randomEndMinute = optInt("randomEndMinute", base.randomEndMinute),
         activeDays = optString("activeDays", base.activeDays),
+        // Absent des sauvegardes anterieures a la 1.43 : on retombe alors sur
+        // « aucune langue », qui n'active rien plutot que d'inventer une
+        // prononciation.
+        langue = optString("langue", base.langue),
         nextTriggerAtMillis = optLong("nextTriggerAtMillis", base.nextTriggerAtMillis)
     )
 

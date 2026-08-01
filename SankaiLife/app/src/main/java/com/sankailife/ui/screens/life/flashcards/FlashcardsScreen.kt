@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sankailife.core.audio.rememberVoix
 import com.sankailife.core.domain.engine.ExerciceEngine
 import com.sankailife.core.domain.engine.FlashcardEngine
 import androidx.compose.foundation.layout.fillMaxSize
@@ -50,6 +51,8 @@ fun FlashcardsScreen(
     val etat by viewModel.etat.collectAsState()
     val c = MaterialTheme.sankaiColors
     val haptics = LocalHaptics.current
+    // Voix du système, libérée automatiquement à la sortie de l'écran.
+    val voix = rememberVoix()
 
     LaunchedEffect(profileId) { viewModel.demarrer(profileId) }
 
@@ -242,6 +245,30 @@ fun FlashcardsScreen(
                                             fontSize = 20.sp, fontWeight = FontWeight.SemiBold,
                                             textAlign = TextAlign.Center
                                         )
+                                    }
+                                }
+
+                                // Écouter, une fois la réponse donnée.
+                                //
+                                // Pas avant : un exercice à trous masque une
+                                // partie de la phrase, et la faire prononcer
+                                // livrerait la réponse. Après correction, il
+                                // n'y a plus rien à protéger, et c'est le
+                                // moment où entendre la prononciation sert.
+                                //
+                                // Le bouton n'apparaît que si le téléphone a
+                                // vraiment une voix pour cette langue : un
+                                // bouton muet passerait pour une panne.
+                                val peutEcouter = remember(carte.langue, voix.pret) {
+                                    voix.disponiblePour(carte.langue)
+                                }
+                                if (etat.correction != null && peutEcouter) {
+                                    Spacer(Modifier.height(14.dp))
+                                    TextButton(onClick = {
+                                        haptics.click()
+                                        voix.dire(carte.recto, carte.langue)
+                                    }) {
+                                        Text("🔊  Écouter", color = AccentCyan, fontSize = 13.sp)
                                     }
                                 }
 

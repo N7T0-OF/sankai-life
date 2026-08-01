@@ -13,6 +13,20 @@ on:
 permissions:
   contents: write
 
+# Publier main et son tag envoie deux fois le même commit, à une seconde
+# d'intervalle. Les deux exécutions partagent alors le cache Gradle et
+# s'écrivent dessus : le 1er août 2026, le même commit a réussi côté tag et
+# échoué côté main, à l'étape des tests, sans qu'aucun test ne soit en cause
+# (suite rejouée trois fois en local, 267 tests verts à chaque passe).
+#
+# Le regroupement se fait sur le commit, pas sur la référence : c'est le
+# commit qui est identique, pas la branche. `cancel-in-progress: false` est
+# essentiel — annuler ferait tomber la publication de la Release, qui n'a lieu
+# que sur le tag.
+concurrency:
+  group: compilation-${{ github.sha }}
+  cancel-in-progress: false
+
 jobs:
 
   # =====================================================================

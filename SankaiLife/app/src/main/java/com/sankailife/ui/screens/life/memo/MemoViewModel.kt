@@ -71,6 +71,10 @@ class MemoViewModel(application: Application) : AndroidViewModel(application) {
     private val _randomEnd      = MutableStateFlow(21 * 60)
     val randomEnd: StateFlow<Int> = _randomEnd
 
+    /** Langue du contenu, BCP-47. Vide = aucune, donc pas d'écoute proposée. */
+    private val _langue         = MutableStateFlow("")
+    val langue: StateFlow<String> = _langue
+
     private val _newLineText    = MutableStateFlow("")
     val newLineText: StateFlow<String> = _newLineText
 
@@ -87,6 +91,7 @@ class MemoViewModel(application: Application) : AndroidViewModel(application) {
         _randomMode.value  = p?.randomMode ?: false
         _randomStart.value = ((p?.randomStartHour ?: 9) * 60) + (p?.randomStartMinute ?: 0)
         _randomEnd.value   = ((p?.randomEndHour ?: 21) * 60) + (p?.randomEndMinute ?: 0)
+        _langue.value      = p?.langue.orEmpty()
         _activeDays.value  = p?.activeDays
             ?.split(",")?.mapNotNull { it.trim().toIntOrNull() }?.filter { it in 1..7 }?.toSet()
             ?.ifEmpty { setOf(1, 2, 3, 4, 5, 6, 7) }
@@ -102,6 +107,7 @@ class MemoViewModel(application: Application) : AndroidViewModel(application) {
     fun setRandomMode(v: Boolean) { _randomMode.value = v }
     fun setRandomStart(minutes: Int) { _randomStart.value = ((minutes % 1440) + 1440) % 1440 }
     fun setRandomEnd(minutes: Int)   { _randomEnd.value = ((minutes % 1440) + 1440) % 1440 }
+    fun setLangue(code: String)      { _langue.value = code.trim() }
 
     fun toggleDay(jour: Int) {
         val actuels = _activeDays.value.toMutableSet()
@@ -132,7 +138,8 @@ class MemoViewModel(application: Application) : AndroidViewModel(application) {
             randomStartMinute = _randomStart.value % 60,
             randomEndHour = _randomEnd.value / 60,
             randomEndMinute = _randomEnd.value % 60,
-            activeDays = _activeDays.value.sorted().joinToString(",")
+            activeDays = _activeDays.value.sorted().joinToString(","),
+            langue = _langue.value
         )
 
         val newId = dao.upsertProfile(entity)

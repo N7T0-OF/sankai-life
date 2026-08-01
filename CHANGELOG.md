@@ -1,5 +1,22 @@
 # Changelog Sankai Life
 
+## 1.43.0 — 1er août 2026
+
+- **Écouter les cartes.** Après avoir répondu, un bouton « Écouter » prononce
+  la phrase dans sa langue. La prononciation est la moitié d'une langue, et un
+  mot portugais lu avec les règles du français ne s'entend dans aucune
+  conversation réelle.
+- L'écoute n'apparaît qu'après la réponse : sur un exercice à trous, faire
+  prononcer la phrase donnerait la solution.
+- Un module déclare maintenant sa langue. Les modules importés la reprennent de
+  leur manifeste ; pour un module créé à la main, un sélecteur a été ajouté à
+  l'éditeur. Sans langue déclarée, aucune écoute n'est proposée — faire lire du
+  portugais par une voix française apprendrait une prononciation fausse à
+  quelqu'un qui ne peut pas s'en apercevoir.
+- Le bouton reste absent si le téléphone n'a pas de voix pour cette langue.
+  L'application n'embarque aucune voix : elle emprunte celle du système.
+- La langue est conservée dans les sauvegardes de profil.
+
 ## 1.42.0 — 1er août 2026
 
 - Les modules d'apprentissage sont enfin installables depuis un téléphone :

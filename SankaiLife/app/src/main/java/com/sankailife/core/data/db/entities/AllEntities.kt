@@ -79,7 +79,16 @@ data class MemoProfileEntity(
     val activeDays: String = "1,2,3,4,5,6,7",
 
     /** Instant de la prochaine alarme programmée, pour l'écran de diagnostic. */
-    val nextTriggerAtMillis: Long = 0L
+    val nextTriggerAtMillis: Long = 0L,
+
+    /**
+     * Langue du contenu, au format BCP-47 (« pt », « pt-BR »).
+     *
+     * Vide par défaut, et c'est volontaire : un module créé à la main ne
+     * déclare rien, et deviner sa langue pour la faire prononcer ferait
+     * apprendre une prononciation fausse à qui ne peut pas la vérifier.
+     */
+    val langue: String = ""
 )
 
 @Entity(tableName = "memo_line")

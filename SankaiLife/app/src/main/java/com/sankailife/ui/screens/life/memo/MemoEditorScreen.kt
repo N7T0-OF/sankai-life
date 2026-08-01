@@ -4,6 +4,8 @@ import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -61,13 +63,14 @@ private fun ReglageValeur(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun MemoEditorScreen(profileId: Long, viewModel: MemoViewModel, onBack: () -> Unit) {
     val c = MaterialTheme.sankaiColors
     LaunchedEffect(profileId) { viewModel.loadProfile(profileId) }
 
     val name        by viewModel.profileName.collectAsState()
+    val langue      by viewModel.langue.collectAsState()
     val lines       by viewModel.currentLines.collectAsState()
     val freq        by viewModel.frequency.collectAsState()
     val hour        by viewModel.hour.collectAsState()
@@ -136,6 +139,41 @@ fun MemoEditorScreen(profileId: Long, viewModel: MemoViewModel, onBack: () -> Un
                     ),
                     shape = RoundedCornerShape(12.dp)
                 )
+            }
+
+            // Langue du contenu
+            item {
+                SectionTitle("Langue du contenu")
+                Text(
+                    "Sert à faire prononcer les cartes pendant la révision. " +
+                        "Laisse « Aucune » si le contenu n'est pas dans une " +
+                        "langue étrangère — une phrase lue avec la mauvaise " +
+                        "prononciation s'apprend de travers.",
+                    color = c.textSecondary, fontSize = 12.sp,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LANGUES.forEach { (code, libelle) ->
+                        val choisie = langue == code
+                        Box(
+                            Modifier.clip(RoundedCornerShape(10.dp))
+                                .background(if (choisie) c.accent.copy(0.18f) else c.surface2)
+                                .border(
+                                    1.dp,
+                                    if (choisie) c.accent else c.border,
+                                    RoundedCornerShape(10.dp)
+                                )
+                                .clickable { viewModel.setLangue(code) }
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                libelle,
+                                color = if (choisie) c.accent else c.textSecondary,
+                                fontSize = 13.sp
+                            )
+                        }
+                    }
+                }
             }
 
             // Paramètres notif
@@ -363,3 +401,22 @@ fun MemoEditorScreen(profileId: Long, viewModel: MemoViewModel, onBack: () -> Un
         }
     }
 }
+
+/**
+ * Langues proposees pour la prononciation.
+ *
+ * Liste courte et volontairement fermee : le champ sert a choisir une voix,
+ * pas a decrire un contenu. Une saisie libre en BCP-47 laisserait taper
+ * « portugais » ou « PT-br », qui ne correspondraient a aucune voix installee
+ * et donneraient un bouton muet.
+ */
+private val LANGUES = listOf(
+    "" to "Aucune",
+    "fr" to "Français",
+    "en" to "Anglais",
+    "es" to "Espagnol",
+    "pt" to "Portugais",
+    "de" to "Allemand",
+    "it" to "Italien",
+    "ja" to "Japonais"
+)

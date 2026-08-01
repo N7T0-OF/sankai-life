@@ -89,7 +89,10 @@ class ModuleRepository(
                     name = nom,
                     // Inactif à l'installation : un module importé ne doit pas se
                     // mettre à envoyer des notifications sans qu'on l'ait décidé.
-                    isActive = false
+                    isActive = false,
+                    // Reprise telle quelle du manifeste : c'est l'auteur du
+                    // module qui sait dans quelle langue son contenu se dit.
+                    langue = manifeste.langue
                 )
             )
 

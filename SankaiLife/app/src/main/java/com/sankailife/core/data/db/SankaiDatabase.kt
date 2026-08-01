@@ -23,7 +23,7 @@ import com.sankailife.core.garden.data.MemoChallengeEntity
                 MemoChallengeEntity::class,
                 GardenCrateEntity::class, GardenInventoryEntity::class,
                 GardenMimoEntity::class],
-    version = 14,
+    version = 15,
     exportSchema = false
 )
 abstract class SankaiDatabase : RoomDatabase() {
@@ -306,12 +306,25 @@ abstract class SankaiDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Langue déclarée d'un module mémo.
+         *
+         * Vide pour tout l'existant : aucun module déjà installé n'avait de
+         * quoi la renseigner, et lui en inventer une ferait prononcer du
+         * contenu dans une langue qui n'est pas la sienne.
+         */
+        private val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE memo_profile ADD COLUMN langue TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
         val MIGRATIONS = arrayOf(
             MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
             MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
             MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
             MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
-            MIGRATION_13_14
+            MIGRATION_13_14, MIGRATION_14_15
         )
 
         fun getDatabase(context: Context): SankaiDatabase {
