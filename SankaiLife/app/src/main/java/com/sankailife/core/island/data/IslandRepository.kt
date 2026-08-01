@@ -5,10 +5,12 @@ import com.sankailife.core.data.db.SankaiDatabase
 import com.sankailife.core.data.repository.UserRepository
 import com.sankailife.core.garden.domain.ALL_SEEDS
 import com.sankailife.core.garden.domain.CropGrowthEngine
+import com.sankailife.core.garden.domain.MimoEngine
 import com.sankailife.core.garden.domain.SoilType
 import com.sankailife.core.island.domain.IslandCodec
 import com.sankailife.core.island.domain.IslandBuildingEngine
 import com.sankailife.core.island.domain.IslandCultureEngine
+import com.sankailife.core.island.domain.IslandMimoEngine
 import com.sankailife.core.island.domain.IslandStockEngine
 import com.sankailife.core.island.domain.IslandGenerator
 import com.sankailife.core.island.domain.IslandSlotEngine
@@ -328,6 +330,97 @@ class IslandRepository(
             return@agir Geste.Refuse("Il n'y a rien à arroser.")
         }
         Geste.Fait("Parcelle arrosée. −$EAU_PAR_ARROSAGE 💧")
+    }
+
+    /**
+     * Applique le travail des Mimos depuis la dernière visite.
+     *
+     * Rien n'a tourné en arrière-plan : on calcule ce qu'ils auraient accompli
+     * et on l'applique d'un coup. L'écran ne doit donc jamais prétendre montrer
+     * un Mimo en train de courir — il montrerait un travail déjà fait.
+     *
+     * Appelée après [rafraichirCultures], jamais avant : un Mimo ne peut
+     * récolter que ce que la croissance a rendu mûr.
+     *
+     * @return un compte rendu à afficher, ou `null` s'ils n'ont rien fait.
+     */
+    suspend fun travailDesMimos(
+        maintenant: Long = System.currentTimeMillis()
+    ): String? = withContext(Dispatchers.IO) {
+        db.withTransaction {
+            val types = db.gardenDao().mimos()
+                .mapNotNull { MimoEngine.Type.parNom(it.type) }
+            if (types.isEmpty()) return@withTransaction null
+
+            val parcelles = dao.parcelles().filter { it.graineId.isNotBlank() }
+            if (parcelles.isEmpty()) return@withTransaction null
+
+            // Le temps de reference est celui de la parcelle la plus anciennement
+            // calculee : c'est la duree pendant laquelle personne n'a regarde.
+            val depuis = parcelles.minOf {
+                it.dernierCalculMillis.takeIf { v -> v > 0 } ?: it.planteeMillis
+            }
+            val minutes = ((maintenant - depuis) / 60_000L).coerceAtLeast(0L)
+
+            val etatJardin = db.gardenDao().etat()
+            val eau = etatJardin?.eau ?: 0
+
+            val vues = parcelles.map { parcelle ->
+                val graine = ALL_SEEDS.firstOrNull { it.id == parcelle.graineId }
+                val croissance = graine?.let {
+                    CropGrowthEngine.etat(
+                        seed = it,
+                        sol = SoilType.parId(parcelle.solId),
+                        minutesCumulees = parcelle.minutesCumulees,
+                        minutesDepuisArrosage =
+                            (maintenant - parcelle.dernierArrosageMillis) / 60_000L
+                    )
+                }
+                IslandMimoEngine.Vue(
+                    cle = parcelle.cle,
+                    aSoif = croissance?.besoinEau ?: false,
+                    prete = croissance?.prete ?: false
+                )
+            }
+
+            val plan = IslandMimoEngine.planifier(types, minutes, vues, eau)
+            if (plan.vide) return@withTransaction null
+
+            // Récolte d'abord : le plan a été construit dans cet ordre, et
+            // l'appliquer autrement arroserait des parcelles déjà vidées.
+            plan.aRecolter.forEach { cle ->
+                val parcelle = dao.parcelle(cle) ?: return@forEach
+                val graine = ALL_SEEDS.firstOrNull { it.id == parcelle.graineId }
+                    ?: return@forEach
+                if (dao.recolterSiPrete(cle) == 0) return@forEach
+
+                val batiments = dao.batiments().map { it.type }.toSet()
+                val range = IslandStockEngine.ranger(
+                    graine = graine, quantite = 1,
+                    stockActuel = dao.totalStock(),
+                    capacite = IslandStockEngine.capacite(
+                        aDepot = IslandBuildingEngine.Type.DEPOT.id in batiments
+                    ),
+                    aBoutique = IslandBuildingEngine.Type.BOUTIQUE.id in batiments
+                )
+                if (range.entrepose > 0) {
+                    dao.creerStockSiAbsent(IslandStockEntity(graine.id, 0))
+                    dao.ajouterAuStock(graine.id, range.entrepose)
+                }
+                if (range.pieces > 0) userRepo.addCoins(range.pieces)
+            }
+
+            plan.aArroser.forEach { cle ->
+                // Chaque arrosage porte sa propre condition de solde : le plan a
+                // borné le total, mais c'est le débit qui fait foi.
+                if (db.gardenDao().depenserEauSiAssez(EAU_PAR_ARROSAGE) == 0) return@forEach
+                if (dao.arroserSiCulture(cle, maintenant) == 0) {
+                    db.gardenDao().crediterEau(EAU_PAR_ARROSAGE)
+                }
+            }
+
+            IslandMimoEngine.resume(plan)
+        }
     }
 
     /** Eau restante, pour l'affichage. */

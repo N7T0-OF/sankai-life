@@ -108,7 +108,16 @@ class IslandViewModel(application: Application) : AndroidViewModel(application) 
      * plante n'avance pas, on recalcule où elle en serait.
      */
     fun rafraichir() {
-        viewModelScope.launch { runCatching { depot.rafraichirCultures() } }
+        viewModelScope.launch {
+            runCatching {
+                // La croissance d'abord : un Mimo ne peut récolter que ce que
+                // le temps a rendu mûr.
+                depot.rafraichirCultures()
+                depot.travailDesMimos()
+            }.onSuccess { compteRendu ->
+                if (!compteRendu.isNullOrBlank()) _message.value = compteRendu
+            }
+        }
     }
 
     private fun geste(bloc: suspend () -> IslandRepository.Geste) {
