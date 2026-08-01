@@ -172,7 +172,12 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit) {
                 }
             }
 
-            SectionTitle("Données")
+            // La sauvegarde vient AVANT la réinitialisation, délibérément :
+            // quelqu'un qui vient effacer sa progression doit voir d'abord
+            // qu'il peut la mettre à l'abri.
+            SectionTitle("Données et sauvegarde")
+            SettingsCard { SauvegardeSection() }
+
             SettingsCard {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically) {
