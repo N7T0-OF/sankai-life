@@ -92,7 +92,14 @@ fun IslandScreen(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     CircularProgressIndicator(color = couleurs.accent)
                     Spacer(Modifier.height(12.dp))
-                    Text("Création de ton île…", color = Color.White, fontSize = 14.sp)
+                    // Deux attentes differentes, deux phrases. Annoncer une
+                    // creation en rouvrant une ile qui existe deja ferait
+                    // craindre qu'elle soit en train d'etre remplacee.
+                    Text(
+                        if (etat.candidates.isEmpty()) "Chargement de ton île…"
+                        else "Création de ton île…",
+                        color = Color.White, fontSize = 14.sp
+                    )
                 }
             }
 
@@ -106,6 +113,15 @@ fun IslandScreen(
                     SankaiButton("Réessayer", onClick = { viewModel.charger() })
                 }
             }
+
+            etat.enAssistant -> AssistantIle(
+                etat = etat,
+                onChoisir = viewModel::choisirCandidate,
+                onNom = viewModel::definirNom,
+                onRelancer = viewModel::relancer,
+                onValider = viewModel::validerChoix,
+                modifier = Modifier.fillMaxSize()
+            )
 
             etat.ile != null -> CarteIle(
                 ile = etat.ile!!,
@@ -256,67 +272,7 @@ private fun CarteIle(
             }
     ) {
         Canvas(Modifier.fillMaxSize()) {
-            // Culling : seules les cases visibles sont dessinées. Sans lui, on
-            // peint mille rectangles à chaque frame, dont la plupart hors écran.
-            val premierX = floor((-camera.x) / pas).toInt().coerceIn(0, ile.largeur - 1)
-            val premierY = floor((-camera.y) / pas).toInt().coerceIn(0, ile.hauteur - 1)
-            val dernierX = (floor((size.width - camera.x) / pas).toInt() + 1)
-                .coerceIn(0, ile.largeur - 1)
-            val dernierY = (floor((size.height - camera.y) / pas).toInt() + 1)
-                .coerceIn(0, ile.hauteur - 1)
-
-            val taille = Size(pas + 1f, pas + 1f)
-
-            for (y in premierY..dernierY) {
-                for (x in premierX..dernierX) {
-                    val type = ile.type(x, y)
-                    drawRect(
-                        color = PaletteIle.couleurCase(type, x, y),
-                        topLeft = Offset(camera.x + x * pas, camera.y + y * pas),
-                        size = taille
-                    )
-
-                    // Parcelle achetée : un liseré clair, rien de plus. Un halo
-                    // permanent sur chaque case rendrait la carte illisible.
-                    if (parcelles.contains(y * ile.largeur + x)) {
-                        drawRect(
-                            color = Color.White.copy(alpha = 0.55f),
-                            topLeft = Offset(camera.x + x * pas + 1f, camera.y + y * pas + 1f),
-                            size = Size(pas - 2f, pas - 2f),
-                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
-                        )
-                    }
-                }
-            }
-
-            // Écume : une ligne claire là où l'eau touche la terre. C'est ce qui
-            // fait lire une côte plutôt qu'un changement de couleur.
-            for (y in premierY..dernierY) {
-                for (x in premierX..dernierX) {
-                    if (!ile.type(x, y).estEau) continue
-                    val borde = ile.type(x - 1, y).estTerre || ile.type(x + 1, y).estTerre ||
-                        ile.type(x, y - 1).estTerre || ile.type(x, y + 1).estTerre
-                    if (!borde) continue
-                    drawRect(
-                        color = Color.White.copy(alpha = 0.22f),
-                        topLeft = Offset(camera.x + x * pas, camera.y + y * pas),
-                        size = taille
-                    )
-                }
-            }
-
-            // Le ponton, seul repère dessiné par-dessus : c'est le point
-            // d'arrivée, il doit se retrouver d'un coup d'œil.
-            ile.ponton?.let { p ->
-                drawCircle(
-                    color = Color(0xFFFFD54F),
-                    radius = pas * 0.32f,
-                    center = Offset(
-                        camera.x + p.x * pas + pas / 2f,
-                        camera.y + p.y * pas + pas / 2f
-                    )
-                )
-            }
+            dessinerIle(ile = ile, camera = camera, pas = pas, parcelles = parcelles)
         }
     }
 }

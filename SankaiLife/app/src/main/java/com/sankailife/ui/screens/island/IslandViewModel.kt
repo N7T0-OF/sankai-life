@@ -17,7 +17,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class IslandViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -25,12 +27,28 @@ class IslandViewModel(application: Application) : AndroidViewModel(application) 
     private val userRepo = UserRepository(app.database)
     private val depot = IslandRepository(app.database, userRepo)
 
+    /** Une île proposée au choix, avec de quoi la comparer aux autres. */
+    data class Candidate(
+        val ile: IslandGenerator.Ile,
+        val cultivables: Int,
+        val boise: Int,
+        val rivieres: Int
+    )
+
     data class Etat(
         val chargement: Boolean = true,
         val ile: IslandGenerator.Ile? = null,
+        /** Non vide tant que le joueur n'a pas choisi son île. */
+        val candidates: List<Candidate> = emptyList(),
+        val choisie: Int = 0,
+        val nom: String = "",
+        /** Régénérations encore possibles avant de devoir choisir. */
+        val relancesRestantes: Int = RELANCES,
         /** Message d'erreur affichable, vide s'il n'y en a pas. */
         val erreur: String = ""
-    )
+    ) {
+        val enAssistant: Boolean get() = ile == null && candidates.isNotEmpty()
+    }
 
     private val _etat = MutableStateFlow(Etat())
     val etat: StateFlow<Etat> = _etat.asStateFlow()
@@ -61,21 +79,101 @@ class IslandViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     /**
-     * Charge l'île, en la générant si le joueur n'en a pas.
+     * Charge l'île du joueur, ou ouvre l'assistant s'il n'en a pas encore.
      *
-     * La génération est faite ici et non au démarrage de l'application : elle
-     * prend quelques dizaines de millisecondes et n'a aucune raison de retarder
-     * l'écran d'accueil de quelqu'un qui ne va pas au Jardin.
+     * Rien n'est fait au démarrage de l'application : générer trois îles n'a
+     * aucune raison de retarder l'accueil de quelqu'un qui ne va pas au Jardin.
      */
     fun charger() {
         viewModelScope.launch {
             _etat.value = Etat(chargement = true)
-            runCatching { depot.creerSiAbsente() }
-                .onSuccess { _etat.value = Etat(chargement = false, ile = it) }
+            runCatching { depot.ile() }
+                .onSuccess { existante ->
+                    if (existante != null) {
+                        _etat.value = Etat(chargement = false, ile = existante)
+                    } else {
+                        // Aucune île : on propose, on n'impose pas. Generer
+                        // d'office priverait le joueur du seul choix qui
+                        // engage toute sa partie.
+                        _etat.value = Etat(
+                            chargement = false,
+                            candidates = tirerCandidates(System.currentTimeMillis())
+                        )
+                    }
+                }
                 .onFailure {
                     _etat.value = Etat(
                         chargement = false,
                         erreur = it.message ?: "L'île n'a pas pu être chargée."
+                    )
+                }
+        }
+    }
+
+    /**
+     * Trois îles jouables, tirées de graines voisines.
+     *
+     * Générées en mémoire et jamais écrites : rien n'est engagé tant que le
+     * joueur n'a pas choisi. Les deux qu'il écarte disparaissent sans laisser
+     * de trace en base.
+     */
+    private suspend fun tirerCandidates(base: Long): List<Candidate> =
+        // Hors du thread principal : trois îles, chacune pouvant nécessiter
+        // plusieurs tirages avant d'être jouable. C'est court, mais pas assez
+        // pour être fait pendant que l'écran doit répondre au doigt.
+        withContext(Dispatchers.Default) {
+                (0 until 3).map { rang ->
+                val (ile, rapport) = IslandGenerator.genererJouable(base + rang * 7_919L)
+                Candidate(
+                    ile = ile,
+                    cultivables = rapport.cultivables,
+                    boise = ile.compter { it == IslandTileType.FOREST },
+                    rivieres = ile.compter { it == IslandTileType.RIVER }
+                )
+            }
+        }
+
+    fun choisirCandidate(index: Int) {
+        _etat.value = _etat.value.copy(choisie = index)
+    }
+
+    fun definirNom(nom: String) {
+        // Borné : un nom de deux cents caractères déborderait partout où il
+        // s'affiche, à commencer par les miniatures.
+        _etat.value = _etat.value.copy(nom = nom.take(24))
+    }
+
+    /**
+     * Retire trois nouvelles îles.
+     *
+     * Le nombre de relances est limité, et c'est délibéré : sans limite, on
+     * relance indéfiniment en cherchant l'île parfaite, et on ne commence
+     * jamais à jouer.
+     */
+    fun relancer() {
+        val etat = _etat.value
+        if (etat.relancesRestantes <= 0) return
+        viewModelScope.launch {
+            _etat.value = etat.copy(
+                candidates = tirerCandidates(System.currentTimeMillis()),
+                choisie = 0,
+                relancesRestantes = etat.relancesRestantes - 1
+            )
+        }
+    }
+
+    /** Fixe l'île définitivement et l'écrit en base. */
+    fun validerChoix() {
+        val etat = _etat.value
+        val candidate = etat.candidates.getOrNull(etat.choisie) ?: return
+        viewModelScope.launch {
+            _etat.value = etat.copy(chargement = true)
+            runCatching { depot.creerSiAbsente(candidate.ile.seed, etat.nom.trim()) }
+                .onSuccess { _etat.value = Etat(chargement = false, ile = it) }
+                .onFailure {
+                    _etat.value = etat.copy(
+                        chargement = false,
+                        erreur = it.message ?: "L'île n'a pas pu être créée."
                     )
                 }
         }
@@ -122,6 +220,9 @@ class IslandViewModel(application: Application) : AndroidViewModel(application) 
         } else null
 
     companion object {
+        /** Relances offertes avant de devoir choisir. */
+        const val RELANCES = 3
+
         // Zoom minimum : voir l'île entière sur un écran de téléphone.
         const val ZOOM_MIN = 0.5f
 
