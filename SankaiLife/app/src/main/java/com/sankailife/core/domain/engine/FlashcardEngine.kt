@@ -22,6 +22,41 @@ object FlashcardEngine {
     const val XP_SESSION_TERMINEE = 25
     const val PIECES_SESSION_TERMINEE = 15
 
+    /**
+     * Nature d'une session de cartes.
+     *
+     * Une révision d'échéances fait progresser l'économie. « Mes erreurs » est
+     * un entraînement libre : il reste rejouable pour apprendre, mais ne doit
+     * jamais devenir une source de récompenses entre deux sessions.
+     */
+    enum class ModeSession {
+        REVISION_ECHEANCES,
+        ENTRAINEMENT_ERREURS
+    }
+
+    data class RecompenseSession(
+        val xpParCarte: Int,
+        val xpFin: Int,
+        val piecesFin: Int,
+        val alimenteJardin: Boolean
+    )
+
+    /** Politique économique centrale, indépendante de l'écran. */
+    fun recompense(mode: ModeSession): RecompenseSession = when (mode) {
+        ModeSession.REVISION_ECHEANCES -> RecompenseSession(
+            xpParCarte = XP_PAR_CARTE,
+            xpFin = XP_SESSION_TERMINEE,
+            piecesFin = PIECES_SESSION_TERMINEE,
+            alimenteJardin = true
+        )
+        ModeSession.ENTRAINEMENT_ERREURS -> RecompenseSession(
+            xpParCarte = 0,
+            xpFin = 0,
+            piecesFin = 0,
+            alimenteJardin = false
+        )
+    }
+
     /** Séparateurs acceptés entre le recto et le verso d'une ligne. */
     private val SEPARATEURS = listOf(" :: ", "::", " — ", " | ", "|")
 
@@ -53,7 +88,9 @@ object FlashcardEngine {
          * aucune — une session « Mes erreurs » mélange plusieurs modules, donc
          * la langue se porte par carte et non par session.
          */
-        val langue: String = ""
+        val langue: String = "",
+        /** Module source, utilisé pour ne jamais fabriquer de leurres hors sujet. */
+        val moduleId: Long = 0L
     ) {
         val aDeuxFaces: Boolean get() = verso != null
     }

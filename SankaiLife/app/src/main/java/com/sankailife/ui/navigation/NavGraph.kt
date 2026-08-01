@@ -112,7 +112,11 @@ fun SankaiNavGraph() {
         NavHost(
             navController = navController,
             startDestination = Screen.Home.route,
-            modifier = Modifier.padding(padding)
+            modifier = if (currentRoute == Screen.Garden.route) {
+                Modifier
+            } else {
+                Modifier.padding(padding)
+            }
         ) {
             composable(Screen.Home.route) {
                 HomeScreen(viewModel = homeVm, onNavigate = { navController.navigate(it) })

@@ -1,5 +1,9 @@
 package com.sankailife.ui.screens.garden
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import com.sankailife.R
 import androidx.compose.ui.res.stringResource
@@ -12,6 +16,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -22,6 +27,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -43,6 +50,7 @@ import com.sankailife.core.garden.domain.Seed
 import com.sankailife.core.haptics.LocalHaptics
 import androidx.compose.ui.platform.LocalContext
 import com.sankailife.core.garden.domain.ConseilEngine
+import com.sankailife.core.garden.domain.GardenContextEngine
 import com.sankailife.core.garden.domain.WeatherVisualEngine
 import com.sankailife.ui.navigation.Screen
 import com.sankailife.ui.art.ArtJardin
@@ -52,6 +60,10 @@ import com.sankailife.ui.theme.*
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import java.time.LocalDate
@@ -101,6 +113,47 @@ fun GardenScreen(
     // d'accessibilité, pas une préférence esthétique : une pluie animée peut
     // provoquer des nausées.
     val context = LocalContext.current
+    val activity = remember(context) { context.findActivity() }
+
+    // Le Jardin est un mode de jeu isolé : les barres Android disparaissent
+    // réellement, puis retrouvent exactement leur visibilité et leur contraste
+    // précédents à la sortie. Le swipe système reste disponible pour les faire
+    // apparaître temporairement ; le bouton Retour du HUD n'est donc jamais la
+    // seule issue.
+    DisposableEffect(activity) {
+        val window = activity?.window
+        val decor = window?.decorView
+        val controller = if (window != null && decor != null) {
+            WindowCompat.getInsetsController(window, decor)
+        } else {
+            null
+        }
+        val insets = decor?.let(ViewCompat::getRootWindowInsets)
+        val statusWasVisible = insets?.isVisible(WindowInsetsCompat.Type.statusBars()) ?: true
+        val navigationWasVisible = insets?.isVisible(WindowInsetsCompat.Type.navigationBars()) ?: true
+        val previousBehavior = controller?.systemBarsBehavior
+        val previousLightStatus = controller?.isAppearanceLightStatusBars
+        val previousLightNavigation = controller?.isAppearanceLightNavigationBars
+
+        controller?.systemBarsBehavior =
+            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        controller?.hide(WindowInsetsCompat.Type.systemBars())
+
+        onDispose {
+            controller?.let { bars ->
+                if (statusWasVisible) bars.show(WindowInsetsCompat.Type.statusBars())
+                else bars.hide(WindowInsetsCompat.Type.statusBars())
+                if (navigationWasVisible) bars.show(WindowInsetsCompat.Type.navigationBars())
+                else bars.hide(WindowInsetsCompat.Type.navigationBars())
+                if (previousBehavior != null) bars.systemBarsBehavior = previousBehavior
+                if (previousLightStatus != null) bars.isAppearanceLightStatusBars = previousLightStatus
+                if (previousLightNavigation != null) {
+                    bars.isAppearanceLightNavigationBars = previousLightNavigation
+                }
+            }
+        }
+    }
+
     val animationsReduites = remember(context) {
         android.provider.Settings.Global.getFloat(
             context.contentResolver,
@@ -143,13 +196,30 @@ fun GardenScreen(
     val defi by viewModel.defi.collectAsState()
     val outil by viewModel.outil.collectAsState()
 
-    var selection by remember { mutableStateOf<GardenViewModel.ParcelleUi?>(null) }
+    var selectionContextuelleId by remember { mutableStateOf<Int?>(null) }
+    var ficheParcelleId by remember { mutableStateOf<Int?>(null) }
     var marcheOuvert by remember { mutableStateOf(false) }
     var mimosOuvert by remember { mutableStateOf(false) }
     var sacOuvert by remember { mutableStateOf(false) }
     var conseilOuvert by remember { mutableStateOf(false) }
     var mimoSelectionne by remember {
         mutableStateOf<com.sankailife.core.garden.domain.MimoMondeEngine.MimoUi?>(null)
+    }
+    val selectionContextuelle = parcelles.firstOrNull { it.id == selectionContextuelleId }
+    val ficheParcelle = parcelles.firstOrNull { it.id == ficheParcelleId }
+
+    LaunchedEffect(conseil) {
+        if (conseil == null) conseilOuvert = false
+    }
+
+    BackHandler(
+        enabled = !interfaceMasquee &&
+            (selectionContextuelle != null || conseilOuvert)
+    ) {
+        when {
+            selectionContextuelle != null -> selectionContextuelleId = null
+            conseilOuvert -> conseilOuvert = false
+        }
     }
 
     if (sacOuvert) {
@@ -166,24 +236,6 @@ fun GardenScreen(
             onOuvrirDepot = { sacOuvert = false; marcheOuvert = true },
             onOuvrirMimos = { sacOuvert = false; mimosOuvert = true },
             onFermer = { sacOuvert = false }
-        )
-    }
-
-    conseil?.takeIf { conseilOuvert }?.let { c1 ->
-        FeuilleConseil(
-            conseil = c1,
-            onAgir = {
-                conseilOuvert = false
-                when (c1.type) {
-                    ConseilEngine.Type.CARTES_DUES,
-                    ConseilEngine.Type.PLUS_D_EAU -> onNavigate(Screen.Memo.route)
-                    ConseilEngine.Type.DEPOT_PLEIN -> viewModel.rangerCaisses()
-                    ConseilEngine.Type.RECOLTE_PRETE -> viewModel.toutRecolter()
-                    ConseilEngine.Type.STOCK_VENDABLE -> marcheOuvert = true
-                    else -> Unit
-                }
-            },
-            onFermer = { conseilOuvert = false }
         )
     }
 
@@ -234,18 +286,22 @@ fun GardenScreen(
         )
     }
 
-    selection?.let { parcelle ->
+    ficheParcelle?.let { parcelle ->
         FeuilleParcelle(
             parcelle = parcelle,
             graines = viewModel.grainesDisponibles(user.level),
             pieces = user.coins,
             eau = etat.eau,
-            onNettoyer = { viewModel.nettoyer(parcelle.id); selection = null },
-            onPlanter = { g -> viewModel.planter(parcelle.id, g); selection = null },
-            onArroser = { viewModel.arroser(parcelle.id); selection = null },
-            onRecolter = { haptics.reward(); viewModel.recolter(parcelle.id); selection = null },
-            onDebloquer = { viewModel.debloquer(parcelle.id); selection = null },
-            onFermer = { selection = null }
+            onNettoyer = { viewModel.nettoyer(parcelle.id); ficheParcelleId = null },
+            onPlanter = { g -> viewModel.planter(parcelle.id, g); ficheParcelleId = null },
+            onArroser = { viewModel.arroser(parcelle.id); ficheParcelleId = null },
+            onRecolter = {
+                haptics.reward()
+                viewModel.recolter(parcelle.id)
+                ficheParcelleId = null
+            },
+            onDebloquer = { viewModel.debloquer(parcelle.id); ficheParcelleId = null },
+            onFermer = { ficheParcelleId = null }
         )
     }
 
@@ -260,119 +316,302 @@ fun GardenScreen(
         return
     }
 
+    val toggleDescription = stringResource(
+        if (interfaceMasquee) R.string.garden_toggle_ui_show
+        else R.string.garden_toggle_ui_hide
+    )
+    val weatherDescription = stringResource(R.string.garden_weather)
+
     Box(Modifier.fillMaxSize().background(c.background)) {
-        Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
+        // Le monde occupe réellement l'écran entier, jusque derrière les
+        // barres système. Seules les commandes respectent les zones sûres.
+        GrilleJardin(
+            parcelles = parcelles,
+            outil = outil,
+            zoom = zoom,
+            mimos = mimosMonde,
+            demandeRecentrage = demandeRecentrage,
+            ambiance = ambiance,
+            renduMeteo = renduMeteo,
+            qualiteGraphique = qualiteGraphique,
+            intensitePluie = intensitePluie,
+            animationsReduites = animationsReduites,
+            modifier = Modifier.fillMaxSize(),
+            onAppliquer = { viewModel.appliquerOutil(it) },
+            onOuvrirDetail = {
+                conseilOuvert = false
+                selectionContextuelleId = it.id
+            },
+            onZoom = { viewModel.majZoom(it) },
+            onOuvrirMimo = { mimoSelectionne = it },
+            onReposerOutil = { viewModel.choisirOutil(null) }
+        )
 
-            // Bandeau : retour et ressources du jardin.
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.garden_leave), tint = c.textPrimary)
-                }
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        ArenaEngine.areneActuelle(user.level).nom,
-                        color = c.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        "${phase.emoji} ${phase.libelle} • ${meteo.emoji} ${meteo.libelle}",
-                        color = if (meteo.pleut) AccentCyan else c.textSecondary,
-                        fontSize = 11.sp
-                    )
-                }
-                Ressource(ArtJardin.eau, "${etat.eau}", AccentCyan)
-                Spacer(Modifier.width(6.dp))
-                Ressource(ArtJardin.piece, "${user.coins}", CoinColor)
-                Spacer(Modifier.width(6.dp))
-                Ressource(ArtJardin.compost, "${etat.compost}", SuccessGreen)
-            }
-
-            // La grille prend tout l'espace restant : c'est ce qui rend
-            // l'écran non défilant sans hauteur codée en dur.
-            Box(
-                Modifier.weight(1f).fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp)
-            ) {
-                GrilleJardin(
-                    parcelles = parcelles,
-                    outil = outil,
-                    zoom = zoom,
-                    mimos = mimosMonde,
-                    demandeRecentrage = demandeRecentrage,
-                    ambiance = ambiance,
-                    renduMeteo = renduMeteo,
-                    qualiteGraphique = qualiteGraphique,
-                    intensitePluie = intensitePluie,
-                    animationsReduites = animationsReduites,
-                    modifier = Modifier.fillMaxSize(),
-                    onAppliquer = { viewModel.appliquerOutil(it) },
-                    onOuvrirDetail = { selection = it },
-                    onZoom = { viewModel.majZoom(it) },
-                    onOuvrirMimo = { mimoSelectionne = it },
-                    onReposerOutil = { viewModel.choisirOutil(null) }
+        Box(
+            Modifier.matchParentSize().windowInsetsPadding(WindowInsets.safeDrawing)
+        ) {
+            if (!interfaceMasquee) {
+                BoutonsFlottants(
+                    conseil = conseil,
+                    cartesDues = cartesDues,
+                    caisses = caisses.size,
+                    pretes = pretes,
+                    outilTenu = outil,
+                    modifier = Modifier.matchParentSize(),
+                    onSac = {
+                        haptics.click()
+                        selectionContextuelleId = null
+                        conseilOuvert = false
+                        sacOuvert = true
+                    },
+                    onConseil = {
+                        haptics.click()
+                        selectionContextuelleId = null
+                        conseilOuvert = !conseilOuvert
+                    },
+                    onApprendre = { onNavigate(Screen.Memo.route) },
+                    onRecentrer = { haptics.click(); viewModel.recentrer() },
+                    onAnnulerOutil = { viewModel.choisirOutil(null) },
+                    onActionPrincipale = {
+                        haptics.reward()
+                        if (caisses.isNotEmpty()) viewModel.rangerCaisses()
+                        else viewModel.toutRecolter()
+                    }
                 )
 
-                // Les boutons flottants, posés PAR-DESSUS le terrain plutôt
-                // qu'en dessous : ils ne coûtent aucune hauteur, et c'est tout
-                // l'intérêt de les avoir sortis de la barre fixe.
-                if (!interfaceMasquee) {
-                    BoutonsFlottants(
-                        conseil = conseil,
-                        cartesDues = cartesDues,
-                        caisses = caisses.size,
-                        pretes = pretes,
-                        outilTenu = outil,
-                        modifier = Modifier.matchParentSize(),
-                        onSac = { haptics.click(); sacOuvert = true },
-                        onConseil = { haptics.click(); conseilOuvert = true },
-                        onApprendre = { onNavigate(Screen.Memo.route) },
-                        onRecentrer = { haptics.click(); viewModel.recentrer() },
-                        onAnnulerOutil = { viewModel.choisirOutil(null) },
-                        onActionPrincipale = {
-                            haptics.reward()
-                            if (caisses.isNotEmpty()) viewModel.rangerCaisses()
-                            else viewModel.toutRecolter()
-                        }
+                selectionContextuelle?.let { parcelle ->
+                    val action = GardenContextEngine.action(
+                        cultivable = parcelle.cultivable,
+                        ready = parcelle.prete,
+                        needsWater = parcelle.besoinEau,
+                        waterAvailable = etat.eau > 0
+                    )
+                    BulleParcelleContextuelle(
+                        parcelle = parcelle,
+                        action = action,
+                        modifier = Modifier.align(Alignment.BottomCenter)
+                            .padding(horizontal = 12.dp)
+                            .padding(bottom = 118.dp),
+                        onAction = {
+                            when (action) {
+                                GardenContextEngine.Action.HARVEST -> {
+                                    haptics.reward()
+                                    viewModel.recolter(parcelle.id)
+                                }
+                                GardenContextEngine.Action.WATER -> {
+                                    haptics.click()
+                                    viewModel.arroser(parcelle.id)
+                                }
+                                GardenContextEngine.Action.DETAILS -> {
+                                    ficheParcelleId = parcelle.id
+                                }
+                            }
+                            selectionContextuelleId = null
+                        },
+                        onFermer = { selectionContextuelleId = null }
                     )
                 }
 
-                // Sortir du mode « vue jardin » doit rester possible sans
-                // deviner : un bouton discret, mais toujours présent.
+                conseil?.takeIf { conseilOuvert }?.let { conseilActuel ->
+                    MiniConseil(
+                        conseil = conseilActuel,
+                        cartesDues = cartesDues,
+                        pretes = pretes,
+                        parcellesSeches = aSoif,
+                        valeurStock = valeurStock,
+                        modifier = Modifier.align(Alignment.BottomStart)
+                            .padding(start = 12.dp, end = 66.dp, bottom = 126.dp),
+                        onAgir = {
+                            conseilOuvert = false
+                            when (conseilActuel.type) {
+                                ConseilEngine.Type.CARTES_DUES,
+                                ConseilEngine.Type.PLUS_D_EAU -> onNavigate(Screen.Memo.route)
+                                ConseilEngine.Type.DEPOT_PLEIN -> viewModel.rangerCaisses()
+                                ConseilEngine.Type.RECOLTE_PRETE -> viewModel.toutRecolter()
+                                ConseilEngine.Type.STOCK_VENDABLE -> marcheOuvert = true
+                                else -> Unit
+                            }
+                        },
+                        onFermer = { conseilOuvert = false }
+                    )
+                }
+            }
+
+            // Retour et bascule d'interface restent disponibles même dans la
+            // vue épurée : on ne peut jamais se retrouver prisonnier du jardin.
+            Row(
+                Modifier.align(Alignment.TopCenter).fillMaxWidth()
+                    .padding(horizontal = 6.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 IconButton(
-                    onClick = { viewModel.basculerInterface() },
-                    modifier = Modifier.align(Alignment.TopEnd).padding(4.dp)
+                    onClick = onBack,
+                    modifier = Modifier.clip(CircleShape)
+                        .background(Color(0xFF0C1611).copy(alpha = 0.78f))
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        stringResource(R.string.garden_leave),
+                        tint = c.textPrimary
+                    )
+                }
+                Spacer(Modifier.weight(1f))
+                if (!interfaceMasquee) {
+                    Row(
+                        Modifier.clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFF0C1611).copy(alpha = 0.78f))
+                            .semantics { contentDescription = weatherDescription }
+                            .padding(horizontal = 8.dp, vertical = 5.dp)
+                    ) {
+                        Text("${phase.emoji} ${meteo.emoji}", fontSize = 13.sp)
+                    }
+                    Spacer(Modifier.width(6.dp))
+                    Ressource(ArtJardin.eau, "${etat.eau}", AccentCyan)
+                    Spacer(Modifier.width(6.dp))
+                    Ressource(ArtJardin.piece, "${user.coins}", CoinColor)
+                    Spacer(Modifier.width(6.dp))
+                }
+                IconButton(
+                    onClick = {
+                        if (!interfaceMasquee) {
+                            selectionContextuelleId = null
+                            conseilOuvert = false
+                        }
+                        viewModel.basculerInterface()
+                    },
+                    modifier = Modifier.clip(CircleShape)
+                        .background(Color(0xFF0C1611).copy(alpha = 0.78f))
+                        .semantics { contentDescription = toggleDescription }
+                ) {
+                    Text(if (interfaceMasquee) "👁" else "🌿", fontSize = 15.sp)
+                }
+            }
+
+            AnimatedVisibility(
+                visible = message.isNotBlank(),
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 90.dp)
+            ) {
+                Box(
+                    Modifier.padding(horizontal = 24.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(c.surface3)
+                        .border(1.dp, c.accent, RoundedCornerShape(14.dp))
+                        .padding(horizontal = 18.dp, vertical = 11.dp)
                 ) {
                     Text(
-                        if (interfaceMasquee) "👁" else "🌿",
-                        fontSize = 15.sp
+                        message,
+                        color = c.textPrimary,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }
-
-            // La barre fixe d'outils a disparu d'ici. Elle mangeait environ
-            // 90 dp de hauteur en permanence pour des boutons qu'on utilise
-            // par intermittence. Son contenu vit maintenant dans le sac
-            // flottant, posé PAR-DESSUS le terrain — donc à coût nul.
-
-            // Plus rien sous le terrain. Le dépôt, les Mimos, les conseils et
-            // l'action principale sont devenus des boutons flottants.
         }
+    }
+}
 
-        AnimatedVisibility(
-            visible = message.isNotBlank(),
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 90.dp)
-        ) {
-            Box(
-                Modifier.padding(horizontal = 24.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(c.surface3)
-                    .border(1.dp, c.accent, RoundedCornerShape(14.dp))
-                    .padding(horizontal = 18.dp, vertical = 11.dp)
-            ) {
-                Text(message, color = c.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+
+
+/** Résumé compact d'une parcelle ; la fiche complète reste disponible à la demande. */
+@Composable
+private fun BulleParcelleContextuelle(
+    parcelle: GardenViewModel.ParcelleUi,
+    action: GardenContextEngine.Action,
+    modifier: Modifier = Modifier,
+    onAction: () -> Unit,
+    onFermer: () -> Unit
+) {
+    val c = MaterialTheme.sankaiColors
+    val titre = when {
+        parcelle.deblocage == ExpansionEngine.Deblocage.EN_CHANTIER ->
+            stringResource(R.string.garden_plot_building)
+        !parcelle.cultivable -> stringResource(R.string.garden_plot_locked)
+        parcelle.etat == PlotState.UNCLEARED ->
+            stringResource(R.string.garden_plot_uncleared)
+        parcelle.etat == PlotState.EMPTY || parcelle.etat == PlotState.PREPARED ->
+            stringResource(R.string.garden_plot_empty)
+        parcelle.prete -> stringResource(R.string.garden_plot_ready)
+        parcelle.besoinEau -> stringResource(R.string.garden_plot_thirsty)
+        else -> stringResource(R.string.garden_plot_growing)
+    }
+    val symbole = when {
+        parcelle.deblocage == ExpansionEngine.Deblocage.EN_CHANTIER -> "🚧"
+        !parcelle.cultivable -> "🔒"
+        parcelle.etat == PlotState.UNCLEARED -> "🪨"
+        parcelle.prete -> "🧺"
+        parcelle.besoinEau -> "💧"
+        else -> parcelle.stage?.emoji ?: "🌱"
+    }
+    val (actionSymbole, actionTexte, actionCouleur) = when (action) {
+        GardenContextEngine.Action.HARVEST -> Triple(
+            "🧺",
+            stringResource(R.string.garden_action_harvest),
+            AccentGold
+        )
+        GardenContextEngine.Action.WATER -> Triple(
+            "💧",
+            stringResource(R.string.garden_action_water),
+            AccentCyan
+        )
+        GardenContextEngine.Action.DETAILS -> Triple(
+            "…",
+            stringResource(R.string.garden_action_details),
+            c.accent
+        )
+    }
+    val fermerDescription = stringResource(R.string.garden_action_close)
+
+    Row(
+        modifier
+            .widthIn(min = 240.dp, max = 340.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color(0xFF101A14).copy(alpha = 0.94f))
+            .border(1.dp, actionCouleur.copy(alpha = 0.38f), RoundedCornerShape(18.dp))
+            .padding(start = 13.dp, top = 10.dp, end = 7.dp, bottom = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(symbole, fontSize = 22.sp)
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f)) {
+            Text(titre, color = c.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            if (parcelle.cultivable) {
+                Text(
+                    stringResource(
+                        R.string.garden_plot_humidity,
+                        (parcelle.humidite.coerceIn(0f, 1f) * 100).toInt()
+                    ),
+                    color = c.textSecondary,
+                    fontSize = 10.sp
+                )
             }
         }
+        Box(
+            Modifier.clip(RoundedCornerShape(12.dp))
+                .background(actionCouleur.copy(alpha = 0.18f))
+                .clickable { onAction() }
+                .padding(horizontal = 10.dp, vertical = 9.dp)
+        ) {
+            Text(
+                "$actionSymbole $actionTexte",
+                color = actionCouleur,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        Text(
+            "✕",
+            color = c.textSecondary,
+            fontSize = 14.sp,
+            modifier = Modifier.size(34.dp)
+                .semantics { contentDescription = fermerDescription }
+                .clickable { onFermer() }
+                .wrapContentSize(Alignment.Center)
+        )
     }
 }
 

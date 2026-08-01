@@ -47,6 +47,11 @@ class ArenasViewModel(application: Application) : AndroidViewModel(application) 
         val estCourante: Boolean get() = etat == EtatArene.ACTUELLE
     }
 
+    sealed interface Message {
+        data class RecompenseRecuperee(val arene: Arena) : Message
+        data object CoffresPleins : Message
+    }
+
     val user: StateFlow<UserState> = userRepo.userFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UserState())
 
@@ -78,8 +83,8 @@ class ArenasViewModel(application: Application) : AndroidViewModel(application) 
         .map { liste -> liste.count { it.recompenseDisponible } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
-    private val _toast = MutableStateFlow("")
-    val toast: StateFlow<String> = _toast
+    private val _toast = MutableStateFlow<Message?>(null)
+    val toast: StateFlow<Message?> = _toast
 
     /** Index de l'arène courante, pour recentrer le parcours à l'ouverture. */
     fun indexArenCourante(niveau: Int): Int =
@@ -90,17 +95,17 @@ class ArenasViewModel(application: Application) : AndroidViewModel(application) 
         if (!ArenaEngine.estAtteinte(arene, u.level)) return@launch
         when (gameRepo.reclamerArene(arene)) {
             GameRepository.ReclamationArene.Reussie ->
-                afficherToast("${arene.emoji} ${arene.nom} • ${arene.recompense.resume()}")
+                afficherToast(Message.RecompenseRecuperee(arene))
             GameRepository.ReclamationArene.CoffresPleins ->
-                afficherToast("Libère un emplacement de coffre avant de réclamer")
+                afficherToast(Message.CoffresPleins)
             null -> Unit
         }
     }
 
-    private fun afficherToast(message: String) = viewModelScope.launch {
+    private fun afficherToast(message: Message) = viewModelScope.launch {
         _toast.value = message
         delay(3000)
-        _toast.value = ""
+        _toast.value = null
     }
 
     companion object {

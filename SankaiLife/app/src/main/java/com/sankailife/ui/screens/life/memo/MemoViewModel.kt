@@ -12,6 +12,8 @@ import com.sankailife.core.domain.engine.MemoEngine
 import com.sankailife.core.domain.engine.PartageMemoEngine
 import com.sankailife.core.data.repository.MemoActivationRepository
 import com.sankailife.core.notifications.MemoAlarmScheduler
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -29,13 +31,21 @@ class MemoViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * Combien de cartes chaque module contient, et combien sont dues.
      *
-     * L'instant de référence est fixé à l'ouverture de l'écran plutôt que
-     * réévalué en continu : une carte qui devient due à la seconde près ne
-     * justifie pas de relancer la requête, et un compteur qui bouge tout seul
-     * pendant qu'on lit la liste est plus déroutant qu'utile.
+     * L'horloge avance chaque minute tant que l'écran est observé. Une requête
+     * Room ne se relance normalement que si la base change ; sans ce tick, une
+     * carte arrivée à échéance pendant que l'application reste ouverte pouvait
+     * demeurer absente du compteur indéfiniment.
      */
+    private val tickDues = flow {
+        while (true) {
+            emit(System.currentTimeMillis())
+            delay(60_000L)
+        }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
     val statsParModule: StateFlow<Map<Long, com.sankailife.core.data.db.dao.StatsModule>> =
-        dao.statsParModule(System.currentTimeMillis())
+        tickDues.flatMapLatest { maintenant -> dao.statsParModule(maintenant) }
             .map { liste -> liste.associateBy { it.profileId } }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
@@ -77,6 +87,9 @@ class MemoViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _newLineText    = MutableStateFlow("")
     val newLineText: StateFlow<String> = _newLineText
+
+    private val _sauvegardeEnCours = MutableStateFlow(false)
+    val sauvegardeEnCours: StateFlow<Boolean> = _sauvegardeEnCours
 
     fun setNewLineText(t: String) { _newLineText.value = t }
 
@@ -123,31 +136,45 @@ class MemoViewModel(application: Application) : AndroidViewModel(application) {
      * remettrait `isActive` à false et effacerait l'historique anti-répétition
      * à chaque modification d'horaire.
      */
-    fun saveProfile() = viewModelScope.launch {
-        val id = _currentProfileId.value
-        val existant = if (id > 0) dao.getProfile(id) else null
+    fun saveProfile(onSaved: () -> Unit = {}) {
+        // Le verrou est pris avant de lancer la coroutine : deux appuis dans la
+        // même frame ne peuvent pas programmer deux écritures ni deux retours.
+        if (!_sauvegardeEnCours.compareAndSet(expect = false, update = true)) return
 
-        val entity = (existant ?: MemoProfileEntity()).copy(
-            id = if (id > 0) id else 0L,
-            name = _profileName.value.ifBlank { "Mémo" },
-            frequencyPerDay = _frequency.value,
-            scheduledHour = _hour.value,
-            scheduledMinute = _minute.value,
-            randomMode = _randomMode.value,
-            randomStartHour = _randomStart.value / 60,
-            randomStartMinute = _randomStart.value % 60,
-            randomEndHour = _randomEnd.value / 60,
-            randomEndMinute = _randomEnd.value % 60,
-            activeDays = _activeDays.value.sorted().joinToString(","),
-            langue = _langue.value
-        )
+        viewModelScope.launch {
+            val resultat = runCatching {
+                val id = _currentProfileId.value
+                val existant = if (id > 0) dao.getProfile(id) else null
 
-        val newId = dao.upsertProfile(entity)
-        if (id <= 0) _currentProfileId.value = newId
+                val entity = (existant ?: MemoProfileEntity()).copy(
+                    id = if (id > 0) id else 0L,
+                    name = _profileName.value.ifBlank { "Mémo" },
+                    frequencyPerDay = _frequency.value,
+                    scheduledHour = _hour.value,
+                    scheduledMinute = _minute.value,
+                    randomMode = _randomMode.value,
+                    randomStartHour = _randomStart.value / 60,
+                    randomStartMinute = _randomStart.value % 60,
+                    randomEndHour = _randomEnd.value / 60,
+                    randomEndMinute = _randomEnd.value % 60,
+                    activeDays = _activeDays.value.sorted().joinToString(","),
+                    langue = _langue.value
+                )
 
-        // Sans cette reprogrammation, un changement d'horaire ne prendrait
-        // effet qu'au prochain lancement de l'application.
-        replanifier()
+                val newId = dao.upsertProfile(entity)
+                if (id <= 0) _currentProfileId.value = newId
+
+                // Sans cette reprogrammation, un changement d'horaire ne
+                // prendrait effet qu'au prochain lancement de l'application.
+                replanifier()
+            }
+
+            _sauvegardeEnCours.value = false
+            resultat.fold(
+                onSuccess = { onSaved() },
+                onFailure = { _message.value = "Impossible d'enregistrer ce mémo" }
+            )
+        }
     }
 
     /**

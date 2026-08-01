@@ -29,14 +29,11 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -44,7 +41,6 @@ import com.sankailife.core.garden.domain.ExpansionEngine
 import com.sankailife.core.garden.domain.GardenWeatherVisualState
 import com.sankailife.core.garden.domain.GraphicsQuality
 import com.sankailife.core.garden.domain.LightingEngine
-import com.sankailife.core.garden.domain.MoistureEngine
 import com.sankailife.core.garden.domain.OutilJardin
 import com.sankailife.core.garden.domain.PlotState
 import com.sankailife.core.haptics.LocalHaptics
@@ -102,7 +98,6 @@ fun GrilleJardin(
     onOuvrirMimo: (MimoMondeEngine.MimoUi) -> Unit,
     onReposerOutil: () -> Unit
 ) {
-    val c = MaterialTheme.sankaiColors
     val haptics = LocalHaptics.current
     val densite = LocalDensity.current
 
@@ -232,9 +227,7 @@ fun GrilleJardin(
 
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(22.dp))
             .background(Brush.verticalGradient(listOf(Color(0xFF16301F), Color(0xFF0E2116))))
-            .border(1.dp, Color(0xFF2E5238), RoundedCornerShape(22.dp))
             .onSizeChanged { taille ->
                 tailleVue = IntOffset(taille.width, taille.height)
                 // Au premier affichage, la caméra se pose sur le centre du
@@ -457,20 +450,6 @@ fun GrilleJardin(
             }
         }
 
-        if (outil != null) {
-            Box(
-                Modifier.align(Alignment.TopCenter).padding(top = 8.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(c.surface1.copy(alpha = 0.9f))
-                    .border(1.dp, c.accent.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
-            ) {
-                Text(
-                    "${outil.emoji}  ${outil.libelle} — glisse sur les parcelles",
-                    color = c.accent, fontSize = 11.sp, fontWeight = FontWeight.SemiBold
-                )
-            }
-        }
     }
 }
 
@@ -533,17 +512,9 @@ private fun CaseParcelle(
 ) {
     val c = MaterialTheme.sankaiColors
 
-    val transition = rememberInfiniteTransition(label = "case")
-    val pulse by transition.animateFloat(
-        initialValue = 0.6f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(1000), RepeatMode.Reverse),
-        label = "pulseCase"
-    )
-
     // La couleur du sol suit l'humidité, et la transition est animée : un sol
     // qui vire brutalement au brun sombre ressemblerait à un défaut d'affichage
     // plutôt qu'à de l'eau qui pénètre.
-    val teinteCible = Color(MoistureEngine.teinteSol(parcelle.humidite))
     val melange by animateFloatAsState(
         targetValue = parcelle.humidite,
         animationSpec = tween(600),
@@ -583,6 +554,17 @@ private fun CaseParcelle(
             modifier = Modifier.fillMaxSize()
         )
 
+        // La texture fournit les grands états sec/humide ; ce voile relie ces
+        // états en continu. Il est statique une fois la transition terminée,
+        // donc il ne crée pas une animation permanente par parcelle.
+        if (cultivable && parcelle.etat != PlotState.UNCLEARED) {
+            Box(
+                Modifier.fillMaxSize().background(
+                    Color(0xFF071A13).copy(alpha = 0.18f * melange.coerceIn(0f, 1f))
+                )
+            )
+        }
+
         // Lisière : l'herbe déborde sur les bords qui donnent sur du non-cultivé.
         //
         // Un autotiling classique demanderait seize variantes de texture. Les
@@ -613,6 +595,24 @@ private fun CaseParcelle(
         // léger pour qu'on reconnaisse le terrain qu'on s'apprête à acheter.
         if (!cultivable) {
             Box(Modifier.fillMaxSize().background(Color(0xFF0B140F).copy(alpha = 0.42f)))
+        }
+
+        // Guidage uniquement contextuel : une lueur centrale très douce
+        // indique où l'outil tenu peut agir, sans redessiner une grille.
+        if (surbrillance) {
+            Canvas(Modifier.fillMaxSize()) {
+                drawRect(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            AccentCyan.copy(alpha = 0.20f),
+                            AccentCyan.copy(alpha = 0.07f),
+                            Color.Transparent
+                        ),
+                        center = center,
+                        radius = size.minDimension * 0.72f
+                    )
+                )
+            }
         }
 
         // Couche 2 — ce qui pousse dessus, ou l'état de la case.
@@ -663,19 +663,6 @@ private fun CaseParcelle(
             }
         }
 
-        // Couche 3 — le guidage.
-        //
-        // Un liseré rectangulaire, jamais arrondi : il souligne une case du
-        // terrain, il ne dessine pas une carte d'interface. Il ne s'allume que
-        // là où l'outil tenu agit vraiment, ou sur une récolte prête.
-        val cadre = when {
-            surbrillance -> AccentCyan
-            parcelle.prete -> AccentGold.copy(alpha = pulse)
-            else -> Color.Transparent
-        }
-        if (cadre != Color.Transparent) {
-            Box(Modifier.fillMaxSize().border(2.dp, cadre, RectangleShape))
-        }
     }
 }
 

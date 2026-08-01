@@ -8,8 +8,13 @@ import kotlin.random.Random
 
 class ExerciceEngineTest {
 
-    private fun carte(id: Long, recto: String, verso: String?, box: Int) =
-        FlashcardEngine.Carte(id, recto, verso, box)
+    private fun carte(
+        id: Long,
+        recto: String,
+        verso: String?,
+        box: Int,
+        moduleId: Long = 0L
+    ) = FlashcardEngine.Carte(id, recto, verso, box, moduleId = moduleId)
 
     private val reservoir = listOf(
         carte(2, "Capitale de la France", "Paris", 0),
@@ -87,6 +92,30 @@ class ExerciceEngineTest {
 
         ex as ExerciceEngine.Exercice.Reconnaissance
         assertEquals(1, ex.options.count { it == "Tokyo" })
+    }
+
+    @Test
+    fun `les cartes d'autres modules ne deviennent jamais des leurres`() {
+        val carte = carte(1, "Question A", "Réponse A", 0, moduleId = 10)
+        val memeModule = listOf(
+            carte(2, "Question B", "Réponse B", 0, moduleId = 10),
+            carte(3, "Question C", "Réponse C", 0, moduleId = 10)
+        )
+        val autreModule = listOf(
+            carte(4, "Animal", "Chat", 0, moduleId = 20),
+            carte(5, "Couleur", "Bleu", 0, moduleId = 20),
+            carte(6, "Nombre", "Trois", 0, moduleId = 20)
+        )
+
+        val exercice = ExerciceEngine.construire(
+            carte,
+            memeModule + autreModule,
+            aleatoire
+        )
+
+        // Deux leurres du bon module ne suffisent pas : le moteur préfère une
+        // saisie à un QCM rendu évident par trois réponses hors sujet.
+        assertTrue(exercice is ExerciceEngine.Exercice.Saisie)
     }
 
     @Test

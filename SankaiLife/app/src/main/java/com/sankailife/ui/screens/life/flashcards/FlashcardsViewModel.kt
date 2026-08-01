@@ -74,15 +74,15 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
                 // est faite par le moteur : la requête ne fait qu'écarter ce qui
                 // est manifestement hors sujet.
                 val difficiles = memoDao.cartesDifficiles(ErreursEngine.REVISIONS_MINIMUM)
-                val choisies = ErreursEngine.selectionner(
+                val parId = difficiles.associateBy { it.id }
+                ErreursEngine.selectionner(
                     difficiles.map {
                         ErreursEngine.Historique(
                             id = it.id, texte = it.text, boite = it.box,
                             revisions = it.reviewCount, reussites = it.successCount
                         )
                     }
-                ).map { it.id }.toSet()
-                difficiles.filter { it.id in choisies }
+                ).mapNotNull { parId[it.id] }
             } else {
                 memoDao.getCartesDues(
                     profileId = profileId,
@@ -106,7 +106,8 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
                 val (recto, verso) = FlashcardEngine.decouper(ligne.text)
                 return FlashcardEngine.Carte(
                     ligne.id, recto, verso, ligne.box,
-                    langue = langues[ligne.profileId].orEmpty()
+                    langue = langues[ligne.profileId].orEmpty(),
+                    moduleId = ligne.profileId
                 )
             }
 
@@ -115,10 +116,12 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
             // dues : une session courte n'offrirait pas assez de propositions
             // crédibles, et l'exercice se dégraderait en saisie systématique.
             reservoirLeurres = if (modeErreurs) {
-                // En mode erreurs les cartes viennent de plusieurs modules : les
-                // leurres aussi, sinon un QCM proposerait des réponses d'un
-                // autre sujet, reconnaissables d'un coup d'œil.
-                cartes
+                // On charge toutes les cartes des modules concernés pour avoir
+                // assez de choix, puis ExerciceEngine garde uniquement celles
+                // du même module que la question courante.
+                val modules = lignes.map { it.profileId }.distinct()
+                if (modules.isEmpty()) emptyList()
+                else memoDao.getLinesForProfilesOnce(modules).map(::carte)
             } else {
                 memoDao.getLinesOnce(profileId).map(::carte)
             }
@@ -200,7 +203,8 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
                     prochaine = FlashcardEngine.prochaineRevision(nouvelleBoite, jugement),
                     reussite = if (reussi) 1 else 0
                 )
-                userRepo.addXp(FlashcardEngine.XP_PAR_CARTE)
+                val recompense = recompenseSession()
+                if (recompense.xpParCarte > 0) userRepo.addXp(recompense.xpParCarte)
 
                 // Une carte ratée revient une fois en fin de session. Une seule
                 // reprise empêche de fabriquer une session infinie (et de l'XP
@@ -238,18 +242,19 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     private suspend fun terminerSession(reussies: Int, ratees: Int) {
-        userRepo.addXp(FlashcardEngine.XP_SESSION_TERMINEE)
-        userRepo.addCoins(FlashcardEngine.PIECES_SESSION_TERMINEE)
+        val recompense = recompenseSession()
+        if (recompense.xpFin > 0) userRepo.addXp(recompense.xpFin)
+        if (recompense.piecesFin > 0) userRepo.addCoins(recompense.piecesFin)
 
         // Boucle éducative : les révisions alimentent réellement le jardin.
         // Le nombre de cartes de la session sert de plafond aux gouttes, ce
         // qui empêche de convertir des révisions anticipées en eau infinie.
-        val gain = runCatching {
+        val gain = if (recompense.alimenteJardin) runCatching {
             gardenRepo.crediterRevisions(
                 bonnesReponses = reussies,
                 cartesDues = _etat.value.total
             )
-        }.getOrNull()
+        }.getOrNull() else null
 
         val mentionEau = when {
             gain == null -> ""
@@ -263,10 +268,19 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
             reussies = reussies,
             ratees = ratees,
             reponseEnCours = false,
-            messageFin = "+${FlashcardEngine.XP_SESSION_TERMINEE} XP • " +
-                         "+${FlashcardEngine.PIECES_SESSION_TERMINEE} 🪙$mentionEau"
+            messageFin = if (profileId == PROFIL_ERREURS) {
+                "Entraînement terminé • progression mémorisée"
+            } else {
+                "+${recompense.xpFin} XP • +${recompense.piecesFin} 🪙$mentionEau"
+            }
         )
     }
+
+    private fun recompenseSession(): FlashcardEngine.RecompenseSession =
+        FlashcardEngine.recompense(
+            if (profileId == PROFIL_ERREURS) FlashcardEngine.ModeSession.ENTRAINEMENT_ERREURS
+            else FlashcardEngine.ModeSession.REVISION_ECHEANCES
+        )
 
     fun rejouer() {
         val id = profileId

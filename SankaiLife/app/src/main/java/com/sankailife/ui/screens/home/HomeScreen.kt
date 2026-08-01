@@ -1,8 +1,6 @@
 package com.sankailife.ui.screens.home
 
 import androidx.compose.animation.core.RepeatMode
-import com.sankailife.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -11,8 +9,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -25,6 +25,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -37,17 +39,22 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sankailife.R
 import com.sankailife.core.data.db.entities.ChestEntity
 import com.sankailife.core.domain.engine.ArenaEngine
+import com.sankailife.core.domain.model.ArenaReward
 import com.sankailife.ui.art.ArtJardin
 import com.sankailife.ui.art.IconeArt
 import com.sankailife.ui.components.ChestRewardDialog
 import com.sankailife.ui.components.LevelUpDialog
+import com.sankailife.ui.components.LiquidGlassSurface
 import com.sankailife.ui.components.ResourceBar
-import com.sankailife.ui.components.SankaiButton
 import com.sankailife.ui.components.SankaiFloatingButton
 import com.sankailife.ui.components.SankaiGlassCard
 import com.sankailife.ui.navigation.Screen
+import com.sankailife.ui.screens.arenas.localizedDescription
+import com.sankailife.ui.screens.arenas.localizedName
+import com.sankailife.ui.screens.arenas.localizedSummary
 import com.sankailife.ui.theme.*
 import kotlinx.coroutines.delay
 
@@ -61,6 +68,15 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
     val arenesAReclamer by viewModel.arenesAReclamer.collectAsStateWithLifecycle()
     val c = MaterialTheme.sankaiColors
     val fontScale = LocalDensity.current.fontScale
+    val background = remember(c.background, c.accentSecondary) {
+        Brush.verticalGradient(
+            listOf(
+                c.background,
+                c.accentSecondary.copy(alpha = 0.055f),
+                c.background
+            )
+        )
+    }
 
     if (showLevelUp) {
         LevelUpDialog(
@@ -71,7 +87,7 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
     }
     chestReward?.let { reward ->
         ChestRewardDialog(
-            title = "Coffre ouvert !",
+            title = stringResource(R.string.home_chest_opened),
             coins = reward.coins,
             gems = reward.gems,
             xp = reward.xp,
@@ -80,30 +96,36 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
     }
 
     BoxWithConstraints(
-        modifier = Modifier.fillMaxSize().background(c.background)
+        modifier = Modifier.fillMaxSize().background(background)
     ) {
-        // Le mode compact conserve le hub non défilant : il retire les détails
-        // secondaires avant de réduire la zone centrale ou les cibles tactiles.
-        val compact = maxHeight < 700.dp || maxWidth < 350.dp || fontScale >= 1.35f
+        val compact = maxHeight < 720.dp || maxWidth < 360.dp || fontScale >= 1.30f
+        val dense = maxHeight < 610.dp || maxWidth < 330.dp || fontScale >= 1.60f
 
         Column(Modifier.fillMaxSize()) {
             ResourceBar(user.level, user.xp, user.xpNext, user.coins, user.gems)
 
-            HomeHub(
-                pseudo = user.pseudo,
-                streak = user.streakDays,
-                niveau = user.level,
-                arenesAReclamer = arenesAReclamer,
-                compact = compact,
-                modifier = Modifier.weight(1f),
-                onSettings = { onNavigate(Screen.Settings.route) },
-                onArena = { onNavigate(Screen.Arenas.route) },
-                onGarden = { onNavigate(Screen.Garden.route) }
-            )
+            Box(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                HomeHub(
+                    pseudo = user.pseudo,
+                    streak = user.streakDays,
+                    niveau = user.level,
+                    arenesAReclamer = arenesAReclamer,
+                    compact = compact,
+                    dense = dense,
+                    modifier = Modifier.fillMaxSize().widthIn(max = 680.dp),
+                    onSettings = { onNavigate(Screen.Settings.route) },
+                    onArena = { onNavigate(Screen.Arenas.route) },
+                    onGarden = { onNavigate(Screen.Garden.route) }
+                )
+            }
 
             BarreCoffres(
                 chests = chests,
                 compact = compact,
+                dense = dense,
                 onOpen = viewModel::openChest,
                 formatTimer = viewModel::formatChestTimer
             )
@@ -118,45 +140,120 @@ private fun HomeHub(
     niveau: Int,
     arenesAReclamer: Int,
     compact: Boolean,
+    dense: Boolean,
     modifier: Modifier = Modifier,
     onSettings: () -> Unit,
     onArena: () -> Unit,
     onGarden: () -> Unit
 ) {
-    val c = MaterialTheme.sankaiColors
-    val gap = if (compact) SankaiSpacing.Sm else SankaiSpacing.Md
+    val gap = when {
+        dense -> SankaiSpacing.Xs
+        compact -> SankaiSpacing.Sm
+        else -> SankaiSpacing.Md
+    }
 
     Column(
-        modifier = modifier.fillMaxWidth().padding(
+        modifier = modifier.padding(
             start = SankaiSpacing.Lg,
             top = gap,
             end = SankaiSpacing.Lg,
             bottom = SankaiSpacing.Sm
         )
     ) {
+        PremiumProfileHeader(
+            pseudo = pseudo,
+            streak = streak,
+            compact = compact,
+            dense = dense,
+            onSettings = onSettings
+        )
+
+        Spacer(Modifier.height(gap))
+        ArenaHeroCard(
+            niveau = niveau,
+            nombreAReclamer = arenesAReclamer,
+            compact = compact,
+            dense = dense,
+            onVoirParcours = onArena,
+            modifier = Modifier.fillMaxWidth().weight(1f)
+        )
+        Spacer(Modifier.height(gap))
+        GardenPrimaryAction(
+            compact = compact,
+            onClick = onGarden,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+private fun PremiumProfileHeader(
+    pseudo: String,
+    streak: Int,
+    compact: Boolean,
+    dense: Boolean,
+    onSettings: () -> Unit
+) {
+    val c = MaterialTheme.sankaiColors
+    val greeting = stringResource(R.string.home_greeting, pseudo)
+    val initiale = remember(pseudo) {
+        pseudo.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "S"
+    }
+
+    LiquidGlassSurface(
+        modifier = Modifier.fillMaxWidth(),
+        forme = RoundedCornerShape(SankaiRadius.Medium),
+        intensite = SankaiGlass.CardIntensity
+    ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            Modifier.fillMaxWidth().padding(
+                horizontal = if (dense) SankaiSpacing.Sm else SankaiSpacing.Md,
+                vertical = SankaiSpacing.Sm
+            ),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Box(
+                modifier = Modifier
+                    .size(if (dense) 40.dp else 46.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.linearGradient(
+                            listOf(c.accentSecondary, c.accent.copy(alpha = 0.9f))
+                        )
+                    )
+                    .border(1.dp, Color.White.copy(alpha = 0.24f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    initiale,
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Black
+                )
+            }
+            Spacer(Modifier.width(SankaiSpacing.Md))
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = "Bonjour, $pseudo 👋",
+                    greeting,
                     color = c.textPrimary,
-                    style = if (compact) MaterialTheme.typography.headlineMedium
-                            else MaterialTheme.typography.headlineLarge,
+                    style = if (compact) MaterialTheme.typography.titleMedium
+                            else MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 if (!compact) {
                     Text(
-                        "Reste focus et progresse !",
+                        stringResource(R.string.home_subtitle),
                         color = c.textSecondary,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
             Spacer(Modifier.width(SankaiSpacing.Sm))
-            StreakCompact(streak)
+            StreakChip(streak = streak, dense = dense)
             Spacer(Modifier.width(SankaiSpacing.Sm))
             SankaiFloatingButton(
                 contentDescription = stringResource(R.string.home_settings),
@@ -171,102 +268,105 @@ private fun HomeHub(
                 )
             }
         }
-
-        Spacer(Modifier.height(gap))
-        ArenaHeroCard(
-            niveau = niveau,
-            nombreAReclamer = arenesAReclamer,
-            compact = compact,
-            onVoirParcours = onArena,
-            modifier = Modifier.fillMaxWidth().weight(1f)
-        )
-        Spacer(Modifier.height(gap))
-        SankaiButton(
-            text = stringResource(R.string.home_enter_garden),
-            onClick = onGarden,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
-        )
     }
 }
 
 @Composable
-private fun StreakCompact(streak: Int) {
+private fun StreakChip(streak: Int, dense: Boolean) {
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(SankaiRadius.Pill))
-            .background(WarningAmber.copy(alpha = 0.12f))
-            .border(1.dp, WarningAmber.copy(alpha = 0.35f), RoundedCornerShape(SankaiRadius.Pill))
-            .padding(horizontal = SankaiSpacing.Md, vertical = SankaiSpacing.Sm),
+            .background(WarningAmber.copy(alpha = 0.13f))
+            .border(1.dp, WarningAmber.copy(alpha = 0.38f), RoundedCornerShape(SankaiRadius.Pill))
+            .padding(
+                horizontal = if (dense) SankaiSpacing.Sm else SankaiSpacing.Md,
+                vertical = SankaiSpacing.Sm
+            ),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text("🔥", fontSize = 13.sp)
         Spacer(Modifier.width(SankaiSpacing.Xs))
-        Text("$streak j", color = WarningAmber, style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold)
+        Text(
+            stringResource(R.string.home_streak_days, streak),
+            color = WarningAmber,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1
+        )
     }
 }
 
-/** Élément principal du hub. Il remplit réellement la hauteur que l'accueil lui réserve. */
+/** Carte maîtresse du Hub : une seule destination, le parcours d'arènes. */
 @Composable
 fun ArenaHeroCard(
     niveau: Int,
     nombreAReclamer: Int,
     compact: Boolean,
+    dense: Boolean = false,
     onVoirParcours: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val c = MaterialTheme.sankaiColors
     val actuelle = ArenaEngine.areneActuelle(niveau)
     val suivante = ArenaEngine.areneSuivante(niveau)
+    val nomActuel = actuelle.localizedName()
+    val description = actuelle.localizedDescription()
+    val nomSuivant = suivante?.localizedName()
+    val progression = ArenaEngine.progressionVersSuivante(niveau)
     val accent = remember(actuelle.accentHex, c.accent) {
         runCatching { Color(android.graphics.Color.parseColor(actuelle.accentHex)) }
             .getOrDefault(c.accent)
     }
-    val progression = ArenaEngine.progressionVersSuivante(niveau)
+    val rewardText = suivante?.recompense?.localizedSummary()
+    val claimableLabel = if (nombreAReclamer > 0) {
+        pluralStringResource(
+            R.plurals.arena_rewards_claimable,
+            nombreAReclamer,
+            nombreAReclamer
+        )
+    } else null
 
     SankaiGlassCard(
         modifier = modifier,
         selectionne = true,
         onClick = onVoirParcours,
         forme = RoundedCornerShape(SankaiRadius.Large),
-        contentPadding = PaddingValues(if (compact) SankaiSpacing.Md else SankaiSpacing.Lg)
+        contentPadding = PaddingValues(if (dense) SankaiSpacing.Md else SankaiSpacing.Lg)
     ) {
         Column(Modifier.fillMaxSize()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    if (!compact) {
-                        Text(
-                            "ARÈNE ACTUELLE",
-                            color = accent,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.1.sp
-                        )
-                    }
                     Text(
-                        actuelle.nom,
+                        stringResource(R.string.home_current_arena),
+                        color = accent,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.15.sp
+                    )
+                    Text(
+                        nomActuel,
                         color = c.textPrimary,
-                        style = if (compact) MaterialTheme.typography.titleMedium
-                                else MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
+                        style = when {
+                            dense -> MaterialTheme.typography.titleMedium
+                            compact -> MaterialTheme.typography.titleLarge
+                            else -> MaterialTheme.typography.headlineMedium
+                        },
+                        fontWeight = FontWeight.Black,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                if (nombreAReclamer > 0) {
-                    Box(
-                        Modifier
+                if (claimableLabel != null) {
+                    Text(
+                        if (dense) "$nombreAReclamer" else claimableLabel,
+                        color = MaterialTheme.colorScheme.onError,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
                             .clip(RoundedCornerShape(SankaiRadius.Pill))
                             .background(MaterialTheme.colorScheme.error)
                             .padding(horizontal = SankaiSpacing.Sm, vertical = SankaiSpacing.Xs)
-                    ) {
-                        Text(
-                            if (compact) "$nombreAReclamer" else "$nombreAReclamer à réclamer",
-                            color = MaterialTheme.colorScheme.onError,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                    )
                 }
             }
 
@@ -274,22 +374,49 @@ fun ArenaHeroCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .heightIn(min = if (compact) 38.dp else 72.dp)
-                    .padding(vertical = if (compact) SankaiSpacing.Xs else SankaiSpacing.Sm)
-                    .clip(RoundedCornerShape(SankaiRadius.Medium))
-                    .background(
-                        Brush.radialGradient(
-                            listOf(accent.copy(alpha = 0.24f), Color.Transparent)
-                        )
-                    ),
+                    .heightIn(min = if (dense) 62.dp else 92.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(actuelle.emoji, fontSize = if (compact) 36.sp else 64.sp)
+                Box(
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .width(if (dense) 110.dp else 176.dp)
+                        .height(if (dense) 22.dp else 34.dp)
+                        .clip(CircleShape)
+                        .background(accent.copy(alpha = 0.11f))
+                )
+                Box(
+                    modifier = Modifier
+                        .size(
+                            when {
+                                dense -> 72.dp
+                                compact -> 96.dp
+                                else -> 126.dp
+                            }
+                        )
+                        .clip(CircleShape)
+                        .background(
+                            Brush.radialGradient(
+                                listOf(accent.copy(alpha = 0.34f), accent.copy(alpha = 0.06f))
+                            )
+                        )
+                        .border(1.dp, accent.copy(alpha = 0.38f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        actuelle.emoji,
+                        fontSize = when {
+                            dense -> 38.sp
+                            compact -> 52.sp
+                            else -> 68.sp
+                        }
+                    )
+                }
             }
 
             if (!compact) {
                 Text(
-                    actuelle.description,
+                    description,
                     color = c.textSecondary,
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center,
@@ -301,65 +428,210 @@ fun ArenaHeroCard(
             }
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Niveau $niveau", color = c.textSecondary,
-                    style = MaterialTheme.typography.labelMedium)
-                suivante?.let {
-                    Text("Objectif ${it.niveauRequis}", color = accent,
-                        style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-                }
+                Text(
+                    stringResource(R.string.arena_level, niveau),
+                    color = c.textSecondary,
+                    style = MaterialTheme.typography.labelMedium
+                )
+                Text(
+                    if (suivante != null) {
+                        stringResource(R.string.home_next_goal_level, suivante.niveauRequis)
+                    } else {
+                        stringResource(R.string.home_summit_reached)
+                    },
+                    color = accent,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold
+                )
             }
             Spacer(Modifier.height(SankaiSpacing.Xs))
             LinearProgressIndicator(
                 progress = { progression.coerceIn(0f, 1f) },
-                modifier = Modifier.fillMaxWidth().height(7.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(7.dp)
                     .clip(RoundedCornerShape(SankaiRadius.Pill)),
                 color = accent,
                 trackColor = c.surface3
             )
-            Spacer(Modifier.height(if (compact) SankaiSpacing.Xs else SankaiSpacing.Sm))
-            Text(
-                text = if (suivante != null) {
-                    if (compact) "${suivante.emoji} ${suivante.nom}"
-                    else "${suivante.emoji} ${suivante.nom} • encore ${ArenaEngine.niveauxRestants(niveau)} niveaux"
-                } else {
-                    "Sommet atteint • le parcours continue"
-                },
-                color = c.textSecondary,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = if (compact) 1 else 2,
-                overflow = TextOverflow.Ellipsis
-            )
-            if (!compact && suivante != null) {
+            Spacer(Modifier.height(if (dense) SankaiSpacing.Xs else SankaiSpacing.Sm))
+
+            if (suivante != null && nomSuivant != null && rewardText != null) {
+                NextArenaReward(
+                    reward = suivante.recompense,
+                    arenaName = nomSuivant,
+                    rewardText = rewardText,
+                    levelsRemaining = ArenaEngine.niveauxRestants(niveau),
+                    accent = accent,
+                    dense = dense
+                )
+            } else {
                 Text(
-                    "Récompense : ${suivante.recompense.resume()}",
+                    stringResource(R.string.home_summit_message),
                     color = accent,
                     style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
             }
+
             if (!compact) {
                 Spacer(Modifier.height(SankaiSpacing.Sm))
+                Row(
+                    modifier = Modifier.align(Alignment.End),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        stringResource(R.string.home_view_arena_path),
+                        color = accent,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(Modifier.width(SankaiSpacing.Xs))
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        tint = accent,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NextArenaReward(
+    reward: ArenaReward,
+    arenaName: String,
+    rewardText: String,
+    levelsRemaining: Int,
+    accent: Color,
+    dense: Boolean
+) {
+    val c = MaterialTheme.sankaiColors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(SankaiRadius.Medium))
+            .background(accent.copy(alpha = 0.075f))
+            .border(1.dp, accent.copy(alpha = 0.18f), RoundedCornerShape(SankaiRadius.Medium))
+            .padding(if (dense) SankaiSpacing.Sm else SankaiSpacing.Md),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RewardArtwork(reward = reward, size = if (dense) 32.dp else 42.dp)
+        Spacer(Modifier.width(SankaiSpacing.Md))
+        Column(Modifier.weight(1f)) {
+            Text(
+                stringResource(R.string.home_next_arena, arenaName),
+                color = c.textPrimary,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                pluralStringResource(
+                    R.plurals.arena_levels_remaining,
+                    levelsRemaining,
+                    levelsRemaining
+                ),
+                color = c.textSecondary,
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (!dense) {
                 Text(
-                    "Voir le parcours  →",
+                    stringResource(R.string.home_next_reward, rewardText),
                     color = accent,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.align(Alignment.End)
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
     }
 }
 
-/** Dock fixe : les quatre emplacements ne bougent jamais avec le contenu central. */
+@Composable
+private fun RewardArtwork(reward: ArenaReward, size: androidx.compose.ui.unit.Dp) {
+    val art = if (reward.chestType.isNotBlank()) {
+        ArtJardin.coffre(reward.chestType)
+    } else {
+        ArtJardin.piece
+    }
+    IconeArt(art, taille = size)
+}
+
+@Composable
+private fun GardenPrimaryAction(
+    compact: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val c = MaterialTheme.sankaiColors
+    val label = stringResource(R.string.home_enter_garden)
+    val gradient = remember(c.accent, c.accentSecondary) {
+        Brush.horizontalGradient(
+            listOf(
+                SuccessGreen.copy(alpha = 0.82f),
+                c.accent.copy(alpha = 0.92f),
+                c.accentSecondary.copy(alpha = 0.84f)
+            )
+        )
+    }
+
+    Row(
+        modifier = modifier
+            .heightIn(min = if (compact) 52.dp else 60.dp)
+            .clip(RoundedCornerShape(SankaiRadius.Medium))
+            .background(gradient)
+            .border(1.dp, Color.White.copy(alpha = 0.22f), RoundedCornerShape(SankaiRadius.Medium))
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = SankaiSpacing.Lg, vertical = SankaiSpacing.Sm),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconeArt(ArtJardin.arbre, taille = if (compact) 32.dp else 38.dp)
+        Spacer(Modifier.width(SankaiSpacing.Md))
+        Column(Modifier.weight(1f)) {
+            Text(
+                label,
+                color = Color.White,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Black,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (!compact) {
+                Text(
+                    stringResource(R.string.home_enter_garden_hint),
+                    color = Color.White.copy(alpha = 0.82f),
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+        Icon(
+            Icons.AutoMirrored.Filled.ArrowForward,
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier.size(22.dp)
+        )
+    }
+}
+
+/** Dock fixe : quatre emplacements stables, sans faux bouton sur les cases vides. */
 @Composable
 fun BarreCoffres(
     chests: List<ChestEntity>,
     onOpen: (Long) -> Unit,
     formatTimer: (ChestEntity) -> String,
-    compact: Boolean = false
+    compact: Boolean = false,
+    dense: Boolean = false
 ) {
     val c = MaterialTheme.sankaiColors
     var tick by remember { mutableLongStateOf(0L) }
@@ -373,45 +645,69 @@ fun BarreCoffres(
     }
     val prets = chests.count { it.isReady }
 
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .background(c.surface1)
-            .padding(
-                horizontal = SankaiSpacing.Md,
-                vertical = if (compact) SankaiSpacing.Sm else SankaiSpacing.Md
-            )
+    LiquidGlassSurface(
+        modifier = Modifier.fillMaxWidth(),
+        forme = RoundedCornerShape(
+            topStart = SankaiRadius.Large,
+            topEnd = SankaiRadius.Large,
+            bottomStart = 0.dp,
+            bottomEnd = 0.dp
+        ),
+        intensite = SankaiGlass.NavigationIntensity
     ) {
-        Row(
-            Modifier.fillMaxWidth().padding(bottom = if (compact) SankaiSpacing.Xs else SankaiSpacing.Sm),
-            horizontalArrangement = Arrangement.SpaceBetween
+        Column(
+            Modifier.fillMaxWidth().padding(
+                start = SankaiSpacing.Md,
+                top = if (dense) SankaiSpacing.Xs else SankaiSpacing.Sm,
+                end = SankaiSpacing.Md,
+                bottom = if (dense) SankaiSpacing.Xs else SankaiSpacing.Sm
+            )
         ) {
-            Text("Coffres  ${chests.size}/4", color = c.textSecondary,
-                style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
-            if (prets > 0) {
-                Text("$prets prêt${if (prets > 1) "s" else ""} !", color = c.accent,
-                    style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-            }
-        }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(SankaiSpacing.Sm)) {
-            repeat(4) { slot ->
-                val chest = chests.firstOrNull { it.slotIndex == slot }
-                ChestSlotUI(
-                    chest = chest,
-                    slotNumber = slot + 1,
-                    compact = compact,
-                    onOpen = { chest?.let { onOpen(it.id) } },
-                    // La lecture de tick limite la recomposition au dock, une fois par seconde.
-                    timer = chest?.let { if (tick >= 0) formatTimer(it) else "" }.orEmpty(),
-                    modifier = Modifier.weight(1f)
+            Row(
+                Modifier.fillMaxWidth().padding(bottom = SankaiSpacing.Xs),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    stringResource(R.string.home_chests_title, chests.size, 4),
+                    color = c.textSecondary,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold
                 )
+                if (prets > 0) {
+                    Text(
+                        pluralStringResource(R.plurals.home_chests_ready, prets, prets),
+                        color = c.accent,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(
+                    if (dense) SankaiSpacing.Xs else SankaiSpacing.Sm
+                )
+            ) {
+                repeat(4) { slot ->
+                    val chest = chests.firstOrNull { it.slotIndex == slot }
+                    ChestSlotUI(
+                        chest = chest,
+                        slotNumber = slot + 1,
+                        compact = compact,
+                        dense = dense,
+                        onOpen = { chest?.let { onOpen(it.id) } },
+                        timer = chest?.let { if (tick >= 0) formatTimer(it) else "" }.orEmpty(),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun libelleRarete(type: String): String = stringResource(
+private fun chestRarity(type: String): String = stringResource(
     when (type.uppercase()) {
         "DAILY" -> R.string.chest_daily
         "RARE" -> R.string.chest_rare
@@ -430,7 +726,8 @@ fun ChestSlotUI(
     timer: String,
     modifier: Modifier = Modifier,
     slotNumber: Int? = null,
-    compact: Boolean = false
+    compact: Boolean = false,
+    dense: Boolean = false
 ) {
     val c = MaterialTheme.sankaiColors
     val chestColor = when (chest?.type) {
@@ -445,7 +742,7 @@ fun ChestSlotUI(
     val halo = if (isReady) {
         val transition = rememberInfiniteTransition(label = "coffrePret")
         val value by transition.animateFloat(
-            initialValue = 0.5f,
+            initialValue = 0.52f,
             targetValue = 1f,
             animationSpec = infiniteRepeatable(
                 tween(SankaiMotion.RewardPulse),
@@ -458,20 +755,34 @@ fun ChestSlotUI(
         1f
     }
 
-    val emplacement = slotNumber?.let { "Emplacement $it, " }.orEmpty()
-    val description = when {
-        chest == null -> "${emplacement}vide"
-        isReady -> "${emplacement}coffre ${libelleRarete(chest.type).lowercase()}, prêt"
-        else -> "${emplacement}coffre ${libelleRarete(chest.type).lowercase()}, disponible dans $timer"
+    val slotLabel = if (slotNumber != null) {
+        stringResource(R.string.home_chest_slot, slotNumber)
+    } else {
+        stringResource(R.string.home_chest_slot_generic)
     }
+    val rarity = if (chest != null) chestRarity(chest.type) else ""
+    val description = when {
+        chest == null -> stringResource(R.string.home_chest_empty_description, slotLabel)
+        isReady -> stringResource(R.string.home_chest_ready_description, slotLabel, rarity)
+        else -> stringResource(R.string.home_chest_waiting_description, slotLabel, rarity, timer)
+    }
+    val emptyState = stringResource(R.string.home_chest_empty_state)
+    val readyState = stringResource(R.string.home_chest_ready_state)
+    val openLabel = stringResource(R.string.home_chest_open_action)
 
     Box(
         modifier = modifier
-            .height(if (compact) 82.dp else 104.dp)
+            .height(
+                when {
+                    dense -> 68.dp
+                    compact -> 78.dp
+                    else -> 94.dp
+                }
+            )
             .clip(RoundedCornerShape(SankaiRadius.Medium))
             .background(
-                if (chest != null) chestColor.copy(alpha = if (isReady) 0.22f else 0.14f)
-                else c.surface2
+                if (chest != null) chestColor.copy(alpha = if (isReady) 0.22f else 0.13f)
+                else c.surface2.copy(alpha = 0.72f)
             )
             .border(
                 width = if (isReady) 2.dp else 1.dp,
@@ -485,13 +796,13 @@ fun ChestSlotUI(
             .clearAndSetSemantics {
                 contentDescription = description
                 stateDescription = when {
-                    chest == null -> "Vide"
-                    isReady -> "Prêt"
+                    chest == null -> emptyState
+                    isReady -> readyState
                     else -> timer
                 }
                 if (isReady) {
                     role = Role.Button
-                    onClick(label = "Ouvrir le coffre") {
+                    onClick(label = openLabel) {
                         onOpen()
                         true
                     }
@@ -501,11 +812,23 @@ fun ChestSlotUI(
     ) {
         if (chest == null) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("+", color = c.textDisabled,
-                    style = MaterialTheme.typography.headlineMedium)
-                if (!compact) {
-                    Text("Libre", color = c.textDisabled,
-                        style = MaterialTheme.typography.labelSmall)
+                Box(
+                    Modifier
+                        .size(if (dense) 26.dp else 32.dp)
+                        .clip(CircleShape)
+                        .border(1.dp, c.border, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("—", color = c.textDisabled, style = MaterialTheme.typography.labelLarge)
+                }
+                if (!dense) {
+                    Spacer(Modifier.height(SankaiSpacing.Xs))
+                    Text(
+                        stringResource(R.string.home_chest_free),
+                        color = c.textDisabled,
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1
+                    )
                 }
             }
         } else {
@@ -517,19 +840,23 @@ fun ChestSlotUI(
                     if (isReady) stringResource(R.string.chest_ready) else timer,
                     color = if (isReady) chestColor else c.textSecondary,
                     style = MaterialTheme.typography.labelSmall,
-                    fontWeight = if (isReady) FontWeight.Bold else FontWeight.Normal,
+                    fontWeight = if (isReady) FontWeight.Black else FontWeight.Normal,
                     maxLines = 1,
                     overflow = TextOverflow.Clip
                 )
                 Spacer(Modifier.height(SankaiSpacing.Xxs))
                 IconeArt(
                     ArtJardin.coffre(chest.type),
-                    taille = if (compact) 36.dp else 46.dp
+                    taille = when {
+                        dense -> 32.dp
+                        compact -> 38.dp
+                        else -> 46.dp
+                    }
                 )
                 if (!compact) {
                     Spacer(Modifier.height(SankaiSpacing.Xxs))
                     Text(
-                        libelleRarete(chest.type),
+                        rarity,
                         color = chestColor,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,

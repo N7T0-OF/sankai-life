@@ -4,11 +4,15 @@ import androidx.room.*
 import com.sankailife.core.data.db.entities.*
 import kotlinx.coroutines.flow.Flow
 
-/** Projection : combien de cartes un module contient, combien sont dues. */
+/** Projection : volume, échéances et progression d'un module. */
 data class StatsModule(
     val profileId: Long,
     val total: Int,
-    val dues: Int
+    val dues: Int,
+    val started: Int,
+    val masteryPoints: Int,
+    /** Dernière révision estimée depuis l'échéance et la boîte courante. */
+    val lastReviewedAtMillis: Long
 )
 
 /**
@@ -151,6 +155,14 @@ interface MemoDao {
     @Query("SELECT * FROM memo_line WHERE profileId=:profileId ORDER BY orderIndex ASC")
     suspend fun getLinesOnce(profileId: Long): List<MemoLineEntity>
 
+    /** Réservoir de leurres des modules demandés, sans mélange implicite. */
+    @Query("""
+        SELECT * FROM memo_line
+        WHERE profileId IN (:profileIds)
+        ORDER BY profileId ASC, orderIndex ASC
+    """)
+    suspend fun getLinesForProfilesOnce(profileIds: List<Long>): List<MemoLineEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLine(line: MemoLineEntity): Long
 
@@ -193,7 +205,20 @@ interface MemoDao {
     @Query("""
         SELECT profileId AS profileId,
                COUNT(*) AS total,
-               SUM(CASE WHEN nextReviewAtMillis <= :maintenant THEN 1 ELSE 0 END) AS dues
+               SUM(CASE WHEN nextReviewAtMillis <= :maintenant THEN 1 ELSE 0 END) AS dues,
+               SUM(CASE WHEN reviewCount > 0 THEN 1 ELSE 0 END) AS started,
+               IFNULL(SUM(box), 0) AS masteryPoints,
+               IFNULL(MAX(
+                   CASE WHEN reviewCount > 0 THEN
+                       nextReviewAtMillis - CASE
+                           WHEN box <= 0 THEN 600000
+                           WHEN box = 1 THEN 86400000
+                           WHEN box = 2 THEN 259200000
+                           WHEN box = 3 THEN 604800000
+                           ELSE 1814400000
+                       END
+                   ELSE NULL END
+               ), 0) AS lastReviewedAtMillis
         FROM memo_line
         GROUP BY profileId
     """)
@@ -221,15 +246,14 @@ interface MemoDao {
      * Cartes assez révisées pour qu'un taux d'échec veuille dire quelque chose.
      *
      * Le tri fin — taux, priorité, taille de session — est fait par
-     * `ErreursEngine`. SQLite ne doit pas porter une règle pédagogique qu'on ne
-     * pourrait pas tester sans base ; la requête se contente d'écarter ce qui
-     * est manifestement hors sujet et de borner le volume.
+     * `ErreursEngine`. SQLite ne doit ni porter une règle pédagogique qu'on ne
+     * pourrait pas tester sans base, ni tronquer les données avant ce tri : un
+     * `LIMIT` ordonné par nombre brut d'échecs pouvait masquer une carte au taux
+     * d'échec bien plus grave. La requête n'écarte que le hors-sujet manifeste.
      */
     @Query("""
         SELECT * FROM memo_line
         WHERE reviewCount >= :revisionsMinimum AND successCount < reviewCount
-        ORDER BY (reviewCount - successCount) DESC
-        LIMIT 200
     """)
     suspend fun cartesDifficiles(revisionsMinimum: Int): List<MemoLineEntity>
 

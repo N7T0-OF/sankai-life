@@ -1,11 +1,6 @@
 package com.sankailife.ui.screens.arenas
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
@@ -28,17 +23,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sankailife.R
 import com.sankailife.core.domain.engine.ArenaEngine
-import com.sankailife.core.domain.model.ALL_ARENAS
 import com.sankailife.core.domain.model.Arena
 import com.sankailife.core.haptics.LocalHaptics
+import com.sankailife.ui.components.LiquidGlassSurface
 import com.sankailife.ui.components.ResourceBar
 import com.sankailife.ui.components.SankaiButton
-import com.sankailife.ui.theme.sankaiColors
+import com.sankailife.ui.theme.*
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -47,47 +50,63 @@ private fun couleurDepuisHex(hex: String, defaut: Color): Color =
     runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrDefault(defaut)
 
 /**
- * Parcours de progression, du bas vers le haut.
+ * Parcours vertical, du point de départ en bas au sommet en haut.
  *
- * `reverseLayout = true` place l'index 0 en bas : la première arène est donc
- * au sol et l'on monte vers le sommet en faisant défiler. Descendre pour
- * progresser aurait inversé la métaphore d'ascension que porte le nom même
- * du projet.
- *
- * Les données restent dans leur ordre naturel (arène 1 en premier), ce qui
- * garde les index cohérents entre le moteur, les tests et l'affichage.
+ * Les données restent dans l'ordre du domaine et `reverseLayout` porte la
+ * métaphore d'ascension sans réordonner les identifiants ni les index.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ArenasScreen(viewModel: ArenasViewModel, onBack: () -> Unit) {
-    val user by viewModel.user.collectAsState()
-    val parcours by viewModel.parcours.collectAsState()
-    val toast by viewModel.toast.collectAsState()
+    val user by viewModel.user.collectAsStateWithLifecycle()
+    val parcours by viewModel.parcours.collectAsStateWithLifecycle()
+    val toast by viewModel.toast.collectAsStateWithLifecycle()
     val c = MaterialTheme.sankaiColors
     val haptics = LocalHaptics.current
-    val coroutineScope = rememberCoroutineScope()
-
-    val etatListe = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
     val indexCourant = remember(user.level) { viewModel.indexArenCourante(user.level) }
+    val areneActuelle = ArenaEngine.areneActuelle(user.level)
+    val nomActuel = areneActuelle.localizedName()
+    val toastText = when (val message = toast) {
+        is ArenasViewModel.Message.RecompenseRecuperee -> {
+            val nom = message.arene.localizedName()
+            val recompense = message.arene.recompense.localizedSummary()
+            stringResource(
+                R.string.arena_reward_claimed_toast,
+                message.arene.emoji,
+                nom,
+                recompense
+            )
+        }
+        ArenasViewModel.Message.CoffresPleins ->
+            stringResource(R.string.arena_chest_slots_full)
+        null -> ""
+    }
+    val background = remember(c.background, c.accentSecondary) {
+        Brush.verticalGradient(
+            listOf(
+                c.background,
+                c.accentSecondary.copy(alpha = 0.07f),
+                c.background
+            )
+        )
+    }
 
     var detail by remember { mutableStateOf<ArenasViewModel.LigneArene?>(null) }
 
-    // Recentrage sur l'arène actuelle : on attend que la liste soit mesurée,
-    // sinon le décalage est calculé sur une hauteur nulle et n'a aucun effet.
     LaunchedEffect(indexCourant, parcours.size) {
         if (parcours.isEmpty()) return@LaunchedEffect
         runCatching {
-            snapshotFlow { etatListe.layoutInfo.viewportSize.height }
+            snapshotFlow { listState.layoutInfo.viewportSize.height }
                 .first { it > 0 }
-            val hauteur = etatListe.layoutInfo.viewportSize.height
-            // Décalage négatif : l'arène remonte depuis le bord bas, ce qui
-            // laisse voir les paliers déjà franchis en dessous.
-            etatListe.animateScrollToItem(indexCourant, -hauteur / 3)
+            val viewport = listState.layoutInfo.viewportSize.height
+            listState.animateScrollToItem(indexCourant, -viewport / 3)
         }
     }
 
-    val loinDeSaProgression by remember(etatListe, indexCourant) {
-        derivedStateOf { abs(etatListe.firstVisibleItemIndex - indexCourant) > 1 }
+    val loinDeSaProgression by remember(listState, indexCourant) {
+        derivedStateOf { abs(listState.firstVisibleItemIndex - indexCourant) > 1 }
     }
 
     detail?.let { ligne ->
@@ -102,40 +121,56 @@ fun ArenasScreen(viewModel: ArenasViewModel, onBack: () -> Unit) {
         )
     }
 
-    Box(Modifier.fillMaxSize().background(c.background)) {
+    BoxWithConstraints(Modifier.fillMaxSize().background(background)) {
+        val compact = maxHeight < 700.dp || maxWidth < 360.dp ||
+            LocalDensity.current.fontScale >= 1.35f
+
         Column(Modifier.fillMaxSize()) {
             ResourceBar(user.level, user.xp, user.xpNext, user.coins, user.gems)
 
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .widthIn(max = 720.dp)
+                    .align(Alignment.CenterHorizontally)
             ) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Retour", tint = c.textPrimary)
-                }
-                Column(Modifier.weight(1f)) {
-                    Text("Parcours", color = c.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    Text(
-                        "Arène ${ArenaEngine.areneActuelle(user.level).nom}",
-                        color = c.textSecondary, fontSize = 12.sp
-                    )
-                }
-            }
+                ArenaHeader(
+                    currentArenaName = nomActuel,
+                    compact = compact,
+                    onBack = onBack
+                )
 
-            Row(Modifier.fillMaxSize()) {
+                if (!compact) {
+                    ArenaProgressSummary(
+                        niveau = user.level,
+                        xp = user.xp,
+                        xpNext = user.xpNext,
+                        nombreAReclamer = parcours.count { it.recompenseDisponible },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = SankaiSpacing.Lg)
+                    )
+                    Spacer(Modifier.height(SankaiSpacing.Sm))
+                }
+
                 LazyColumn(
-                    state = etatListe,
+                    state = listState,
                     reverseLayout = true,
-                    modifier = Modifier.weight(1f).fillMaxHeight(),
-                    contentPadding = PaddingValues(start = 16.dp, end = 8.dp, top = 24.dp, bottom = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    contentPadding = PaddingValues(
+                        start = SankaiSpacing.Md,
+                        top = SankaiSpacing.Xl,
+                        end = SankaiSpacing.Lg,
+                        bottom = SankaiSpacing.Xl
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(SankaiSpacing.Sm)
                 ) {
-                    itemsIndexed(parcours, key = { _, l -> l.arene.id }) { index, ligne ->
-                        CarteArene(
+                    itemsIndexed(parcours, key = { _, ligne -> ligne.arene.id }) { index, ligne ->
+                        ArenaPathItem(
                             ligne = ligne,
                             niveauJoueur = user.level,
-                            // « premier » et « dernier » sont exprimés dans le
-                            // sens visuel : le bas de l'écran est l'index 0.
+                            compact = compact,
                             enBas = index == 0,
                             enHaut = index == parcours.lastIndex,
                             onClic = {
@@ -146,267 +181,541 @@ fun ArenasScreen(viewModel: ArenasViewModel, onBack: () -> Unit) {
                         )
                     }
                 }
-
-                GraduationNiveaux(
-                    niveauJoueur = user.level,
-                    modifier = Modifier.width(58.dp).fillMaxHeight()
-                )
             }
         }
 
-        // Repère de retour, visible seulement quand on s'est éloigné.
         AnimatedVisibility(
             visible = loinDeSaProgression,
-            enter = fadeIn(), exit = fadeOut(),
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 20.dp)
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = SankaiSpacing.Lg)
         ) {
-            Row(
-                Modifier.clip(RoundedCornerShape(20.dp))
-                    .background(c.surface3)
-                    .border(1.dp, c.accent.copy(alpha = 0.5f), RoundedCornerShape(20.dp))
-                    .clickable {
+            LiquidGlassSurface(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(SankaiRadius.Pill))
+                    .clickable(role = Role.Button) {
                         haptics.click()
                         detail = null
-                        coroutineScope.launch {
-                            val hauteur = etatListe.layoutInfo.viewportSize.height
-                            etatListe.animateScrollToItem(
-                                index = indexCourant,
-                                scrollOffset = if (hauteur > 0) -hauteur / 3 else 0
+                        scope.launch {
+                            val viewport = listState.layoutInfo.viewportSize.height
+                            listState.animateScrollToItem(
+                                indexCourant,
+                                if (viewport > 0) -viewport / 3 else 0
                             )
                         }
-                    }
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    },
+                forme = RoundedCornerShape(SankaiRadius.Pill)
             ) {
-                Icon(Icons.Filled.KeyboardArrowDown, null,
-                    tint = c.accent, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(6.dp))
-                Text("Revenir à ma progression", color = c.accent,
-                    fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Row(
+                    Modifier.padding(horizontal = SankaiSpacing.Lg, vertical = SankaiSpacing.Md),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Filled.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = c.accent,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(SankaiSpacing.Xs))
+                    Text(
+                        stringResource(R.string.arena_return_to_progress),
+                        color = c.accent,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
 
         AnimatedVisibility(
-            visible = toast.isNotBlank(),
+            visible = toastText.isNotBlank(),
+            enter = fadeIn(),
+            exit = fadeOut(),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = if (loinDeSaProgression) 78.dp else 28.dp)
+                .padding(
+                    start = SankaiSpacing.Xl,
+                    end = SankaiSpacing.Xl,
+                    bottom = if (loinDeSaProgression) 78.dp else SankaiSpacing.Xl
+                )
         ) {
-            Box(
-                Modifier.padding(horizontal = 24.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(c.accent.copy(alpha = 0.92f))
-                    .padding(horizontal = 20.dp, vertical = 14.dp)
-            ) {
-                Text(toast, color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text(
+                toastText,
+                color = Color.Black,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(SankaiRadius.Medium))
+                    .background(c.accent.copy(alpha = 0.94f))
+                    .padding(horizontal = SankaiSpacing.Lg, vertical = SankaiSpacing.Md)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ArenaHeader(
+    currentArenaName: String,
+    compact: Boolean,
+    onBack: () -> Unit
+) {
+    val c = MaterialTheme.sankaiColors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = SankaiSpacing.Sm, vertical = if (compact) SankaiSpacing.Xs else SankaiSpacing.Sm),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(R.string.action_back),
+                tint = c.textPrimary
+            )
+        }
+        Spacer(Modifier.width(SankaiSpacing.Xs))
+        Column(Modifier.weight(1f)) {
+            Text(
+                stringResource(R.string.arena_path_title),
+                color = c.textPrimary,
+                style = if (compact) MaterialTheme.typography.titleLarge
+                        else MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Black
+            )
+            Text(
+                stringResource(R.string.arena_path_subtitle, currentArenaName),
+                color = c.textSecondary,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+private fun ArenaProgressSummary(
+    niveau: Int,
+    xp: Int,
+    xpNext: Int,
+    nombreAReclamer: Int,
+    modifier: Modifier = Modifier
+) {
+    val c = MaterialTheme.sankaiColors
+    val prochaine = ArenaEngine.areneSuivante(niveau)
+    val prochainNom = prochaine?.localizedName()
+
+    LiquidGlassSurface(
+        modifier = modifier,
+        forme = RoundedCornerShape(SankaiRadius.Medium)
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(SankaiSpacing.Md),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SummaryMetric(
+                value = stringResource(R.string.arena_level, niveau),
+                label = stringResource(R.string.arena_xp_progress, xp, xpNext),
+                modifier = Modifier.weight(1f)
+            )
+            Box(Modifier.width(1.dp).height(34.dp).background(c.border))
+            SummaryMetric(
+                value = if (prochaine != null && prochainNom != null) {
+                    pluralStringResource(
+                        R.plurals.arena_levels_remaining,
+                        ArenaEngine.niveauxRestants(niveau),
+                        ArenaEngine.niveauxRestants(niveau)
+                    )
+                } else {
+                    stringResource(R.string.arena_path_complete)
+                },
+                label = prochainNom ?: stringResource(R.string.arena_summit_label),
+                modifier = Modifier.weight(1f)
+            )
+            if (nombreAReclamer > 0) {
+                Box(Modifier.width(1.dp).height(34.dp).background(c.border))
+                SummaryMetric(
+                    value = "$nombreAReclamer",
+                    label = pluralStringResource(
+                        R.plurals.arena_rewards_claimable,
+                        nombreAReclamer,
+                        nombreAReclamer
+                    ),
+                    accent = true,
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }
 }
 
 @Composable
-private fun CarteArene(
+private fun SummaryMetric(
+    value: String,
+    label: String,
+    modifier: Modifier = Modifier,
+    accent: Boolean = false
+) {
+    val c = MaterialTheme.sankaiColors
+    Column(
+        modifier = modifier.padding(horizontal = SankaiSpacing.Sm),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            value,
+            color = if (accent) c.accent else c.textPrimary,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Black,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Text(
+            label,
+            color = c.textSecondary,
+            style = MaterialTheme.typography.labelSmall,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+private fun ArenaPathItem(
     ligne: ArenasViewModel.LigneArene,
     niveauJoueur: Int,
+    compact: Boolean,
     enBas: Boolean,
     enHaut: Boolean,
     onClic: () -> Unit,
     onReclamer: () -> Unit
 ) {
+    Box(Modifier.fillMaxWidth()) {
+        ArenaPathRail(
+            ligne = ligne,
+            enBas = enBas,
+            enHaut = enHaut,
+            modifier = Modifier.matchParentSize()
+        )
+        ArenaPathCard(
+            ligne = ligne,
+            niveauJoueur = niveauJoueur,
+            compact = compact,
+            onClic = onClic,
+            onReclamer = onReclamer,
+            modifier = Modifier.fillMaxWidth().padding(start = 44.dp)
+        )
+    }
+}
+
+@Composable
+private fun ArenaPathRail(
+    ligne: ArenasViewModel.LigneArene,
+    enBas: Boolean,
+    enHaut: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val c = MaterialTheme.sankaiColors
+    val accent = couleurDepuisHex(ligne.arene.accentHex, c.accent)
+    val activeBelow = !ligne.estVerrouillee
+    val activeAbove = ligne.etat == ArenasViewModel.EtatArene.TERMINEE ||
+        ligne.etat == ArenasViewModel.EtatArene.DEBLOQUEE
+
+    Box(modifier) {
+        Column(
+            modifier = Modifier.align(Alignment.CenterStart).width(36.dp).fillMaxHeight(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                if (!enHaut) {
+                    Box(
+                        Modifier.width(3.dp).fillMaxHeight().background(
+                            if (activeAbove) accent.copy(alpha = 0.62f) else c.border
+                        )
+                    )
+                }
+            }
+            ArenaPathNode(ligne = ligne, accent = accent)
+            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                if (!enBas) {
+                    Box(
+                        Modifier.width(3.dp).fillMaxHeight().background(
+                            if (activeBelow) accent.copy(alpha = 0.62f) else c.border
+                        )
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ArenaPathNode(
+    ligne: ArenasViewModel.LigneArene,
+    accent: Color
+) {
+    val c = MaterialTheme.sankaiColors
+    val size = if (ligne.estCourante) 28.dp else 24.dp
+    val background = when {
+        ligne.estVerrouillee -> c.surface3
+        ligne.recompenseReclamee -> accent
+        else -> c.surface2
+    }
+
+    Box(
+        modifier = Modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(background)
+            .border(
+                width = if (ligne.estCourante) 3.dp else 2.dp,
+                color = if (ligne.estVerrouillee) c.border else accent,
+                shape = CircleShape
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        when {
+            ligne.estVerrouillee -> Icon(
+                Icons.Filled.Lock,
+                contentDescription = null,
+                tint = c.textDisabled,
+                modifier = Modifier.size(12.dp)
+            )
+            ligne.recompenseReclamee -> Icon(
+                Icons.Filled.Check,
+                contentDescription = null,
+                tint = Color.Black,
+                modifier = Modifier.size(14.dp)
+            )
+            ligne.estCourante -> Box(Modifier.size(9.dp).clip(CircleShape).background(accent))
+            else -> Text("!", color = accent, fontWeight = FontWeight.Black, fontSize = 12.sp)
+        }
+    }
+}
+
+@Composable
+private fun ArenaPathCard(
+    ligne: ArenasViewModel.LigneArene,
+    niveauJoueur: Int,
+    compact: Boolean,
+    onClic: () -> Unit,
+    onReclamer: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     val c = MaterialTheme.sankaiColors
     val verrouillee = ligne.estVerrouillee
-
-    // Une arène verrouillée perd sa couleur d'accent au profit d'un gris :
-    // baisser seulement l'opacité rendrait le texte illisible sur fond sombre.
     val accent = if (verrouillee) c.textDisabled
-                 else couleurDepuisHex(ligne.arene.accentHex, c.accent)
+        else couleurDepuisHex(ligne.arene.accentHex, c.accent)
+    val nom = ligne.arene.localizedName()
+    val description = ligne.arene.localizedDescription()
+    val reward = ligne.arene.recompense.localizedSummary()
+    val status = when (ligne.etat) {
+        ArenasViewModel.EtatArene.ACTUELLE -> stringResource(R.string.arena_status_current)
+        ArenasViewModel.EtatArene.TERMINEE -> stringResource(R.string.arena_status_completed)
+        ArenasViewModel.EtatArene.DEBLOQUEE -> stringResource(R.string.arena_status_unlocked)
+        ArenasViewModel.EtatArene.VERROUILLEE -> stringResource(R.string.arena_status_locked)
+    }
+    val shape = RoundedCornerShape(SankaiRadius.Large)
 
-    val transition = rememberInfiniteTransition(label = "pulse")
-    val pulse by transition.animateFloat(
-        initialValue = 0.6f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(1100), RepeatMode.Reverse),
-        label = "pulseAlpha"
+    LiquidGlassSurface(
+        modifier = modifier
+            .clip(shape)
+            .clickable(role = Role.Button, onClick = onClic),
+        forme = shape,
+        selectionne = ligne.estCourante
+    ) {
+        if (ligne.estCourante) {
+            Box(
+                Modifier.matchParentSize().background(
+                    Brush.horizontalGradient(
+                        listOf(accent.copy(alpha = 0.15f), Color.Transparent)
+                    )
+                )
+            )
+            Box(Modifier.matchParentSize().border(1.dp, accent.copy(alpha = 0.55f), shape))
+        }
+
+        Column(
+            Modifier.fillMaxWidth().padding(if (compact) SankaiSpacing.Md else SankaiSpacing.Lg)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(if (ligne.estCourante && !compact) 58.dp else 48.dp)
+                        .clip(RoundedCornerShape(SankaiRadius.Medium))
+                        .background(accent.copy(alpha = if (verrouillee) 0.08f else 0.13f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        ligne.arene.emoji,
+                        fontSize = if (ligne.estCourante && !compact) 30.sp else 25.sp,
+                        modifier = if (verrouillee) Modifier.alpha(0.42f) else Modifier
+                    )
+                }
+                Spacer(Modifier.width(SankaiSpacing.Md))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        status,
+                        color = accent,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.8.sp
+                    )
+                    Text(
+                        nom,
+                        color = if (verrouillee) c.textSecondary else c.textPrimary,
+                        style = if (ligne.estCourante && !compact) MaterialTheme.typography.titleLarge
+                                else MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Black,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        stringResource(R.string.arena_required_level, ligne.arene.niveauRequis),
+                        color = c.textSecondary,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+                when {
+                    verrouillee -> Icon(
+                        Icons.Filled.Lock,
+                        contentDescription = null,
+                        tint = c.textDisabled,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    ligne.recompenseReclamee -> Icon(
+                        Icons.Filled.Check,
+                        contentDescription = null,
+                        tint = accent,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(SankaiSpacing.Md))
+            Text(
+                if (verrouillee) {
+                    pluralStringResource(
+                        R.plurals.arena_levels_remaining,
+                        (ligne.arene.niveauRequis - niveauJoueur).coerceAtLeast(0),
+                        (ligne.arene.niveauRequis - niveauJoueur).coerceAtLeast(0)
+                    )
+                } else {
+                    description
+                },
+                color = c.textSecondary,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = if (compact) 2 else 3,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            if (ligne.estCourante) {
+                Spacer(Modifier.height(SankaiSpacing.Md))
+                CurrentArenaProgress(niveau = niveauJoueur, accent = accent)
+            }
+
+            Spacer(Modifier.height(SankaiSpacing.Md))
+            RewardPreview(
+                reward = reward,
+                accent = accent,
+                locked = verrouillee
+            )
+
+            if (ligne.recompenseDisponible) {
+                Spacer(Modifier.height(SankaiSpacing.Md))
+                SankaiButton(
+                    text = stringResource(R.string.arena_claim),
+                    onClick = onReclamer,
+                    small = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CurrentArenaProgress(niveau: Int, accent: Color) {
+    val c = MaterialTheme.sankaiColors
+    val suivante = ArenaEngine.areneSuivante(niveau)
+    val suivanteNom = suivante?.localizedName()
+    val progression = ArenaEngine.progressionVersSuivante(niveau).coerceIn(0f, 1f)
+
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(
+            stringResource(R.string.arena_level, niveau),
+            color = c.textSecondary,
+            style = MaterialTheme.typography.labelSmall
+        )
+        Text(
+            if (suivante != null && suivanteNom != null) {
+                stringResource(R.string.arena_next_goal, suivante.niveauRequis, suivanteNom)
+            } else {
+                stringResource(R.string.arena_path_complete)
+            },
+            color = accent,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+    Spacer(Modifier.height(SankaiSpacing.Xs))
+    LinearProgressIndicator(
+        progress = { progression },
+        modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(SankaiRadius.Pill)),
+        color = accent,
+        trackColor = c.surface3
     )
-
-    Row(verticalAlignment = Alignment.Top) {
-
-        // Chemin vertical. Le segment vers le haut mène à l'arène suivante :
-        // il reste éteint tant qu'elle n'est pas atteinte.
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.width(28.dp).height(IntrinsicSize.Min)
-        ) {
-            SegmentChemin(
-                hauteur = if (enHaut) 0.dp else 14.dp,
-                actif = !verrouillee && ligne.etat == ArenasViewModel.EtatArene.TERMINEE
-            )
-            Box(
-                Modifier.size(if (ligne.estCourante) 18.dp else 14.dp)
-                    .clip(CircleShape)
-                    .background(if (verrouillee) c.surface3 else accent)
-                    .then(
-                        if (ligne.estCourante)
-                            Modifier.border(2.dp, accent.copy(alpha = 0.4f), CircleShape)
-                        else Modifier
-                    )
-            )
-            if (!enBas) {
-                SegmentChemin(hauteur = null, actif = !verrouillee)
-            }
-        }
-
-        Spacer(Modifier.width(8.dp))
-
-        Box(
-            Modifier
-                .weight(1f)
-                .clip(RoundedCornerShape(16.dp))
-                .background(
-                    when {
-                        ligne.estCourante -> accent.copy(alpha = 0.12f)
-                        verrouillee -> c.surface1
-                        else -> c.surface2
-                    }
-                )
-                .border(
-                    width = if (ligne.estCourante) 2.dp else 1.dp,
-                    color = when {
-                        ligne.estCourante -> accent
-                        verrouillee -> c.border
-                        else -> accent.copy(alpha = 0.3f)
-                    },
-                    shape = RoundedCornerShape(16.dp)
-                )
-                .clickable { onClic() }
-                .padding(14.dp)
-        ) {
-            Column {
-                if (ligne.estCourante) {
-                    Text(
-                        "VOUS ÊTES ICI", color = accent, fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp
-                    )
-                    Spacer(Modifier.height(6.dp))
-                }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        ligne.arene.emoji, fontSize = 26.sp,
-                        // L'emoji d'une arène verrouillée reste visible mais
-                        // atténué : la masquer supprimerait l'envie d'y aller.
-                        modifier = if (verrouillee) Modifier.alpha(0.45f) else Modifier
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            ligne.arene.nom,
-                            color = if (verrouillee) c.textSecondary else c.textPrimary,
-                            fontSize = 15.sp, fontWeight = FontWeight.Bold
-                        )
-                        Text("Niveau ${ligne.arene.niveauRequis}",
-                            color = c.textSecondary, fontSize = 11.sp)
-                    }
-                    when {
-                        verrouillee -> Icon(Icons.Filled.Lock, "Verrouillée",
-                            tint = c.textDisabled, modifier = Modifier.size(18.dp))
-                        ligne.recompenseReclamee -> Icon(Icons.Filled.Check, "Terminée",
-                            tint = accent, modifier = Modifier.size(20.dp))
-                    }
-                }
-
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    if (verrouillee)
-                        "Encore ${(ligne.arene.niveauRequis - niveauJoueur).coerceAtLeast(0)} niveaux"
-                    else ligne.arene.description,
-                    color = c.textSecondary, fontSize = 12.sp
-                )
-
-                Spacer(Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (verrouillee) {
-                        Icon(Icons.Filled.Lock, null,
-                            tint = c.textDisabled, modifier = Modifier.size(12.dp))
-                        Spacer(Modifier.width(4.dp))
-                    }
-                    Text(
-                        ligne.arene.recompense.resume(),
-                        color = if (verrouillee) c.textDisabled else accent,
-                        fontSize = 12.sp, fontWeight = FontWeight.Medium
-                    )
-                }
-
-                if (ligne.recompenseDisponible) {
-                    Spacer(Modifier.height(10.dp))
-                    Box(Modifier.alpha(pulse)) {
-                        SankaiButton("Réclamer", onClick = onReclamer,
-                            small = true, modifier = Modifier.fillMaxWidth())
-                    }
-                }
-            }
-        }
-    }
 }
 
-/** Segment du chemin. [hauteur] null signifie « occupe l'espace restant ». */
 @Composable
-private fun ColumnScope.SegmentChemin(hauteur: androidx.compose.ui.unit.Dp?, actif: Boolean) {
+private fun RewardPreview(
+    reward: String,
+    accent: Color,
+    locked: Boolean
+) {
     val c = MaterialTheme.sankaiColors
-    val couleur = if (actif) c.accent.copy(alpha = 0.55f) else c.border
-    if (hauteur != null) {
-        Box(Modifier.width(2.dp).height(hauteur).background(couleur))
-    } else {
-        Box(Modifier.width(2.dp).weight(1f).background(couleur))
-    }
-}
-
-/**
- * Graduation des niveaux : le plus bas en bas, le sommet en haut, comme le
- * parcours qu'elle accompagne.
- */
-@Composable
-private fun GraduationNiveaux(niveauJoueur: Int, modifier: Modifier = Modifier) {
-    val c = MaterialTheme.sankaiColors
-    val maximum = ArenaEngine.niveauMaximum
-    val ratio = (niveauJoueur.toFloat() / maximum).coerceIn(0f, 1f)
-
-    Box(modifier.padding(vertical = 24.dp, horizontal = 6.dp)) {
-        // Repères d'arènes, positionnés proportionnellement à leur niveau.
-        Column(
-            Modifier.fillMaxHeight(),
-            verticalArrangement = Arrangement.SpaceBetween,
-            horizontalAlignment = Alignment.End
-        ) {
-            ALL_ARENAS.reversed().forEach { arene ->
-                Text(
-                    "${arene.niveauRequis}",
-                    color = if (niveauJoueur >= arene.niveauRequis) c.accent else c.textDisabled,
-                    fontSize = 9.sp,
-                    fontWeight = if (niveauJoueur >= arene.niveauRequis)
-                        FontWeight.Bold else FontWeight.Normal
-                )
-            }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(SankaiRadius.Medium))
+            .background(accent.copy(alpha = if (locked) 0.05f else 0.09f))
+            .padding(SankaiSpacing.Md),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (locked) {
+            Icon(
+                Icons.Filled.Lock,
+                contentDescription = null,
+                tint = c.textDisabled,
+                modifier = Modifier.size(15.dp)
+            )
+        } else {
+            Text("✦", color = accent, fontSize = 17.sp, fontWeight = FontWeight.Black)
         }
-
-        // Barre de progression, remplie depuis le bas.
-        Box(
-            Modifier.align(Alignment.CenterStart)
-                .width(5.dp).fillMaxHeight()
-                .clip(RoundedCornerShape(3.dp)).background(c.surface3),
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            Box(
-                Modifier.fillMaxWidth().fillMaxHeight(ratio)
-                    .clip(RoundedCornerShape(3.dp)).background(c.accent)
+        Spacer(Modifier.width(SankaiSpacing.Sm))
+        Column(Modifier.weight(1f)) {
+            Text(
+                stringResource(R.string.arena_reward_title),
+                color = if (locked) c.textDisabled else c.textSecondary,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                reward,
+                color = if (locked) c.textDisabled else accent,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
 }
 
-/**
- * Carte de résumé, utilisée par l'Accueil et le Profil.
- * Donne l'arène actuelle et la prochaine récompense sans ouvrir le parcours.
- */
+/** Carte compacte utilisée par le profil. */
 @Composable
 fun CarteResumeArene(
     niveau: Int,
@@ -416,70 +725,106 @@ fun CarteResumeArene(
     val c = MaterialTheme.sankaiColors
     val actuelle: Arena = ArenaEngine.areneActuelle(niveau)
     val suivante = ArenaEngine.areneSuivante(niveau)
+    val nomActuel = actuelle.localizedName()
+    val nomSuivant = suivante?.localizedName()
     val accent = couleurDepuisHex(actuelle.accentHex, c.accent)
-    val progression = ArenaEngine.progressionVersSuivante(niveau)
+    val progression = ArenaEngine.progressionVersSuivante(niveau).coerceIn(0f, 1f)
+    val shape = RoundedCornerShape(SankaiRadius.Large)
 
-    // Toute la carte est cliquable, pas seulement le bouton : c'est la cible
-    // principale de l'accueil, elle doit être facile à atteindre au pouce.
-    Box(
-        Modifier.fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(accent.copy(alpha = 0.10f))
-            .border(1.dp, accent.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
-            .clickable { onVoirParcours() }
-            .padding(16.dp)
+    LiquidGlassSurface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .clickable(role = Role.Button, onClick = onVoirParcours),
+        forme = shape,
+        selectionne = true
     ) {
-        Column {
+        Box(
+            Modifier.matchParentSize().background(
+                Brush.horizontalGradient(listOf(accent.copy(alpha = 0.12f), Color.Transparent))
+            )
+        )
+        Column(Modifier.fillMaxWidth().padding(SankaiSpacing.Lg)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(actuelle.emoji, fontSize = 32.sp)
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(SankaiSpacing.Md))
                 Column(Modifier.weight(1f)) {
-                    Text("ARÈNE ACTUELLE", color = c.textSecondary, fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp)
-                    Text(actuelle.nom, color = c.textPrimary,
-                        fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                    Text("Niveau $niveau", color = c.textSecondary, fontSize = 12.sp)
+                    Text(
+                        stringResource(R.string.arena_current_label),
+                        color = accent,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.8.sp
+                    )
+                    Text(
+                        nomActuel,
+                        color = c.textPrimary,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Black,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
                 if (nombreAReclamer > 0) {
                     Badge(containerColor = MaterialTheme.colorScheme.error) {
-                        Text("$nombreAReclamer", fontSize = 10.sp)
+                        Text("$nombreAReclamer", color = MaterialTheme.colorScheme.onError)
                     }
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(SankaiSpacing.Md))
             LinearProgressIndicator(
                 progress = { progression },
-                modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(SankaiRadius.Pill)),
                 color = accent,
                 trackColor = c.surface3
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(SankaiSpacing.Sm))
 
-            if (suivante != null) {
+            if (suivante != null && nomSuivant != null) {
                 Text(
-                    "Prochaine : ${suivante.emoji} ${suivante.nom} " +
-                    "— encore ${ArenaEngine.niveauxRestants(niveau)} niveaux",
-                    color = c.textSecondary, fontSize = 12.sp
+                    stringResource(R.string.arena_next_summary, suivante.emoji, nomSuivant),
+                    color = c.textSecondary,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
-                Text("Récompense : ${suivante.recompense.resume()}",
-                    color = accent, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                Text(
+                    suivante.recompense.localizedSummary(),
+                    color = accent,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             } else {
-                Text("Sommet atteint. Le parcours n'a plus de plafond.",
-                    color = accent, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                Text(
+                    stringResource(R.string.arena_path_complete),
+                    color = accent,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold
+                )
             }
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(SankaiSpacing.Md))
             Text(
-                if (nombreAReclamer > 0) "Voir le parcours • $nombreAReclamer à réclamer"
-                else "Voir le parcours",
-                color = accent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold
+                if (nombreAReclamer > 0) {
+                    pluralStringResource(
+                        R.plurals.arena_view_path_claimable,
+                        nombreAReclamer,
+                        nombreAReclamer
+                    )
+                } else {
+                    stringResource(R.string.arena_view_path)
+                },
+                color = accent,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold
             )
         }
     }
 }
 
-/** Détail d'une arène, ouvert au clic. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FeuilleDetailArene(
@@ -491,71 +836,97 @@ private fun FeuilleDetailArene(
     val c = MaterialTheme.sankaiColors
     val verrouillee = ligne.estVerrouillee
     val accent = if (verrouillee) c.textDisabled
-                 else couleurDepuisHex(ligne.arene.accentHex, c.accent)
+        else couleurDepuisHex(ligne.arene.accentHex, c.accent)
+    val nom = ligne.arene.localizedName()
+    val description = ligne.arene.localizedDescription()
+    val reward = ligne.arene.recompense.localizedSummary()
+    val status = when (ligne.etat) {
+        ArenasViewModel.EtatArene.ACTUELLE -> stringResource(R.string.arena_status_current)
+        ArenasViewModel.EtatArene.TERMINEE -> stringResource(R.string.arena_status_completed)
+        ArenasViewModel.EtatArene.DEBLOQUEE -> stringResource(R.string.arena_status_unlocked)
+        ArenasViewModel.EtatArene.VERROUILLEE -> stringResource(R.string.arena_status_locked)
+    }
 
-    ModalBottomSheet(onDismissRequest = onFermer, containerColor = c.surface1) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 32.dp)) {
+    ModalBottomSheet(
+        onDismissRequest = onFermer,
+        containerColor = c.surface1,
+        contentColor = c.textPrimary
+    ) {
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = SankaiSpacing.Xl).padding(bottom = SankaiSpacing.Xxl)
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(ligne.arene.emoji, fontSize = 40.sp)
-                Spacer(Modifier.width(14.dp))
-                Column {
-                    Text(ligne.arene.nom, color = c.textPrimary,
-                        fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Box(
+                    Modifier
+                        .size(62.dp)
+                        .clip(RoundedCornerShape(SankaiRadius.Medium))
+                        .background(accent.copy(alpha = 0.13f)),
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(
-                        when (ligne.etat) {
-                            ArenasViewModel.EtatArene.ACTUELLE -> "Arène actuelle"
-                            ArenasViewModel.EtatArene.TERMINEE -> "Terminée"
-                            ArenasViewModel.EtatArene.DEBLOQUEE -> "Débloquée"
-                            ArenasViewModel.EtatArene.VERROUILLEE -> "Verrouillée"
-                        },
-                        color = accent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold
+                        ligne.arene.emoji,
+                        fontSize = 34.sp,
+                        modifier = if (verrouillee) Modifier.alpha(0.42f) else Modifier
+                    )
+                }
+                Spacer(Modifier.width(SankaiSpacing.Lg))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        nom,
+                        color = c.textPrimary,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Black
+                    )
+                    Text(
+                        status,
+                        color = accent,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
-            Text(ligne.arene.description, color = c.textSecondary, fontSize = 14.sp)
+            Spacer(Modifier.height(SankaiSpacing.Lg))
+            Text(description, color = c.textSecondary, style = MaterialTheme.typography.bodyMedium)
 
-            Spacer(Modifier.height(16.dp))
-            Text("Niveau requis : ${ligne.arene.niveauRequis}",
-                color = c.textPrimary, fontSize = 13.sp)
-            if (verrouillee) {
+            Spacer(Modifier.height(SankaiSpacing.Lg))
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 Text(
-                    "Niveau actuel : $niveauJoueur — encore " +
-                    "${(ligne.arene.niveauRequis - niveauJoueur).coerceAtLeast(0)} niveaux",
-                    color = c.textSecondary, fontSize = 13.sp
+                    stringResource(R.string.arena_required_level, ligne.arene.niveauRequis),
+                    color = c.textPrimary,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    stringResource(R.string.arena_your_level, niveauJoueur),
+                    color = c.textSecondary,
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
 
-            Spacer(Modifier.height(16.dp))
-            Text("Récompenses", color = c.textSecondary, fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp)
-            Spacer(Modifier.height(6.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (verrouillee) {
-                    Icon(Icons.Filled.Lock, null,
-                        tint = c.textDisabled, modifier = Modifier.size(14.dp))
-                    Spacer(Modifier.width(6.dp))
-                }
-                Text(
-                    ligne.arene.recompense.resume(),
-                    color = if (verrouillee) c.textDisabled else accent,
-                    fontSize = 14.sp, fontWeight = FontWeight.Medium
-                )
-            }
+            Spacer(Modifier.height(SankaiSpacing.Lg))
+            RewardPreview(reward = reward, accent = accent, locked = verrouillee)
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(SankaiSpacing.Xl))
             when {
-                ligne.recompenseDisponible ->
-                    SankaiButton("Réclamer la récompense", onClick = onReclamer,
-                        modifier = Modifier.fillMaxWidth())
-                ligne.recompenseReclamee ->
-                    Text("Récompense déjà récupérée", color = c.textSecondary, fontSize = 13.sp)
-                // Aucun bouton pour une arène verrouillée : proposer une action
-                // impossible est plus frustrant que de ne rien proposer.
-                else ->
-                    Text("Atteins le niveau ${ligne.arene.niveauRequis} pour débloquer cette arène.",
-                        color = c.textSecondary, fontSize = 13.sp)
+                ligne.recompenseDisponible -> SankaiButton(
+                    text = stringResource(R.string.arena_claim_reward),
+                    onClick = onReclamer,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                ligne.recompenseReclamee -> Text(
+                    stringResource(R.string.arena_reward_collected),
+                    color = c.textSecondary,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                verrouillee -> Text(
+                    stringResource(R.string.arena_unlock_hint, ligne.arene.niveauRequis),
+                    color = c.textSecondary,
+                    style = MaterialTheme.typography.bodyMedium
+                )
             }
         }
     }

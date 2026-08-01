@@ -75,6 +75,20 @@ class ErreursEngineTest {
     }
 
     @Test
+    fun `une carte critique apres deux cents candidates reste prioritaire`() {
+        // Régression du pré-tri SQL historique : LIMIT 200 pouvait supprimer la
+        // meilleure carte avant que le moteur ne calcule sa vraie priorité.
+        val candidates = (1L..250L).map {
+            carte(id = it, boite = 1, revisions = 100, reussites = 50)
+        }
+        val critique = carte(id = 999, boite = 0, revisions = 3, reussites = 0)
+
+        val choisies = ErreursEngine.selectionner(candidates + critique)
+
+        assertEquals(critique.id, choisies.first().id)
+    }
+
+    @Test
     fun `une liste sans difficulte ne renvoie rien`() {
         val faciles = (1..20).map { carte(id = it.toLong(), revisions = 10, reussites = 10) }
         assertTrue(ErreursEngine.selectionner(faciles).isEmpty())

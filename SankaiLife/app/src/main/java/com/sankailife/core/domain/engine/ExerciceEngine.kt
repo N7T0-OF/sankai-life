@@ -104,9 +104,15 @@ object ExerciceEngine {
             }
         }
 
-        val leurres = autres.mapNotNull { it.verso }
+        // L'appelant peut fournir un réservoir multi-module (notamment dans
+        // « Mes erreurs »). L'invariant pédagogique est défendu ici aussi : un
+        // leurre d'un autre sujet rendrait souvent la bonne réponse évidente.
+        val leurres = autres.asSequence()
+            .filter { it.moduleId == carte.moduleId }
+            .mapNotNull { it.verso }
             .filter { it.isNotBlank() && !memeReponse(it, verso) }
             .distinct()
+            .toList()
             .shuffled(aleatoire)
             .take(LEURRES)
 

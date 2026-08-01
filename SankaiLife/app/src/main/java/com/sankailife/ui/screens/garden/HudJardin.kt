@@ -28,10 +28,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.sankailife.core.garden.domain.ArrosoirEngine
 import com.sankailife.core.domain.engine.DeblocageEngine
 import com.sankailife.core.garden.domain.ConseilEngine
 import com.sankailife.core.garden.domain.MimoMondeEngine
@@ -74,7 +75,7 @@ fun BoutonsFlottants(
         // Sans lui, reposer un outil demanderait de rouvrir le sac.
         AnimatedVisibility(
             visible = outilTenu != null,
-            modifier = Modifier.align(Alignment.TopCenter)
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = 54.dp)
         ) {
             outilTenu?.let { o ->
                 Row(
@@ -85,10 +86,14 @@ fun BoutonsFlottants(
                         .padding(horizontal = 14.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("${o.emoji}  ${o.libelle}", color = AccentCyan, fontSize = 12.sp,
+                    Text("${o.emoji}  ${nomOutil(o)}", color = AccentCyan, fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.width(10.dp))
-                    Text("✕ reposer", color = c_textDoux(), fontSize = 11.sp)
+                    Text(
+                        "✕ ${stringResource(R.string.garden_tool_put_down)}",
+                        color = c_textDoux(),
+                        fontSize = 11.sp
+                    )
                 }
             }
         }
@@ -112,9 +117,19 @@ fun BoutonsFlottants(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             if (conseil != null) {
-                BulleFlottante(conseil.type.emoji, AccentGold, onConseil)
+                BulleFlottante(
+                    "💡",
+                    AccentGold,
+                    stringResource(R.string.garden_action_advice),
+                    onConseil
+                )
             }
-            BulleFlottante("⌖", null, onRecentrer)
+            BulleFlottante(
+                "⌖",
+                null,
+                stringResource(R.string.garden_action_recenter),
+                onRecentrer
+            )
         }
 
         Column(
@@ -129,11 +144,20 @@ fun BoutonsFlottants(
                 BulleFlottante(
                     if (caisses > 0) "📦" else "🧺",
                     SuccessGreen,
+                    stringResource(
+                        if (caisses > 0) R.string.garden_action_store_crates
+                        else R.string.garden_action_harvest_all
+                    ),
                     onActionPrincipale,
                     badge = if (caisses > 0) caisses else pretes
                 )
             }
-            BulleFlottante("🎒", null, onSac)
+            BulleFlottante(
+                "🎒",
+                null,
+                stringResource(R.string.garden_action_open_bag),
+                onSac
+            )
         }
     }
 }
@@ -154,6 +178,7 @@ private fun c_textDoux() = MaterialTheme.sankaiColors.textSecondary
 private fun BulleFlottante(
     symbole: String,
     teinte: Color?,
+    description: String,
     onClic: () -> Unit,
     badge: Int = 0
 ) {
@@ -175,6 +200,7 @@ private fun BulleFlottante(
                     (teinte ?: c.border).copy(alpha = if (teinte != null) 0.55f else 0.35f),
                     CircleShape
                 )
+                .semantics { contentDescription = description }
                 .clickable { onClic() },
             contentAlignment = Alignment.Center
         ) {
@@ -227,36 +253,123 @@ private fun CapsuleApprentissage(
     ) {
         Text("📚", fontSize = 16.sp)
         Spacer(Modifier.width(8.dp))
-        Text("Réviser", color = AccentCyan, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        Text(
+            stringResource(R.string.garden_review),
+            color = AccentCyan,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold
+        )
         Spacer(Modifier.width(6.dp))
-        Text("$cartes cartes", color = MaterialTheme.sankaiColors.textSecondary, fontSize = 11.sp)
+        Text(
+            stringResource(R.string.garden_cards_count, cartes),
+            color = MaterialTheme.sankaiColors.textSecondary,
+            fontSize = 11.sp
+        )
     }
 }
 
-/** Le conseil du moment, déplié. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FeuilleConseil(
+private fun nomOutil(outil: OutilJardin): String = when (outil) {
+    OutilJardin.Arrosoir -> stringResource(R.string.garden_tool_watering_can)
+    OutilJardin.Panier -> stringResource(R.string.garden_tool_basket)
+    OutilJardin.Pioche -> stringResource(R.string.garden_tool_pickaxe)
+    is OutilJardin.Graine -> outil.seed.nom
+}
+
+/** Le conseil du moment, déplié sans masquer le terrain. */
+@Composable
+fun MiniConseil(
     conseil: ConseilEngine.Conseil,
+    cartesDues: Int,
+    pretes: Int,
+    parcellesSeches: Int,
+    valeurStock: Int,
+    modifier: Modifier = Modifier,
     onAgir: () -> Unit,
     onFermer: () -> Unit
 ) {
     val c = MaterialTheme.sankaiColors
+    val fermerDescription = stringResource(R.string.garden_advice_close)
+    val texte = when (conseil.type) {
+        ConseilEngine.Type.DEPOT_PLEIN ->
+            stringResource(R.string.garden_advice_depot_full)
+        ConseilEngine.Type.CARTES_DUES ->
+            stringResource(R.string.garden_advice_cards_due, cartesDues)
+        ConseilEngine.Type.PLUS_D_EAU ->
+            stringResource(R.string.garden_advice_no_water)
+        ConseilEngine.Type.RECOLTE_PRETE ->
+            stringResource(R.string.garden_advice_harvest_ready, pretes)
+        ConseilEngine.Type.PARCELLES_SECHES ->
+            stringResource(R.string.garden_advice_dry_plots, parcellesSeches)
+        ConseilEngine.Type.STOCK_VENDABLE ->
+            stringResource(R.string.garden_advice_stock_value, valeurStock)
+        ConseilEngine.Type.PLUIE_ATTENDUE ->
+            stringResource(R.string.garden_advice_rain)
+        ConseilEngine.Type.MIMOS_AFFAMES ->
+            stringResource(R.string.garden_advice_mimos_hungry)
+    }
+    val action = when (conseil.type) {
+        ConseilEngine.Type.DEPOT_PLEIN -> R.string.garden_advice_action_store
+        ConseilEngine.Type.CARTES_DUES,
+        ConseilEngine.Type.PLUS_D_EAU -> R.string.garden_review
+        ConseilEngine.Type.RECOLTE_PRETE -> R.string.garden_action_harvest
+        ConseilEngine.Type.STOCK_VENDABLE -> R.string.garden_advice_action_sell
+        else -> null
+    }
 
-    ModalBottomSheet(onDismissRequest = onFermer, containerColor = c.surface1) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 22.dp).padding(bottom = 30.dp)) {
+    Column(
+        modifier
+            .widthIn(max = 310.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color(0xFF101A14).copy(alpha = 0.94f))
+            .border(1.dp, AccentGold.copy(alpha = 0.42f), RoundedCornerShape(18.dp))
+            .padding(14.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("💡", fontSize = 20.sp)
+            Spacer(Modifier.width(8.dp))
+            Text(
+                stringResource(R.string.garden_advice_title),
+                color = c.textPrimary,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.weight(1f))
+            Text(
+                "✕",
+                color = c.textSecondary,
+                fontSize = 16.sp,
+                modifier = Modifier
+                    .size(36.dp)
+                    .semantics { contentDescription = fermerDescription }
+                    .clickable { onFermer() }
+                    .wrapContentSize(Alignment.Center)
+            )
+        }
+        Spacer(Modifier.height(6.dp))
+        Row(verticalAlignment = Alignment.Top) {
+            Text(conseil.type.emoji, fontSize = 18.sp)
+            Spacer(Modifier.width(8.dp))
+            Text(texte, color = c.textSecondary, fontSize = 13.sp, modifier = Modifier.weight(1f))
+        }
+
+        action?.let { libelle ->
+            Spacer(Modifier.height(10.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(conseil.type.emoji, fontSize = 26.sp)
-                Spacer(Modifier.width(12.dp))
-                Text("Conseil", color = c.textPrimary, fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold)
-            }
-            Spacer(Modifier.height(12.dp))
-            Text(conseil.texte, color = c.textSecondary, fontSize = 14.sp)
-
-            conseil.action?.let { libelle ->
-                Spacer(Modifier.height(18.dp))
-                SankaiButton(libelle, onClick = onAgir, modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.weight(1f))
+                Box(
+                    Modifier.clip(RoundedCornerShape(12.dp))
+                        .background(AccentGold.copy(alpha = 0.18f))
+                        .clickable { onAgir() }
+                        .padding(horizontal = 14.dp, vertical = 9.dp)
+                ) {
+                    Text(
+                        stringResource(libelle),
+                        color = AccentGold,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     }
@@ -288,7 +401,12 @@ fun FeuilleSac(
 ) {
     val c = MaterialTheme.sankaiColors
     var onglet by remember { mutableStateOf(0) }
-    val onglets = listOf("Outils", "Graines", "Récoltes", "Ressources")
+    val onglets = listOf(
+        stringResource(R.string.garden_bag_tools),
+        stringResource(R.string.garden_bag_seeds),
+        stringResource(R.string.garden_bag_harvests),
+        stringResource(R.string.garden_bag_resources)
+    )
 
     ModalBottomSheet(onDismissRequest = onFermer, containerColor = c.surface1) {
         Column(
@@ -336,22 +454,25 @@ fun FeuilleSac(
                     0 -> {
                         LigneSac(
                             art = ArtJardin.outil(OutilJardin.Arrosoir),
-                            titre = ArrosoirEngine.libelle(niveauArrosoir),
-                            detail = "$eau unités d'eau disponibles",
+                            titre = stringResource(
+                                R.string.garden_tool_watering_can_level,
+                                niveauArrosoir
+                            ),
+                            detail = stringResource(R.string.garden_bag_water_available, eau),
                             actif = outilTenu == OutilJardin.Arrosoir
                         ) { onChoisir(OutilJardin.Arrosoir) }
 
                         LigneSac(
                             art = ArtJardin.outil(OutilJardin.Panier),
-                            titre = "Panier",
-                            detail = "Récolter les plantes mûres",
+                            titre = stringResource(R.string.garden_tool_basket),
+                            detail = stringResource(R.string.garden_tool_basket_detail),
                             actif = outilTenu == OutilJardin.Panier
                         ) { onChoisir(OutilJardin.Panier) }
 
                         LigneSac(
                             art = ArtJardin.outil(OutilJardin.Pioche),
-                            titre = "Pioche",
-                            detail = "Dégager les parcelles encombrées",
+                            titre = stringResource(R.string.garden_tool_pickaxe),
+                            detail = stringResource(R.string.garden_tool_pickaxe_detail),
                             actif = outilTenu == OutilJardin.Pioche
                         ) { onChoisir(OutilJardin.Pioche) }
                     }
@@ -363,14 +484,17 @@ fun FeuilleSac(
                         // boutique.
                         val semables = graines.filter { pieces >= it.prixPieces }
                         if (semables.isEmpty()) {
-                            TexteVide("Aucune graine abordable. Vends ta récolte au dépôt.")
+                            TexteVide(stringResource(R.string.garden_bag_no_affordable_seed))
                         } else {
                             semables.forEach { graine ->
                                 val g = OutilJardin.Graine(graine)
                                 LigneSac(
                                     emoji = graine.emoji,
                                     titre = graine.nom,
-                                    detail = "${graine.prixPieces} 🪙 • ${graine.besoinEau.libelle}",
+                                    detail = stringResource(
+                                        R.string.garden_bag_seed_cost,
+                                        graine.prixPieces
+                                    ),
                                     actif = outilTenu is OutilJardin.Graine &&
                                         outilTenu.seed.id == graine.id
                                 ) { onChoisir(g) }
@@ -380,13 +504,16 @@ fun FeuilleSac(
 
                     2 -> {
                         if (stock.isEmpty()) {
-                            TexteVide("Ton dépôt est vide. Récolte, puis range les caisses.")
+                            TexteVide(stringResource(R.string.garden_bag_empty_stock))
                         } else {
                             stock.forEach { ligne ->
                                 LigneSac(
                                     emoji = ligne.graine.emoji,
                                     titre = "${ligne.graine.nom} × ${ligne.quantite}",
-                                    detail = "${ligne.qualite.libelle} • ${ligne.total} 🪙",
+                                    detail = stringResource(
+                                        R.string.garden_bag_stock_value,
+                                        ligne.total
+                                    ),
                                     actif = false
                                 ) { onOuvrirDepot() }
                             }
@@ -397,24 +524,29 @@ fun FeuilleSac(
                         // Une ressource à zéro n'encombre pas la liste.
                         if (eau > 0) {
                             LigneSac(
-                                art = ArtJardin.eau, titre = "Eau",
-                                detail = "$eau unités", actif = false
+                                art = ArtJardin.eau,
+                                titre = stringResource(R.string.garden_resource_water),
+                                detail = stringResource(R.string.garden_bag_units, eau),
+                                actif = false
                             ) {}
                         }
                         if (compost > 0) {
                             LigneSac(
-                                art = ArtJardin.compost, titre = "Compost",
-                                detail = "$compost sacs", actif = false
+                                art = ArtJardin.compost,
+                                titre = stringResource(R.string.garden_resource_compost),
+                                detail = stringResource(R.string.garden_bag_sacks, compost),
+                                actif = false
                             ) { onOuvrirMimos() }
                         }
                         if (pieces > 0) {
                             LigneSac(
-                                art = ArtJardin.piece, titre = "Pièces",
+                                art = ArtJardin.piece,
+                                titre = stringResource(R.string.garden_resource_coins),
                                 detail = "$pieces", actif = false
                             ) {}
                         }
                         if (eau == 0 && compost == 0 && pieces == 0) {
-                            TexteVide("Rien en réserve. Une révision produit de l'eau.")
+                            TexteVide(stringResource(R.string.garden_bag_empty_resources))
                         }
                     }
                 }
@@ -437,8 +569,10 @@ fun FeuilleSac(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(Modifier.weight(1f)) {
                     SankaiButton(
-                        if (verrouDepot != null) "🔒  Niv. ${verrouDepot.fonction.niveauRequis}"
-                        else "🏪  Dépôt",
+                        if (verrouDepot != null) stringResource(
+                            R.string.garden_locked_level,
+                            verrouDepot.fonction.niveauRequis
+                        ) else stringResource(R.string.garden_depot),
                         onClick = onOuvrirDepot,
                         enabled = verrouDepot == null,
                         modifier = Modifier.fillMaxWidth()
@@ -446,8 +580,10 @@ fun FeuilleSac(
                 }
                 Box(Modifier.weight(1f)) {
                     SankaiButton(
-                        if (verrouMimos != null) "🔒  Niv. ${verrouMimos.fonction.niveauRequis}"
-                        else "🏡  Mimos",
+                        if (verrouMimos != null) stringResource(
+                            R.string.garden_locked_level,
+                            verrouMimos.fonction.niveauRequis
+                        ) else stringResource(R.string.garden_mimos),
                         onClick = onOuvrirMimos,
                         enabled = verrouMimos == null,
                         modifier = Modifier.fillMaxWidth()

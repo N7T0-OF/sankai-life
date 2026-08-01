@@ -3,20 +3,31 @@ package com.sankailife.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // ── DARK AMOLED ──────────────────────────────────────────────────
-val Background      = Color(0xFF080808)
-val Surface1        = Color(0xFF111111)
-val Surface2        = Color(0xFF1A1A1A)
-val Surface3        = Color(0xFF222222)
-val BorderColor     = Color(0xFF2A2A2A)
+// Bleu nuit plutôt que noir pur : les écrans gardent un contraste AMOLED
+// élevé, mais partagent désormais la profondeur visuelle d'un hub de jeu.
+val Background      = Color(0xFF061521)
+val Surface1        = Color(0xFF0B2234)
+val Surface2        = Color(0xFF12334A)
+val Surface3        = Color(0xFF1B4560)
+val BorderColor     = Color(0xFF2D5D76)
 
-val TextPrimary     = Color(0xFFF2F2F2)
-val TextSecondary   = Color(0xFF888888)
-val TextDisabled    = Color(0xFF3A3A3A)
+val TextPrimary     = Color(0xFFF5F8FC)
+val TextSecondary   = Color(0xFFABC1D2)
+val TextDisabled    = Color(0xFF587184)
 
 // Accents
 val AccentGold      = Color(0xFFF5A623)
 val AccentViolet    = Color(0xFF7B6CF6)
 val AccentCyan      = Color(0xFF22D3EE)
+
+// Intentions propres au jeu. Elles évitent que chaque écran invente son bleu,
+// son vert d'action ou son or de récompense.
+val GameNavyTop     = Color(0xFF0B2A44)
+val GameNavyBottom  = Color(0xFF04111C)
+val GameBlue        = Color(0xFF2A8FD5)
+val GardenGreen     = Color(0xFF55B85A)
+val RewardGold      = Color(0xFFFFC247)
+val RewardGoldDark  = Color(0xFFB86708)
 
 // Status
 val SuccessGreen    = Color(0xFF4ADE80)

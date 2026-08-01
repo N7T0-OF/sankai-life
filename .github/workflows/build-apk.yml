@@ -13,16 +13,11 @@ on:
 permissions:
   contents: write
 
-# Publier main et son tag envoie deux fois le même commit, à une seconde
-# d'intervalle. Les deux exécutions partagent alors le cache Gradle et
-# s'écrivent dessus : le 1er août 2026, le même commit a réussi côté tag et
-# échoué côté main, à l'étape des tests, sans qu'aucun test ne soit en cause
-# (suite rejouée trois fois en local, 267 tests verts à chaque passe).
-#
-# Le regroupement se fait sur le commit, pas sur la référence : c'est le
-# commit qui est identique, pas la branche. `cancel-in-progress: false` est
-# essentiel — annuler ferait tomber la publication de la Release, qui n'a lieu
-# que sur le tag.
+# Publier main puis son tag envoie deux fois le même commit. Le regroupement se
+# fait sur le SHA afin de ne pas lancer les mêmes tests lourds simultanément et
+# de garder la publication du tag derrière la validation du commit.
+# `cancel-in-progress: false` est essentiel : annuler le run actif pourrait
+# interrompre celui qui doit créer la Release.
 concurrency:
   group: compilation-${{ github.sha }}
   cancel-in-progress: false
@@ -59,9 +54,9 @@ jobs:
 
       # Les tests avant la compilation : inutile de produire un APK dont la
       # logique de progression est fausse.
-      - name: Lancer les tests unitaires
+      - name: Lancer les tests et l'analyse Android
         working-directory: SankaiLife
-        run: ./gradlew testDebugUnitTest --no-daemon
+        run: ./gradlew test lintDebug lintRelease --no-daemon --stacktrace
 
       - name: Publier le rapport de tests en cas d'échec
         if: failure()
@@ -161,6 +156,10 @@ jobs:
 
       - name: Rendre gradlew exécutable
         run: chmod +x SankaiLife/gradlew
+
+      - name: Vérifier les identifiants AdMob de production
+        working-directory: SankaiLife
+        run: ./gradlew verifyReleaseAdmob --no-daemon
 
       - name: Compiler l'APK de release
         working-directory: SankaiLife

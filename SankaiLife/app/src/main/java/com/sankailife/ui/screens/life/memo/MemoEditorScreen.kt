@@ -2,6 +2,7 @@ package com.sankailife.ui.screens.life.memo
 
 import android.content.ClipboardManager
 import android.content.Context
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -80,11 +81,31 @@ fun MemoEditorScreen(profileId: Long, viewModel: MemoViewModel, onBack: () -> Un
     val aleatoire   by viewModel.randomMode.collectAsState()
     val plageDebut  by viewModel.randomStart.collectAsState()
     val plageFin    by viewModel.randomEnd.collectAsState()
+    val sauvegardeEnCours by viewModel.sauvegardeEnCours.collectAsState()
+    val message     by viewModel.message.collectAsState()
     val context     = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
 
     var showPasteConfirm  by remember { mutableStateOf(false) }
     var clipboardContent  by remember { mutableStateOf("") }
     var pasteLineCount    by remember { mutableIntStateOf(0) }
+
+    fun sauvegarderEtRevenir() {
+        viewModel.saveProfile(onSaved = onBack)
+    }
+
+    // Couvre aussi le geste système. Pendant l'écriture, le retour est absorbé
+    // afin que la destination et son ViewModel ne disparaissent pas trop tôt.
+    BackHandler {
+        if (!sauvegardeEnCours) sauvegarderEtRevenir()
+    }
+
+    LaunchedEffect(message) {
+        if (message.isNotBlank()) {
+            snackbarHostState.showSnackbar(message)
+            viewModel.messageAffiche()
+        }
+    }
 
     if (showPasteConfirm) {
         AlertDialog(
@@ -103,17 +124,28 @@ fun MemoEditorScreen(profileId: Long, viewModel: MemoViewModel, onBack: () -> Un
 
     Scaffold(
         containerColor = c.background,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Éditeur mémo", color = c.textPrimary, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(onClick = { viewModel.saveProfile(); onBack() }) {
+                    IconButton(
+                        onClick = ::sauvegarderEtRevenir,
+                        enabled = !sauvegardeEnCours
+                    ) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = c.textSecondary)
                     }
                 },
                 actions = {
-                    TextButton(onClick = { viewModel.saveProfile(); onBack() }) {
-                        Text("💾 Sauver", color = c.accent, fontWeight = FontWeight.Bold)
+                    TextButton(
+                        onClick = ::sauvegarderEtRevenir,
+                        enabled = !sauvegardeEnCours
+                    ) {
+                        Text(
+                            if (sauvegardeEnCours) "Sauvegarde…" else "💾 Sauver",
+                            color = c.accent,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = c.background)

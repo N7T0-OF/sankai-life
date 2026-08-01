@@ -44,8 +44,36 @@ val admobProdAppId: String = admobProps.getProperty("ADMOB_APP_ID")
     ?: "ca-app-pub-9004438844977083~6279544832"
 val admobProdRewardedId: String = admobProps.getProperty("ADMOB_REWARDED_UNIT_ID")
     ?: "ca-app-pub-9004438844977083/8842249130"
-val hasProdAdmob = admobProdAppId != admobTestAppId &&
-    admobProdRewardedId != admobTestRewardedId
+
+// Une simple comparaison avec les deux valeurs de test laissait passer une
+// faute de frappe, deux éditeurs différents ou n'importe quelle chaîne non
+// vide. Une release ainsi construite compile, mais ne peut jamais afficher de
+// récompense. Les formats et l'éditeur sont donc validés avant tout build
+// release ; le compte de démonstration Google reste explicitement refusé.
+val admobAppPattern = Regex("^ca-app-pub-(\\d{16})~\\d{10}$")
+val admobRewardedPattern = Regex("^ca-app-pub-(\\d{16})/\\d{10}$")
+val admobAppMatch = admobAppPattern.matchEntire(admobProdAppId)
+val admobRewardedMatch = admobRewardedPattern.matchEntire(admobProdRewardedId)
+val admobTestPublisher = "3940256099942544"
+val hasProdAdmob = admobAppMatch != null &&
+    admobRewardedMatch != null &&
+    admobAppMatch.groupValues[1] == admobRewardedMatch.groupValues[1] &&
+    admobAppMatch.groupValues[1] != admobTestPublisher
+
+val verifyReleaseAdmob = tasks.register("verifyReleaseAdmob") {
+    group = "verification"
+    description = "Vérifie les identifiants AdMob avant une compilation release."
+    doLast {
+        check(hasProdAdmob) {
+            "Identifiants AdMob release invalides : formats app/unité attendus, " +
+                "même éditeur et compte de test Google interdit."
+        }
+    }
+}
+
+tasks.matching { it.name == "preReleaseBuild" }.configureEach {
+    dependsOn(verifyReleaseAdmob)
+}
 
 // ---------------------------------------------------------------------------
 // Signature release : keystore.properties (non versionné). Sans ce fichier,

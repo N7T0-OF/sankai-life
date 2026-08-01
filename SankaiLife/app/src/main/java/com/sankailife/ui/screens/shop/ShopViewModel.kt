@@ -2,10 +2,12 @@ package com.sankailife.ui.screens.shop
 
 import android.app.Activity
 import android.app.Application
+import androidx.annotation.StringRes
 import androidx.lifecycle.*
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.sankailife.SankaiApplication
+import com.sankailife.R
 import com.sankailife.core.ads.RegarderPubUseCase
 import com.sankailife.core.ads.ResultatPub
 import com.sankailife.core.ads.PrivacyConsentManager
@@ -95,61 +97,65 @@ class ShopViewModel(application: Application) : AndroidViewModel(application) {
                     (base * (1f - remiseOffre)).toInt().coerceAtLeast(1)
                 } else base
             }
-            if (achat == null) showToast("Pièces insuffisantes ❌")
-            else showToast("+1 slot module • ${achat.totalSlots} au total ✅")
+            if (achat == null) showToast(text(R.string.shop_toast_not_enough_coins))
+            else showToast(text(R.string.shop_toast_slot_added, achat.totalSlots))
             return@launch
         }
 
-        if (prixPieces > u.coins) { showToast("Pièces insuffisantes ❌"); return@launch }
-        if (item.costGems > u.gems) { showToast("Gemmes insuffisantes ❌"); return@launch }
+        if (prixPieces > u.coins) {
+            showToast(text(R.string.shop_toast_not_enough_coins)); return@launch
+        }
+        if (item.costGems > u.gems) {
+            showToast(text(R.string.shop_toast_not_enough_gems)); return@launch
+        }
 
         // Le débit vient avant la livraison : si la livraison échoue, on
         // rembourse. L'inverse permettrait d'obtenir l'article sans payer.
         if (prixPieces > 0 && !userRepo.spendCoins(prixPieces)) {
-            showToast("Pièces insuffisantes ❌"); return@launch
+            showToast(text(R.string.shop_toast_not_enough_coins)); return@launch
         }
         if (item.costGems > 0 && !userRepo.spendGems(item.costGems)) {
             if (prixPieces > 0) userRepo.refundCoins(prixPieces)
-            showToast("Gemmes insuffisantes ❌"); return@launch
+            showToast(text(R.string.shop_toast_not_enough_gems)); return@launch
         }
 
         when (item.id) {
             "chest_common", "chest_rare", "chest_epic" -> {
                 val type = item.id.removePrefix("chest_").uppercase()
                 if (gameRepo.addChest(type)) {
-                    showToast("${item.name} ajouté ! 🎁")
+                    showToast(text(R.string.shop_toast_chest_added))
                 } else {
                     // File pleine : on rembourse intégralement.
                     if (prixPieces > 0) userRepo.refundCoins(prixPieces)
                     if (item.costGems > 0) userRepo.addGems(item.costGems)
-                    showToast("Coffres pleins (4/4) — remboursé")
+                    showToast(text(R.string.shop_toast_chests_full))
                 }
             }
             "eau_10", "eau_30" -> {
                 val quantite = if (item.id == "eau_30") 30 else 10
                 if (gardenRepo.ajouterEau(quantite)) {
-                    showToast("+$quantite 💧")
+                    showToast(text(R.string.shop_toast_water_added, quantite))
                 } else {
                     rembourser(prixPieces, item.costGems)
-                    showToast("Ta réserve d'eau est pleine — remboursé")
+                    showToast(text(R.string.shop_toast_water_full))
                 }
             }
 
             "compost_10" -> {
                 gardenRepo.ajouterCompost(10)
-                showToast("+10 🌱 de compost")
+                showToast(text(R.string.shop_toast_compost_added, 10))
             }
 
             "bouclier" -> {
                 val cu = app.database.userDao().getUserOnce()
                 if (cu == null || cu.streakShields >= 3) {
                     rembourser(prixPieces, item.costGems)
-                    showToast("Tu as déjà trois boucliers — remboursé")
+                    showToast(text(R.string.shop_toast_shields_full))
                 } else {
                     app.database.userDao().upsert(
                         cu.copy(streakShields = cu.streakShields + 1)
                     )
-                    showToast("Bouclier ajouté 🛡️")
+                    showToast(text(R.string.shop_toast_shield_added))
                 }
             }
 
@@ -160,7 +166,7 @@ class ShopViewModel(application: Application) : AndroidViewModel(application) {
             // boutique plutôt qu'au joueur.
             else -> {
                 rembourser(prixPieces, item.costGems)
-                showToast("Cet article n'est pas encore disponible — remboursé")
+                showToast(text(R.string.shop_toast_unavailable))
             }
         }
     }
@@ -188,6 +194,9 @@ class ShopViewModel(application: Application) : AndroidViewModel(application) {
     private fun showToast(msg: String) = viewModelScope.launch {
         _toast.value = msg; delay(2500); _toast.value = ""
     }
+
+    private fun text(@StringRes id: Int, vararg args: Any): String =
+        app.getString(id, *args)
 
     companion object {
         fun factory(app: SankaiApplication) = viewModelFactory { initializer { ShopViewModel(app) } }

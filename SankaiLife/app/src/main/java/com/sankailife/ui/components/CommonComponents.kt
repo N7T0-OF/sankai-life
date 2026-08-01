@@ -2,6 +2,8 @@ package com.sankailife.ui.components
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,7 +14,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -131,25 +136,56 @@ fun SankaiButton(
 ) {
     val c = MaterialTheme.sankaiColors
     val haptics = LocalHaptics.current
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed && enabled) 0.975f else 1f,
+        animationSpec = tween(SankaiMotion.Fast),
+        label = "sankaiButtonPress"
+    )
     val bg = when {
-        !enabled -> c.surface3
-        secondary -> c.surface3
-        else -> c.accent
+        !enabled -> Brush.verticalGradient(listOf(c.surface3, c.surface2))
+        secondary -> Brush.verticalGradient(listOf(c.surface3, c.surface2))
+        else -> Brush.verticalGradient(listOf(RewardGold, RewardGoldDark))
     }
     val textColor = when {
         !enabled -> c.textDisabled
         secondary -> c.textPrimary
-        else -> Color.Black
+        else -> Color(0xFF2B1800)
     }
     Box(
         modifier = modifier
             .heightIn(min = 48.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .then(
+                if (enabled && !secondary) {
+                    Modifier.shadow(SankaiElevation.Low, RoundedCornerShape(SankaiRadius.Small))
+                } else {
+                    Modifier
+                }
+            )
             .clip(RoundedCornerShape(SankaiRadius.Small))
             .background(bg)
+            .border(
+                width = 1.dp,
+                color = when {
+                    !enabled -> c.border.copy(alpha = 0.55f)
+                    secondary -> Color.White.copy(alpha = 0.10f)
+                    else -> Color.White.copy(alpha = 0.30f)
+                },
+                shape = RoundedCornerShape(SankaiRadius.Small)
+            )
             // Tous les boutons de l'app passent par ici : c'est le seul endroit
             // à modifier pour changer la sensation d'un appui.
             .then(
-                if (enabled) Modifier.clickable(role = Role.Button) { haptics.click(); onClick() }
+                if (enabled) Modifier.clickable(
+                    interactionSource = interaction,
+                    indication = LocalIndication.current,
+                    role = Role.Button
+                ) { haptics.click(); onClick() }
                 else Modifier.semantics {
                     role = Role.Button
                     disabled()
