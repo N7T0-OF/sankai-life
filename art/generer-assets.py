@@ -338,9 +338,6 @@ CATALOGUE = {
     # États de parcelle — PlotState et Deblocage.
     "parcelle_encombree": sol(C["terre"], motif="cailloux"),
     "parcelle_vide":      sol(C["terre"]),
-    "parcelle_brouillard": nuage("#8E9AA6", 48) + nuage("#A9B4BE", 58),
-
-    # Humidité — MoistureEngine.Etat.
     "meteo_soleil":   meteo_soleil(),
     # La canicule doit se distinguer du grand soleil au premier coup d'œil :
     # même dessin dans deux couleurs ne dirait rien au joueur.

@@ -159,7 +159,6 @@ object ArtJardin {
         ExpansionEngine.Terrain.ABANDONNE -> R.drawable.art_parcelle_encombree
     }
 
-    @DrawableRes val brouillard = R.drawable.art_parcelle_brouillard
     @DrawableRes val parcelleVide = R.drawable.art_parcelle_vide
     @DrawableRes val depot = R.drawable.art_lieu_depot
     @DrawableRes val magasin = R.drawable.art_lieu_magasin

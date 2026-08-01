@@ -39,7 +39,7 @@ class ChallengesViewModel(application: Application) : AndroidViewModel(applicati
 
     private val app = application as SankaiApplication
     val userRepo = UserRepository(app.database)
-    val gameRepo = GameRepository(app.database)
+    val gameRepo = GameRepository(app.database, app)
 
     val user = userRepo.userFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000),
         com.sankailife.core.domain.model.UserState())

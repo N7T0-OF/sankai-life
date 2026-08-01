@@ -16,7 +16,7 @@ enum class TimerState { IDLE, RUNNING, PAUSED, FINISHED }
 class FocusViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as SankaiApplication
     val userRepo = UserRepository(app.database)
-    val gameRepo = GameRepository(app.database)
+    val gameRepo = GameRepository(app.database, app)
 
     private val _state        = MutableStateFlow(TimerState.IDLE)
     val timerState: StateFlow<TimerState> = _state

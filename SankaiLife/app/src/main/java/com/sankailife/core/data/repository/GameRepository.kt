@@ -1,11 +1,20 @@
 package com.sankailife.core.data.repository
 
 import com.sankailife.core.data.db.SankaiDatabase
+import com.sankailife.core.notifications.CoffreAlarmReceiver
 import com.sankailife.core.data.db.entities.*
 import com.sankailife.core.domain.engine.ChestEngine
 import java.time.LocalDate
 
-class GameRepository(private val db: SankaiDatabase) {
+/**
+ * @param contexte requis seulement pour programmer les rappels de coffre.
+ *   Optionnel à dessein : le dépôt reste utilisable dans un test, et un appel
+ *   qui n'a pas de contexte sous la main n'est pas obligé d'en inventer un.
+ */
+class GameRepository(
+    private val db: SankaiDatabase,
+    private val contexte: android.content.Context? = null
+) {
     private val chestDao     = db.chestDao()
     private val challengeDao = db.challengeDao()
 
@@ -17,10 +26,16 @@ class GameRepository(private val db: SankaiDatabase) {
         if (count >= 4) return false
         val timer = ChestEngine.timerMillis(type)
         val slot  = (0..3).firstOrNull { s -> chestDao.getActiveChestsOnce().none { it.slotIndex == s } } ?: return false
-        chestDao.insert(ChestEntity(
+        val pretALe = System.currentTimeMillis() + timer
+        val id = chestDao.insert(ChestEntity(
             type = type, slotIndex = slot,
-            unlocksAtMillis = System.currentTimeMillis() + timer
+            unlocksAtMillis = pretALe
         ))
+
+        // Rappel à l'heure d'ouverture. Un coffre met des heures à mûrir ;
+        // sans rappel, il reste prêt pendant des jours et bloque son
+        // emplacement, donc toute la progression derrière.
+        contexte?.let { CoffreAlarmReceiver.programmer(it, id, pretALe) }
         return true
     }
 
@@ -35,6 +50,8 @@ class GameRepository(private val db: SankaiDatabase) {
         val chest = chestDao.getActiveChestsOnce().find { it.id == chestId } ?: return null
         if (!chest.isReady) return null
         if (chestDao.markOpened(chestId) == 0) return null
+        // Le rappel n'a plus lieu d'être : le coffre est ouvert.
+        contexte?.let { CoffreAlarmReceiver.annuler(it, chestId) }
         db.userDao().incrementChests()
         return ChestEngine.generateReward(chest.type)
     }

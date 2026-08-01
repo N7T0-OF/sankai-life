@@ -104,6 +104,17 @@
         </receiver>
 
         <!--
+          Annonce qu'un coffre est prêt.
+
+          Pas de filtre d'intention : l'alarme le vise directement par sa
+          classe. Un filtre le rendrait joignable par d'autres applications
+          sans rien apporter ici.
+        -->
+        <receiver
+            android:name=".core.notifications.CoffreAlarmReceiver"
+            android:exported="false" />
+
+        <!--
           Reprogramme toutes les alarmes après un redémarrage, une mise à jour
           de l'app, ou un changement d'heure ou de fuseau horaire : Android
           efface les alarmes au boot et les instants calculés deviendraient

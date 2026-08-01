@@ -26,7 +26,7 @@ class ArenasViewModel(application: Application) : AndroidViewModel(application) 
 
     private val app = application as SankaiApplication
     private val userRepo = UserRepository(app.database)
-    private val gameRepo = GameRepository(app.database)
+    private val gameRepo = GameRepository(app.database, app)
     private val arenaDao = app.database.arenaRewardDao()
 
     /**

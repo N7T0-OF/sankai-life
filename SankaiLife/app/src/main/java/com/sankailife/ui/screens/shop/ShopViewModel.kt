@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
 class ShopViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as SankaiApplication
     val userRepo = UserRepository(app.database)
-    val gameRepo = GameRepository(app.database)
+    val gameRepo = GameRepository(app.database, app)
 
     val user: StateFlow<UserState> = userRepo.userFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UserState())

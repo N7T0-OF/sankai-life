@@ -31,7 +31,7 @@ class ObjectivesViewModel(application: Application) : AndroidViewModel(applicati
     private val app = application as SankaiApplication
     private val objectiveDao = app.database.objectiveDao()
     private val userRepo = UserRepository(app.database)
-    private val gameRepo = GameRepository(app.database)
+    private val gameRepo = GameRepository(app.database, app)
 
     /** Récompenses d'un objectif terminé, alignées sur XpEngine. */
     private val piecesParObjectif = 25

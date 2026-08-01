@@ -165,15 +165,6 @@ fun GrilleJardin(
     val largeurTotale = colonnes * pas
     val hauteurTotale = lignes * pas
 
-    // Les cases de brouillard : voisines du connu, mais pas encore connues.
-    // Purement visuelles, elles ne reçoivent aucun geste.
-    val brouillard = remember(parcelles) {
-        val connues = parcelles.map { it.id }.toSet()
-        connues.flatMap { ExpansionEngine.voisines(it) }
-            .filter { it !in connues }
-            .distinct()
-    }
-
     /** Convertit une position à l'écran en identifiant de parcelle, ou -1. */
     fun parcelleSous(position: Offset): Int {
         val px = position.x - camera.x
@@ -344,27 +335,6 @@ fun GrilleJardin(
             )
         }
 
-        // Le brouillard, par-dessus tout le terrain.
-        //
-        // Il couvre l'écran entier puis découpe les cases connues dedans : le
-        // vide au-delà de la frontière disparaît, alors que l'ancienne version
-        // posait des bulles sur les cases voisines et laissait voir le fond du
-        // cadre là où le monde aurait dû continuer.
-        //
-        // La couche hors écran est indispensable : `BlendMode.Clear` efface ce
-        // qui est déjà dessiné dans SA couche, et sans elle il effacerait tout
-        // le jardin en dessous.
-        NappeBrouillard(
-            connues = parId.keys,
-            minX = minX,
-            minY = minY,
-            pas = pas,
-            camera = camera,
-            modifier = Modifier.matchParentSize().graphicsLayer {
-                compositingStrategy = CompositingStrategy.Offscreen
-            }
-        )
-
         // Les Mimos, par-dessus les parcelles.
         //
         // Au zoom le plus faible ils sont masqués : à cette taille, cinq
@@ -471,107 +441,6 @@ private fun MimoDansLeJardin(
         }
     }
 }
-
-/**
- * Le brouillard de l'inexploré.
- *
- * Dessiné en nappes de cercles flous qui débordent des cases et se recouvrent :
- * la limite du terrain devient irrégulière et on ne devine plus le découpage.
- * L'ancienne version posait une image carrée par case, ce qui dessinait
- * exactement la grille qu'elle devait masquer.
- *
- * Aucun modificateur de saisie : les gestes passent au travers.
- */
-@Composable
-private fun NappeBrouillard(
-    connues: Set<Int>,
-    minX: Int,
-    minY: Int,
-    pas: Float,
-    camera: Offset,
-    modifier: Modifier = Modifier
-) {
-    // Une lente respiration, pour que la nappe ne soit pas figée.
-    val transition = rememberInfiniteTransition(label = "brouillard")
-    val souffle by transition.animateFloat(
-        initialValue = 0f, targetValue = (2 * Math.PI).toFloat(),
-        animationSpec = infiniteRepeatable(tween(11000, easing = LinearEasing)),
-        label = "souffleBrouillard"
-    )
-
-    Canvas(modifier) {
-        // --- Couche 1 : le masque. -----------------------------------------
-        //
-        // Tout l'écran est couvert, puis les cases connues sont découpées
-        // dedans. C'est l'inverse de la version précédente, qui posait des
-        // bulles sur les cases voisines et laissait le vide visible au-delà —
-        // on voyait le fond du cadre là où le monde aurait dû continuer.
-        val trous = connues.map { cle ->
-            Offset(
-                camera.x + (ExpansionEngine.xDe(cle) - minX) * pas,
-                camera.y + (ExpansionEngine.yDe(cle) - minY) * pas
-            )
-        }
-
-        drawRect(color = Color(0xFF0A1610).copy(alpha = 0.94f))
-        trous.forEach { coin ->
-            drawRect(
-                color = Color.Transparent,
-                topLeft = coin,
-                size = androidx.compose.ui.geometry.Size(pas, pas),
-                blendMode = BlendMode.Clear
-            )
-        }
-
-        // --- Couche 2 : les nuages. ----------------------------------------
-        //
-        // Ils débordent sur la frontière et cassent la découpe rectangulaire
-        // du masque : sans eux, le brouillard dessinerait exactement la grille
-        // qu'il est censé cacher.
-        val bord = frontiereDe(connues)
-        bord.forEach { cle ->
-            val cx = camera.x + (ExpansionEngine.xDe(cle) - minX) * pas + pas / 2f
-            val cy = camera.y + (ExpansionEngine.yDe(cle) - minY) * pas + pas / 2f
-            val graine = cle * 2654435761u.toInt()
-
-            for (i in 0 until 5) {
-                val angle = souffle + (graine + i * 977) % 628 / 100f
-                val rayon = pas * (0.46f + ((graine / (i + 3)) % 28) / 100f)
-                val amplitude = pas * 0.13f
-                drawCircle(
-                    color = Color(0xFF0A1610).copy(alpha = 0.32f),
-                    radius = rayon,
-                    center = Offset(
-                        cx + cos(angle) * amplitude + ((graine / (i + 5)) % 34 - 17) * pas / 100f,
-                        cy + sin(angle) * amplitude + ((graine / (i + 7)) % 34 - 17) * pas / 100f
-                    )
-                )
-            }
-        }
-
-        // --- Couche 3 : la brume de bord. ----------------------------------
-        // Plus claire et plus petite, elle adoucit la transition avec le sol.
-        bord.forEach { cle ->
-            val cx = camera.x + (ExpansionEngine.xDe(cle) - minX) * pas + pas / 2f
-            val cy = camera.y + (ExpansionEngine.yDe(cle) - minY) * pas + pas / 2f
-            val graine = cle * 40503
-            drawCircle(
-                color = Color(0xFF6E8C7B).copy(alpha = 0.10f),
-                radius = pas * 0.55f,
-                center = Offset(
-                    cx + cos(souffle * 1.3f + graine % 7) * pas * 0.09f,
-                    cy + sin(souffle * 1.1f + graine % 5) * pas * 0.09f
-                )
-            )
-        }
-    }
-}
-
-/** Cases inconnues touchant une case connue. */
-private fun frontiereDe(connues: Set<Int>): List<Int> =
-    connues.flatMap { ExpansionEngine.voisines(it) }
-        .filter { it !in connues }
-        .distinct()
 
 @Composable
 private fun CaseParcelle(
