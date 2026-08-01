@@ -129,9 +129,16 @@ jobs:
           ADMOB_APP_ID: ${{ secrets.ADMOB_APP_ID }}
           ADMOB_REWARDED_UNIT_ID: ${{ secrets.ADMOB_REWARDED_UNIT_ID }}
         run: |
+          # Les secrets surchargent les identifiants du dépôt quand ils
+          # existent. Absents, la compilation reprend ceux de build.gradle.kts,
+          # qui sont les vrais identifiants de production — ils ne sont pas
+          # secrets, un APK distribué les expose de toute façon.
+          #
+          # Ce qui doit rester impossible, c'est de publier avec les
+          # identifiants de TEST : ADMOB_IS_REAL le détecte côté application.
           if [ -z "$ADMOB_APP_ID" ] || [ -z "$ADMOB_REWARDED_UNIT_ID" ]; then
-            echo "::error::Identifiants AdMob de production incomplets : publication annulée."
-            exit 1
+            echo "::warning::Secrets AdMob absents : compilation avec les identifiants du dépôt."
+            exit 0
           fi
           {
             echo "ADMOB_APP_ID=$ADMOB_APP_ID"

@@ -27,12 +27,25 @@ val admobProps = Properties().apply {
 val admobTestAppId = "ca-app-pub-3940256099942544~3347511713"
 val admobTestRewardedId = "ca-app-pub-3940256099942544/5224354917"
 
+// Identifiants de production.
+//
+// Ils vivent ici en clair, et c'est assume : ils sont extractibles de
+// n'importe quel APK distribue, donc les traiter comme des secrets ne
+// protegerait rien. admob.properties permet de les surcharger sans toucher au
+// code — c'est ce que fait la chaine de publication quand les secrets GitHub
+// existent.
+//
+// Le repli sur les identifiants de TEST reste possible mais doit rester
+// visible : hasProdAdmob compare les valeurs resolues aux identifiants de
+// test, et l'application le signale via ADMOB_IS_REAL. Une release qui
+// partirait avec des pubs de test ne rapporterait rien et passerait pour
+// cassee ; ce drapeau est ce qui permet de s'en apercevoir.
 val admobProdAppId: String = admobProps.getProperty("ADMOB_APP_ID")
-    ?: admobTestAppId
+    ?: "ca-app-pub-9004438844977083~6279544832"
 val admobProdRewardedId: String = admobProps.getProperty("ADMOB_REWARDED_UNIT_ID")
-    ?: admobTestRewardedId
-val hasProdAdmob = admobProps.getProperty("ADMOB_APP_ID") != null &&
-    admobProps.getProperty("ADMOB_REWARDED_UNIT_ID") != null
+    ?: "ca-app-pub-9004438844977083/8842249130"
+val hasProdAdmob = admobProdAppId != admobTestAppId &&
+    admobProdRewardedId != admobTestRewardedId
 
 // ---------------------------------------------------------------------------
 // Signature release : keystore.properties (non versionné). Sans ce fichier,
