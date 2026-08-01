@@ -4,6 +4,10 @@ import android.content.Context
 import androidx.room.*
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.sankailife.core.island.data.IslandBuildingEntity
+import com.sankailife.core.island.data.IslandDao
+import com.sankailife.core.island.data.IslandEntity
+import com.sankailife.core.island.data.IslandSlotEntity
 import com.sankailife.core.data.db.dao.*
 import com.sankailife.core.data.db.entities.*
 import com.sankailife.core.garden.data.GardenCrateEntity
@@ -22,8 +26,9 @@ import com.sankailife.core.garden.data.MemoChallengeEntity
                 GardenStateEntity::class, GardenPlotEntity::class, GardenCropEntity::class,
                 MemoChallengeEntity::class,
                 GardenCrateEntity::class, GardenInventoryEntity::class,
-                GardenMimoEntity::class],
-    version = 15,
+                GardenMimoEntity::class,
+                IslandEntity::class, IslandSlotEntity::class, IslandBuildingEntity::class],
+    version = 16,
     exportSchema = false
 )
 abstract class SankaiDatabase : RoomDatabase() {
@@ -36,6 +41,7 @@ abstract class SankaiDatabase : RoomDatabase() {
     abstract fun chestDao(): ChestDao
     abstract fun challengeDao(): ChallengeDao
     abstract fun statsDao(): StatsDao
+    abstract fun islandDao(): IslandDao
 
     companion object {
         @Volatile private var INSTANCE: SankaiDatabase? = null
@@ -319,12 +325,51 @@ abstract class SankaiDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Tables de l'île générative.
+         *
+         * Création seule : rien n'est supprimé ici. Le Jardin actuel continue
+         * de fonctionner exactement comme avant, et le retrait de `garden_plot`
+         * fera l'objet d'une version distincte. Créer et détruire dans la même
+         * migration interdirait tout retour en arrière si la refonte se passait
+         * mal — et il n'existe aucun serveur pour reconstituer une partie.
+         */
+        private val MIGRATION_15_16 = object : Migration(15, 16) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `island` (" +
+                        "`id` INTEGER NOT NULL, `seed` INTEGER NOT NULL, " +
+                        "`largeur` INTEGER NOT NULL, `hauteur` INTEGER NOT NULL, " +
+                        "`tuiles` TEXT NOT NULL, `empreinte` INTEGER NOT NULL, " +
+                        "`generationVersion` INTEGER NOT NULL, `schemaVersion` INTEGER NOT NULL, " +
+                        "`pontonX` INTEGER NOT NULL, `pontonY` INTEGER NOT NULL, " +
+                        "`departX` INTEGER NOT NULL, `departY` INTEGER NOT NULL, " +
+                        "`nom` TEXT NOT NULL, `creeMillis` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`id`))"
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `island_slot` (" +
+                        "`cle` INTEGER NOT NULL, `x` INTEGER NOT NULL, `y` INTEGER NOT NULL, " +
+                        "`prixPaye` INTEGER NOT NULL, `solId` TEXT NOT NULL, " +
+                        "`aDegager` INTEGER NOT NULL, `acheteeMillis` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`cle`))"
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `island_building` (" +
+                        "`type` TEXT NOT NULL, `origineX` INTEGER NOT NULL, " +
+                        "`origineY` INTEGER NOT NULL, `orientation` INTEGER NOT NULL, " +
+                        "`niveau` INTEGER NOT NULL, `chantierFinMillis` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`type`))"
+                )
+            }
+        }
+
         val MIGRATIONS = arrayOf(
             MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
             MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
             MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
             MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
-            MIGRATION_13_14, MIGRATION_14_15
+            MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16
         )
 
         fun getDatabase(context: Context): SankaiDatabase {
