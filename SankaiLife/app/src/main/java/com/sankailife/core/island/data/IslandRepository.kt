@@ -3,7 +3,11 @@ package com.sankailife.core.island.data
 import androidx.room.withTransaction
 import com.sankailife.core.data.db.SankaiDatabase
 import com.sankailife.core.data.repository.UserRepository
+import com.sankailife.core.garden.domain.ALL_SEEDS
+import com.sankailife.core.garden.domain.CropGrowthEngine
+import com.sankailife.core.garden.domain.SoilType
 import com.sankailife.core.island.domain.IslandCodec
+import com.sankailife.core.island.domain.IslandCultureEngine
 import com.sankailife.core.island.domain.IslandGenerator
 import com.sankailife.core.island.domain.IslandSlotEngine
 import com.sankailife.core.island.domain.IslandTileType
@@ -180,6 +184,162 @@ class IslandRepository(
             }
 
             Achat.Reussi(prix)
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Cultures
+    // ------------------------------------------------------------------
+
+    /** Résultat d'une action agricole. */
+    sealed interface Geste {
+        data class Fait(val message: String) : Geste
+        data class Refuse(val raison: String) : Geste
+    }
+
+    /**
+     * Rattrape la croissance de toutes les cultures.
+     *
+     * Rien ne tourne en arrière-plan : la plante n'avance pas, on recalcule où
+     * elle en serait. C'est ce qui permet à une culture de progresser
+     * application fermée sans consommer la moindre batterie.
+     *
+     * `dernierCalculMillis` empêche de compter deux fois les mêmes minutes si
+     * l'écran est rouvert plusieurs fois d'affilée.
+     */
+    suspend fun rafraichirCultures(maintenant: Long = System.currentTimeMillis()) =
+        withContext(Dispatchers.IO) {
+            db.withTransaction {
+                dao.parcelles().forEach { parcelle ->
+                    if (parcelle.graineId.isBlank()) return@forEach
+                    val graine = ALL_SEEDS.firstOrNull { it.id == parcelle.graineId }
+                        ?: return@forEach
+                    val depuis = parcelle.dernierCalculMillis.takeIf { it > 0 }
+                        ?: parcelle.planteeMillis
+                    if (maintenant <= depuis) return@forEach
+
+                    val ecoulees = (maintenant - depuis) / 60_000L
+                    if (ecoulees <= 0L) return@forEach
+
+                    val arrosees = IslandCultureEngine.minutesArrosees(
+                        parcelle.dernierArrosageMillis, depuis, maintenant
+                    )
+                    val acquises = CropGrowthEngine.minutesAcquises(ecoulees, arrosees)
+                    val cumulees = parcelle.minutesCumulees + acquises
+
+                    val sol = SoilType.parId(parcelle.solId)
+                    val etat = CropGrowthEngine.etat(
+                        seed = graine,
+                        sol = sol,
+                        minutesCumulees = cumulees,
+                        minutesDepuisArrosage =
+                            (maintenant - parcelle.dernierArrosageMillis) / 60_000L
+                    )
+
+                    dao.majParcelle(
+                        parcelle.copy(
+                            minutesCumulees = cumulees,
+                            dernierCalculMillis = maintenant,
+                            etat = IslandCultureEngine
+                                .etatApres(etat.prete, etat.besoinEau).name
+                        )
+                    )
+                }
+            }
+        }
+
+    /** Dégage bois ou rocher. */
+    suspend fun degager(x: Int, y: Int): Geste = agir(x, y) { parcelle ->
+        if (dao.degagerSiBesoin(parcelle.cle) == 0) {
+            Geste.Refuse("Il n'y a rien à dégager ici.")
+        } else {
+            Geste.Fait("Parcelle dégagée.")
+        }
+    }
+
+    /** Prépare la terre avant le semis. */
+    suspend fun preparer(x: Int, y: Int): Geste = agir(x, y) { parcelle ->
+        if (dao.preparerSiVide(parcelle.cle) == 0) {
+            Geste.Refuse(
+                if (parcelle.aDegager) "Il faut d'abord dégager la parcelle."
+                else "Cette parcelle est déjà travaillée."
+            )
+        } else {
+            Geste.Fait("Terre préparée.")
+        }
+    }
+
+    /**
+     * Sème une graine.
+     *
+     * Le sol est vérifié avant de payer : un cactus veut du sable, et le lui
+     * refuser après avoir débité serait pire que de le refuser tout de suite.
+     */
+    suspend fun semer(x: Int, y: Int, graineId: String): Geste = agir(x, y) { parcelle ->
+        val graine = ALL_SEEDS.firstOrNull { it.id == graineId }
+            ?: return@agir Geste.Refuse("Graine inconnue.")
+        val sol = SoilType.parId(parcelle.solId)
+        if (!IslandCultureEngine.grainePlantable(graine, sol)) {
+            return@agir Geste.Refuse("${graine.nom} ne pousse pas sur ce sol.")
+        }
+        if (graine.prixPieces > 0 && !userRepo.spendCoins(graine.prixPieces)) {
+            return@agir Geste.Refuse("Il te manque ${graine.prixPieces} pièces.")
+        }
+        if (dao.semerSiPreparee(parcelle.cle, graineId, System.currentTimeMillis()) == 0) {
+            // La parcelle a change d'etat entre le controle et l'ecriture.
+            if (graine.prixPieces > 0) userRepo.refundCoins(graine.prixPieces)
+            return@agir Geste.Refuse("La terre doit être préparée avant de semer.")
+        }
+        Geste.Fait("${graine.nom} semée.")
+    }
+
+    /** Arrose une culture. */
+    suspend fun arroser(x: Int, y: Int): Geste = agir(x, y) { parcelle ->
+        if (dao.arroserSiCulture(parcelle.cle, System.currentTimeMillis()) == 0) {
+            Geste.Refuse("Il n'y a rien à arroser.")
+        } else {
+            Geste.Fait("Parcelle arrosée.")
+        }
+    }
+
+    /**
+     * Récolte une culture mûre et crédite le joueur.
+     *
+     * L'ordre compte : la parcelle est vidée **avant** le crédit, et sous
+     * condition d'état. Créditer d'abord laisserait deux appuis rapprochés
+     * payer deux fois pour une seule récolte.
+     */
+    suspend fun recolter(x: Int, y: Int): Geste = agir(x, y) { parcelle ->
+        val graine = ALL_SEEDS.firstOrNull { it.id == parcelle.graineId }
+            ?: return@agir Geste.Refuse("Il n'y a rien à récolter.")
+        if (dao.recolterSiPrete(parcelle.cle) == 0) {
+            return@agir Geste.Refuse("Cette culture n'est pas encore prête.")
+        }
+        userRepo.addCoins(graine.rendementPieces)
+        Geste.Fait("+${graine.rendementPieces} 🪙 — ${graine.nom} récoltée.")
+    }
+
+    /**
+     * Cadre commun aux gestes agricoles.
+     *
+     * Relit la parcelle en base et exécute dans une transaction. Chaque geste
+     * s'appuie ensuite sur une écriture conditionnelle : c'est elle, et non le
+     * contrôle préalable, qui garantit qu'un double appui ne fait pas deux fois
+     * le travail.
+     */
+    private suspend fun agir(
+        x: Int,
+        y: Int,
+        bloc: suspend (IslandSlotEntity) -> Geste
+    ): Geste = withContext(Dispatchers.IO) {
+        db.withTransaction {
+            val ligne = dao.ile() ?: return@withTransaction Geste.Refuse("Aucune île.")
+            if (x !in 0 until ligne.largeur || y !in 0 until ligne.hauteur) {
+                return@withTransaction Geste.Refuse("Cette case n'est pas sur l'île.")
+            }
+            val parcelle = dao.parcelle(y * ligne.largeur + x)
+                ?: return@withTransaction Geste.Refuse("Cette parcelle ne t'appartient pas.")
+            bloc(parcelle)
         }
     }
 

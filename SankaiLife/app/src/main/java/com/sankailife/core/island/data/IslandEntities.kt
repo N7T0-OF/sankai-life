@@ -77,7 +77,36 @@ data class IslandSlotEntity(
     /** Vrai tant que la forêt ou le rocher n'a pas été dégagé. */
     val aDegager: Boolean = false,
 
-    val acheteeMillis: Long = 0L
+    val acheteeMillis: Long = 0L,
+
+    // --- Culture -------------------------------------------------------
+    //
+    // Portée par la parcelle plutôt que par une table séparée : une parcelle
+    // ne contient qu'une culture à la fois, et une table dédiée imposerait une
+    // jointure à chaque affichage pour ne jamais dépasser une ligne.
+
+    /** Valeur de `PlotState`. */
+    val etat: String = "EMPTY",
+
+    /** Identifiant de la graine en terre, vide si la parcelle est libre. */
+    val graineId: String = "",
+
+    val planteeMillis: Long = 0L,
+
+    /**
+     * Minutes de croissance déjà acquises.
+     *
+     * Cumulées et non déduites de l'heure de plantation : une plante privée
+     * d'eau pousse plus lentement, donc le temps écoulé et le temps de
+     * croissance ne sont pas la même chose.
+     */
+    val minutesCumulees: Long = 0L,
+
+    val dernierArrosageMillis: Long = 0L,
+    val arrosages: Int = 0,
+
+    /** Repère du dernier calcul, pour ne pas compter deux fois les mêmes minutes. */
+    val dernierCalculMillis: Long = 0L
 )
 
 /**

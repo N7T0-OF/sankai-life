@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.sankailife.SankaiApplication
 import com.sankailife.core.data.repository.UserRepository
 import com.sankailife.core.island.data.IslandRepository
+import com.sankailife.core.island.data.IslandSlotEntity
 import com.sankailife.core.island.domain.IslandGenerator
 import com.sankailife.core.island.domain.IslandSlotEngine
 import com.sankailife.core.island.domain.IslandTileType
@@ -53,10 +54,47 @@ class IslandViewModel(application: Application) : AndroidViewModel(application) 
     private val _etat = MutableStateFlow(Etat())
     val etat: StateFlow<Etat> = _etat.asStateFlow()
 
-    /** Clés des parcelles achetées, pour les distinguer du terrain naturel. */
-    val parcelles: StateFlow<Set<Int>> = depot.observerParcelles()
-        .map { liste -> liste.map { it.cle }.toSet() }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
+    /** Parcelles achetées, indexées par clé de grille. */
+    val parcelles: StateFlow<Map<Int, IslandSlotEntity>> = depot.observerParcelles()
+        .map { liste -> liste.associateBy { it.cle } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
+    /** Case ouverte dans la bulle, ou `null`. */
+    private val _selection = MutableStateFlow<IslandGenerator.Case?>(null)
+    val selection: StateFlow<IslandGenerator.Case?> = _selection.asStateFlow()
+
+    fun selectionner(x: Int, y: Int) {
+        _selection.value = IslandGenerator.Case(x, y)
+    }
+
+    fun fermerSelection() {
+        _selection.value = null
+    }
+
+    /**
+     * Rattrape la croissance des cultures.
+     *
+     * Appelé à l'ouverture de l'écran : rien ne tourne en arrière-plan, la
+     * plante n'avance pas, on recalcule où elle en serait.
+     */
+    fun rafraichir() {
+        viewModelScope.launch { runCatching { depot.rafraichirCultures() } }
+    }
+
+    private fun geste(bloc: suspend () -> IslandRepository.Geste) {
+        viewModelScope.launch {
+            _message.value = when (val r = bloc()) {
+                is IslandRepository.Geste.Fait -> r.message
+                is IslandRepository.Geste.Refuse -> r.raison
+            }
+        }
+    }
+
+    fun degager(x: Int, y: Int) = geste { depot.degager(x, y) }
+    fun preparer(x: Int, y: Int) = geste { depot.preparer(x, y) }
+    fun semer(x: Int, y: Int, graineId: String) = geste { depot.semer(x, y, graineId) }
+    fun arroser(x: Int, y: Int) = geste { depot.arroser(x, y) }
+    fun recolter(x: Int, y: Int) = geste { depot.recolter(x, y) }
 
     val utilisateur = userRepo.userFlow
         .stateIn(
@@ -76,6 +114,7 @@ class IslandViewModel(application: Application) : AndroidViewModel(application) 
 
     init {
         charger()
+        rafraichir()
     }
 
     /**

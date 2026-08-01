@@ -55,6 +55,57 @@ interface IslandDao {
     @Delete
     suspend fun supprimerParcelle(parcelle: IslandSlotEntity)
 
+    @Query("SELECT * FROM island_slot WHERE cle = :cle LIMIT 1")
+    suspend fun parcelle(cle: Int): IslandSlotEntity?
+
+    @androidx.room.Update
+    suspend fun majParcelle(parcelle: IslandSlotEntity)
+
+    /**
+     * Sème, une seule fois.
+     *
+     * La condition d'état vit dans le `WHERE` : c'est elle qui fait office de
+     * verrou. Lire puis écrire laisserait deux appuis rapprochés semer deux
+     * graines et n'en facturer qu'une. Le nombre de lignes modifiées dit ce
+     * qui s'est réellement passé.
+     */
+    @Query(
+        "UPDATE island_slot SET etat = 'PLANTED', graineId = :graineId, " +
+            "planteeMillis = :maintenant, minutesCumulees = 0, " +
+            "dernierArrosageMillis = :maintenant, arrosages = 1, " +
+            "dernierCalculMillis = :maintenant " +
+            "WHERE cle = :cle AND etat = 'PREPARED'"
+    )
+    suspend fun semerSiPreparee(cle: Int, graineId: String, maintenant: Long): Int
+
+    /** Prépare la terre, uniquement si la parcelle est vide et dégagée. */
+    @Query(
+        "UPDATE island_slot SET etat = 'PREPARED' " +
+            "WHERE cle = :cle AND etat = 'EMPTY' AND aDegager = 0"
+    )
+    suspend fun preparerSiVide(cle: Int): Int
+
+    /** Dégage bois ou rocher, une seule fois. */
+    @Query("UPDATE island_slot SET aDegager = 0 WHERE cle = :cle AND aDegager = 1")
+    suspend fun degagerSiBesoin(cle: Int): Int
+
+    /** Arrose une culture en cours ; sans effet sur une parcelle libre. */
+    @Query(
+        "UPDATE island_slot SET dernierArrosageMillis = :maintenant, " +
+            "arrosages = arrosages + 1 " +
+            "WHERE cle = :cle AND graineId != ''"
+    )
+    suspend fun arroserSiCulture(cle: Int, maintenant: Long): Int
+
+    /** Vide la parcelle après récolte, uniquement si la culture était prête. */
+    @Query(
+        "UPDATE island_slot SET etat = 'EMPTY', graineId = '', planteeMillis = 0, " +
+            "minutesCumulees = 0, dernierArrosageMillis = 0, arrosages = 0, " +
+            "dernierCalculMillis = 0 " +
+            "WHERE cle = :cle AND etat = 'READY_TO_HARVEST'"
+    )
+    suspend fun recolterSiPrete(cle: Int): Int
+
     @Query("SELECT * FROM island_building")
     fun observerBatiments(): Flow<List<IslandBuildingEntity>>
 

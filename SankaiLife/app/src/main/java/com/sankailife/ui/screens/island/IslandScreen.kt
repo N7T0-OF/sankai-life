@@ -76,6 +76,7 @@ fun IslandScreen(
     val zoom by viewModel.zoom.collectAsState()
     val message by viewModel.message.collectAsState()
     val recentrage by viewModel.recentrage.collectAsState()
+    val selection by viewModel.selection.collectAsState()
     val couleurs = MaterialTheme.sankaiColors
     val snackbar = remember { SnackbarHostState() }
 
@@ -131,7 +132,7 @@ fun IslandScreen(
                 niveau = utilisateur.level,
                 pieces = utilisateur.coins,
                 onZoom = viewModel::definirZoom,
-                onAcheter = viewModel::acheter,
+                onToucher = viewModel::selectionner,
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -161,6 +162,28 @@ fun IslandScreen(
             }
         }
 
+        // Fiche de la case touchee. Rien de tout cela n'apparait sur la carte
+        // elle-meme : un prix et un compte a rebours sur chaque case rendraient
+        // l'ile illisible des la vingtieme parcelle.
+        val ileCourante = etat.ile
+        selection?.let { case ->
+            if (ileCourante != null) {
+                BulleParcelle(
+                    type = ileCourante.type(case.x, case.y),
+                    parcelle = parcelles[case.y * ileCourante.largeur + case.x],
+                    parcellesPossedees = parcelles.size,
+                    niveau = utilisateur.level,
+                    onFermer = viewModel::fermerSelection,
+                    onAcheter = { viewModel.acheter(case.x, case.y) },
+                    onDegager = { viewModel.degager(case.x, case.y) },
+                    onPreparer = { viewModel.preparer(case.x, case.y) },
+                    onSemer = { graine -> viewModel.semer(case.x, case.y, graine) },
+                    onArroser = { viewModel.arroser(case.x, case.y) },
+                    onRecolter = { viewModel.recolter(case.x, case.y) }
+                )
+            }
+        }
+
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(16.dp))
     }
 }
@@ -168,13 +191,13 @@ fun IslandScreen(
 @Composable
 private fun CarteIle(
     ile: IslandGenerator.Ile,
-    parcelles: Set<Int>,
+    parcelles: Map<Int, com.sankailife.core.island.data.IslandSlotEntity>,
     zoom: Float,
     demandeRecentrage: Long,
     niveau: Int,
     pieces: Int,
     onZoom: (Float) -> Unit,
-    onAcheter: (Int, Int) -> Unit,
+    onToucher: (Int, Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val densite = LocalDensity.current
@@ -267,12 +290,12 @@ private fun CarteIle(
                 detectTapGestures { position ->
                     val x = floor((position.x - camera.x) / pas).toInt()
                     val y = floor((position.y - camera.y) / pas).toInt()
-                    if (x in 0 until ile.largeur && y in 0 until ile.hauteur) onAcheter(x, y)
+                    if (x in 0 until ile.largeur && y in 0 until ile.hauteur) onToucher(x, y)
                 }
             }
     ) {
         Canvas(Modifier.fillMaxSize()) {
-            dessinerIle(ile = ile, camera = camera, pas = pas, parcelles = parcelles)
+            dessinerIle(ile = ile, camera = camera, pas = pas, parcelles = parcelles.keys)
         }
     }
 }

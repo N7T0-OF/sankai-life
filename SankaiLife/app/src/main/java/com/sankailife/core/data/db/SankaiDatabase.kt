@@ -28,7 +28,7 @@ import com.sankailife.core.garden.data.MemoChallengeEntity
                 GardenCrateEntity::class, GardenInventoryEntity::class,
                 GardenMimoEntity::class,
                 IslandEntity::class, IslandSlotEntity::class, IslandBuildingEntity::class],
-    version = 16,
+    version = 17,
     exportSchema = false
 )
 abstract class SankaiDatabase : RoomDatabase() {
@@ -364,12 +364,35 @@ abstract class SankaiDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Culture portée par la parcelle d'île.
+         *
+         * Sept colonnes ajoutées, toutes avec une valeur par défaut : une
+         * parcelle déjà achetée devient simplement une parcelle vide, ce
+         * qu'elle était de fait.
+         */
+        private val MIGRATION_16_17 = object : Migration(16, 17) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                listOf(
+                    "`etat` TEXT NOT NULL DEFAULT 'EMPTY'",
+                    "`graineId` TEXT NOT NULL DEFAULT ''",
+                    "`planteeMillis` INTEGER NOT NULL DEFAULT 0",
+                    "`minutesCumulees` INTEGER NOT NULL DEFAULT 0",
+                    "`dernierArrosageMillis` INTEGER NOT NULL DEFAULT 0",
+                    "`arrosages` INTEGER NOT NULL DEFAULT 0",
+                    "`dernierCalculMillis` INTEGER NOT NULL DEFAULT 0"
+                ).forEach { colonne ->
+                    db.execSQL("ALTER TABLE `island_slot` ADD COLUMN $colonne")
+                }
+            }
+        }
+
         val MIGRATIONS = arrayOf(
             MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
             MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
             MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
             MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
-            MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16
+            MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17
         )
 
         fun getDatabase(context: Context): SankaiDatabase {
