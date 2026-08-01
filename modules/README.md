@@ -100,12 +100,27 @@ avant lecture. Une archive vient de l'extérieur.
 
 ---
 
-## Exemples fournis
+## Modules prêts à installer
 
-| Module | Cartes | Licence |
-|---|---|---|
-| [portugais-debutant](examples/portugais-debutant) | 20 | CC BY 4.0 |
-| [raccourcis-blender](examples/raccourcis-blender) | 20 | CC BY 4.0 |
+Télécharge le `.zip`, puis importe-le depuis l'application.
+
+| Module | Cartes | Licence | Fichier |
+|---|---|---|---|
+| Portugais débutant | 20 | CC BY 4.0 | [portugais-debutant.zip](paquets/portugais-debutant.zip) |
+| Raccourcis Blender | 20 | CC BY 4.0 | [raccourcis-blender.zip](paquets/raccourcis-blender.zip) |
+
+Depuis un téléphone : ouvre le lien, puis **Download raw file**. Le fichier
+arrive dans les téléchargements, où le sélecteur de l'application le trouve.
+
+Les sources correspondantes sont dans [examples/](examples) — un dossier se
+relit et se corrige, un `.zip` non. Après toute modification :
+
+```bash
+python modules/construire-paquets.py
+```
+
+Sans cette étape, les `.zip` publiés ne correspondraient plus à leurs sources,
+et personne ne s'en apercevrait avant l'import.
 
 ---
 

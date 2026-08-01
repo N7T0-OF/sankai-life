@@ -1,5 +1,18 @@
 # Changelog Sankai Life
 
+## 1.42.0 — 1er août 2026
+
+- Les modules d'apprentissage sont enfin installables depuis un téléphone :
+  deux paquets prêts à l'emploi (Portugais débutant, Raccourcis Blender) sont
+  publiés en `.zip`, et un bouton « Voir les modules disponibles » y mène
+  directement. Jusqu'ici l'application renvoyait vers « le dépôt GitHub » sans
+  donner d'adresse, et les exemples n'existaient que sous forme de dossiers,
+  que GitHub ne sait pas télécharger.
+- Le bouton d'import apparaît même quand on n'a encore aucun module — c'est
+  précisément le moment où il sert.
+- Un module installé s'annonce en vert, plus en rouge. La réussite ne
+  s'affichait pas autrement qu'une panne.
+
 ## 1.41.0 — 1er août 2026
 
 - L'écran Mémo Intelligent devient utilisable pour réviser : chaque module

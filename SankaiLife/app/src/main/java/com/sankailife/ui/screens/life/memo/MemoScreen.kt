@@ -125,8 +125,11 @@ fun MemoScreen(
                     }, secondary = true, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp))
                 }
                 item { CarteMesErreurs(viewModel, onReviser = onReviserErreurs) }
-                item { ImportModuleBouton() }
             }
+            // Hors du bloc precedent : importer un module est surtout utile
+            // quand on n'en a encore aucun. Le reserver aux comptes deja
+            // fournis cachait la porte d'entree a ceux qui en avaient besoin.
+            item { Spacer(Modifier.height(8.dp)); ImportModuleBouton() }
             item { Spacer(Modifier.height(24.dp)) }
         }
       }

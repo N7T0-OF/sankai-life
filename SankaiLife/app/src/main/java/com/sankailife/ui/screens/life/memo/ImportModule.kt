@@ -19,6 +19,7 @@ import com.sankailife.core.modules.ModuleEngine
 import com.sankailife.core.modules.ModuleRepository
 import com.sankailife.ui.components.SankaiButton
 import com.sankailife.ui.theme.DangerRed
+import com.sankailife.ui.theme.SuccessGreen
 import com.sankailife.ui.theme.WarningAmber
 import com.sankailife.ui.theme.sankaiColors
 import kotlinx.coroutines.launch
@@ -42,7 +43,9 @@ fun ImportModuleBouton() {
 
     var verdict by remember { mutableStateOf<ModuleEngine.Verdict?>(null) }
     var cartes by remember { mutableStateOf<List<String>>(emptyList()) }
-    var message by remember { mutableStateOf<String?>(null) }
+    // Le succès et l'échec ne peuvent pas s'afficher de la même couleur :
+    // « module installé » en rouge se lit comme une panne.
+    var avis by remember { mutableStateOf<Avis?>(null) }
 
     val choisir = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
@@ -51,7 +54,7 @@ fun ImportModuleBouton() {
         portee.launch {
             runCatching { depot.inspecter(uri) }
                 .onSuccess { (v, lignes) -> verdict = v; cartes = lignes }
-                .onFailure { message = it.message ?: "Fichier illisible." }
+                .onFailure { avis = Avis(it.message ?: "Fichier illisible.", succes = false) }
         }
     }
 
@@ -63,14 +66,24 @@ fun ImportModuleBouton() {
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.height(6.dp))
+        // Renvoyer vers « le dépôt GitHub du projet » sans lien laissait
+        // l'utilisateur chercher sur son téléphone une adresse qu'on ne lui
+        // avait jamais donnée.
+        SankaiButton(
+            "Voir les modules disponibles",
+            onClick = { ouvrirDepotModules(contexte) },
+            secondary = true, small = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(6.dp))
         Text(
-            "Des paquets de cartes prêts à l'emploi, à récupérer sur le dépôt " +
-                "GitHub du projet. Tout fonctionne hors ligne une fois importé.",
+            "Des paquets de cartes prêts à l'emploi. Une fois importés, ils " +
+                "fonctionnent entièrement hors ligne.",
             color = c.textDisabled, fontSize = 11.sp
         )
-        message?.let {
+        avis?.let {
             Spacer(Modifier.height(6.dp))
-            Text(it, color = DangerRed, fontSize = 12.sp)
+            Text(it.texte, color = if (it.succes) SuccessGreen else DangerRed, fontSize = 12.sp)
         }
     }
 
@@ -120,10 +133,16 @@ fun ImportModuleBouton() {
                             onClick = {
                                 verdict = null
                                 portee.launch {
-                                    message = runCatching { depot.installer(m, cartes) }
+                                    avis = runCatching { depot.installer(m, cartes) }
                                         .fold(
-                                            onSuccess = { nom -> "« $nom » installé." },
-                                            onFailure = { e -> e.message ?: "Échec." }
+                                            onSuccess = { nom ->
+                                                Avis("« $nom » installé, désactivé par défaut.",
+                                                    succes = true)
+                                            },
+                                            onFailure = { e ->
+                                                Avis(e.message ?: "Échec de l'installation.",
+                                                    succes = false)
+                                            }
                                         )
                                 }
                             },
@@ -135,6 +154,21 @@ fun ImportModuleBouton() {
         }
     }
 }
+
+/** Adresse du dossier de modules, dans le dépôt du projet. */
+private const val URL_MODULES = "https://github.com/N7T0-OF/sankai-life/tree/main/modules"
+
+private fun ouvrirDepotModules(contexte: android.content.Context) {
+    val intent = android.content.Intent(
+        android.content.Intent.ACTION_VIEW,
+        android.net.Uri.parse(URL_MODULES)
+    ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+    // Aucun navigateur installé : on échoue en silence plutôt que de planter.
+    runCatching { contexte.startActivity(intent) }
+}
+
+/** Retour d'import : le texte, et s'il annonce une réussite ou un échec. */
+private data class Avis(val texte: String, val succes: Boolean)
 
 @Composable
 private fun LigneInfo(cle: String, valeur: String) {
