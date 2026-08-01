@@ -31,10 +31,16 @@ import com.sankailife.core.domain.model.UserState
 import com.sankailife.ui.components.*
 import com.sankailife.ui.theme.*
 
+/**
+ * Les rayons de la boutique.
+ *
+ * « Boosts » a disparu avec les articles qu'il contenait : ils étaient
+ * encaissés sans effet. Un onglet vide vaut moins que pas d'onglet du tout.
+ */
 private enum class OngletBoutique(val libelle: String, val categorie: String) {
     COFFRES("Coffres", "chest"),
-    BOOSTS("Boosts", "boost"),
-    AMELIORATIONS("Améliorations", "upgrade")
+    JARDIN("Jardin", "jardin"),
+    PROGRESSION("Progression", "progression")
 }
 
 @Composable
@@ -209,8 +215,12 @@ private fun CarteArticle(
     SankaiStateCard(state = etat) {
         Row(verticalAlignment = Alignment.Top) {
             Text(
-                when (item.category) {
-                    "chest" -> "🎁"; "boost" -> "⚡"; else -> "🧩"
+                when {
+                    item.category == "chest" -> "🎁"
+                    item.id.startsWith("eau") -> "💧"
+                    item.id.startsWith("compost") -> "🌱"
+                    item.id == "bouclier" -> "🛡️"
+                    else -> "🧩"
                 },
                 fontSize = 22.sp
             )

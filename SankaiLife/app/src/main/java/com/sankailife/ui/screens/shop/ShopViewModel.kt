@@ -24,6 +24,9 @@ class ShopViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as SankaiApplication
     val userRepo = UserRepository(app.database)
     val gameRepo = GameRepository(app.database, app)
+    private val gardenRepo = com.sankailife.core.garden.data.GardenRepository(
+        app.database, userRepo
+    )
 
     val user: StateFlow<UserState> = userRepo.userFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UserState())
@@ -117,8 +120,49 @@ class ShopViewModel(application: Application) : AndroidViewModel(application) {
                 app.database.userDao().updateModuleSlots(cu.moduleSlots + 1)
                 showToast("+1 slot module • ${cu.moduleSlots + 1} au total ✅")
             }
-            else -> showToast("${item.name} acheté ✅")
+            "eau_10", "eau_30" -> {
+                val quantite = if (item.id == "eau_30") 30 else 10
+                if (gardenRepo.ajouterEau(quantite)) {
+                    showToast("+$quantite 💧")
+                } else {
+                    rembourser(prixPieces, item.costGems)
+                    showToast("Ta réserve d'eau est pleine — remboursé")
+                }
+            }
+
+            "compost_10" -> {
+                gardenRepo.ajouterCompost(10)
+                showToast("+10 🌱 de compost")
+            }
+
+            "bouclier" -> {
+                val cu = app.database.userDao().getUserOnce()
+                if (cu == null || cu.streakShields >= 3) {
+                    rembourser(prixPieces, item.costGems)
+                    showToast("Tu as déjà trois boucliers — remboursé")
+                } else {
+                    app.database.userDao().upsert(
+                        cu.copy(streakShields = cu.streakShields + 1)
+                    )
+                    showToast("Bouclier ajouté 🛡️")
+                }
+            }
+
+            // Filet de sécurité : un article ajouté au catalogue sans être
+            // câblé ici est REMBOURSÉ, pas encaissé avec un « acheté » de
+            // politesse. C'est exactement ce qui rendait la boutique
+            // malhonnête avant, et le défaut doit désormais coûter à la
+            // boutique plutôt qu'au joueur.
+            else -> {
+                rembourser(prixPieces, item.costGems)
+                showToast("Cet article n'est pas encore disponible — remboursé")
+            }
         }
+    }
+
+    private suspend fun rembourser(pieces: Int, gemmes: Int) {
+        if (pieces > 0) userRepo.addCoins(pieces)
+        if (gemmes > 0) userRepo.addGems(gemmes)
     }
 
     fun watchAd(activity: Activity) = viewModelScope.launch {

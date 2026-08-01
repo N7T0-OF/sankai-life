@@ -526,6 +526,31 @@ class GardenRepository(
         return faites
     }
 
+    /**
+     * Crédite de l'eau achetée.
+     *
+     * Refuse si la réserve est déjà pleine, ce qui permet à la boutique de
+     * rembourser : encaisser une eau qui déborderait reviendrait à vendre du
+     * vide.
+     *
+     * Cette eau ne compte pas dans le plafond quotidien de l'apprentissage :
+     * ce plafond existe pour empêcher de farmer les révisions, pas pour
+     * limiter ce qu'on a payé.
+     */
+    suspend fun ajouterEau(quantite: Int): Boolean {
+        val etat = dao.etat() ?: return false
+        if (etat.eau >= LearningRewardEngine.CAPACITE_EAU) return false
+        dao.sauverEtat(
+            etat.copy(eau = LearningRewardEngine.ajouterEau(etat.eau, quantite))
+        )
+        return true
+    }
+
+    /** Crédite du compost acheté. Il n'a pas de plafond. */
+    suspend fun ajouterCompost(quantite: Int) {
+        dao.etat()?.let { dao.sauverEtat(it.copy(compost = it.compost + quantite)) }
+    }
+
     /** Améliore l'arrosoir d'un niveau. */
     suspend fun ameliorerArrosoir(): Boolean {
         val etat = dao.etat() ?: return false
