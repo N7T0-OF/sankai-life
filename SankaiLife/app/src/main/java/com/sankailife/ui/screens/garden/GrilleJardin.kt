@@ -27,6 +27,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -100,6 +105,9 @@ fun GrilleJardin(
     // avec une échelle périmée.
     val zoomCourant = rememberUpdatedState(zoom)
 
+    // Le geste en cours. Un seul à la fois, explicitement.
+    var mode by remember { mutableStateOf(ModeGeste.REPOS) }
+
     // Le maintien en cours, s'il y en a un.
     var maintien by remember { mutableStateOf<Maintien?>(null) }
     var progression by remember { mutableStateOf(0f) }
@@ -133,14 +141,15 @@ fun GrilleJardin(
     // graphique : les illustrations restent dessinées à leur résolution
     // naturelle au lieu d'être étirées, donc elles ne bavent pas.
     //
-    // L'écart entre cases est négatif : les textures se chevauchent de deux
-    // points et forment un terrain continu. Avec un écart positif, on voyait
-    // le fond du cadre entre chaque parcelle et le jardin ressemblait à une
-    // grille de boutons. Les bords irréguliers des illustrations font le
-    // raccord tout seuls.
-    val tailleCase = with(densite) { (78.dp * zoom).toPx() }
-    val ecart = with(densite) { (-2).dp.toPx() * zoom }
-    val pas = tailleCase + ecart
+    // Aucun écart entre les cases : les textures sont opaques et carrées, donc
+    // elles se joignent exactement. Le pas EST la taille de la case.
+    //
+    // La taille est arrondie au pixel entier avant d'être utilisée comme pas.
+    // Sans cet arrondi, une taille fractionnaire décale chaque case d'un
+    // sous-pixel de plus que la précédente, et une ligne claire finit par
+    // apparaître entre les colonnes lointaines.
+    val tailleCase = with(densite) { (78.dp * zoom).toPx() }.let { kotlin.math.floor(it) }
+    val pas = tailleCase
 
     val parId = remember(parcelles) { parcelles.associateBy { it.id } }
 
@@ -197,45 +206,74 @@ fun GrilleJardin(
                     cameraInitialisee = true
                 }
             }
-            // Pincement : zoom ancré sous les doigts, et déplacement à deux
-            // doigts. Capté avant le glissement, sinon un pincement passerait
-            // pour deux doigts qui déplacent la caméra.
+            // Surveillance de la levée des doigts.
+            //
+            // `detectTransformGestures` ne prévient pas quand le pincement se
+            // termine. Sans ce guetteur, le mode resterait bloqué sur ZOOM et
+            // plus aucun déplacement ne serait possible ensuite.
+            //
+            // Passe finale et aucune consommation : il observe sans jamais
+            // priver les autres détecteurs de leurs événements.
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val evenement = awaitPointerEvent(PointerEventPass.Final)
+                        if (evenement.changes.none { it.pressed }) {
+                            mode = ModeGeste.REPOS
+                        }
+                    }
+                }
+            }
+            // Le pincement, et lui seul.
+            //
+            // Il ne déplace plus la caméra. Deux détecteurs indépendants
+            // modifiaient l'offset en même temps : le zoom et le déplacement se
+            // superposaient, et le terrain glissait sous les doigts pendant
+            // qu'on essayait de l'agrandir.
+            //
+            // Le mode passe à ZOOM dès qu'un pincement commence et n'en sort
+            // qu'à la levée complète des doigts. Le détecteur à un doigt, lui,
+            // refuse d'agir tant que le mode n'est pas revenu au repos — c'est
+            // ce qui supprime le saut de caméra juste après un zoom.
             .pointerInput(parcelles.size) {
-                detectTransformGestures { centroide, deplacement, facteur, _ ->
-                    if (facteur != 1f) {
-                        val avant = zoomCourant.value
-                        val apres = (avant * facteur).coerceIn(
-                            GardenViewModel.ZOOM_MIN, GardenViewModel.ZOOM_MAX
-                        )
-                        // Le point du jardin sous les doigts doit rester sous
-                        // les doigts. Sans cette correction, la caméra reste
-                        // ancrée à son origine et tout le terrain fuit vers le
-                        // coin supérieur gauche — c'était le bug signalé.
-                        //
-                        // On raisonne sur le rapport réel, pas sur le facteur
-                        // demandé : aux bornes du zoom, le facteur est écrêté
-                        // et l'appliquer tel quel décalerait la vue.
-                        val rapport = apres / avant
-                        camera = centroide - (centroide - camera) * rapport
-                        onZoom(apres)
-                    }
-                    if (deplacement != Offset.Zero) {
-                        camera += deplacement
-                    }
+                detectTransformGestures(panZoomLock = true) { centroide, _, facteur, _ ->
+                    if (facteur == 1f) return@detectTransformGestures
+                    mode = ModeGeste.ZOOM
+
+                    val avant = zoomCourant.value
+                    val apres = (avant * facteur).coerceIn(
+                        GardenViewModel.ZOOM_MIN, GardenViewModel.ZOOM_MAX
+                    )
+                    // Le point du jardin sous les doigts doit rester sous les
+                    // doigts. On raisonne sur le rapport réel, pas sur le
+                    // facteur demandé : aux bornes du zoom, le facteur est
+                    // écrêté et l'appliquer tel quel décalerait la vue.
+                    val rapport = apres / avant
+                    camera = centroide - (centroide - camera) * rapport
+                    onZoom(apres)
                 }
             }
             .pointerInput(outil, parcelles.size, zoom) {
                 detectDragGestures(
                     onDragStart = { position ->
-                        if (outil == null) return@detectDragGestures
+                        // Un glissement qui commence pendant ou juste après un
+                        // pincement est ignoré. Le mode ne redevient REPOS qu'à
+                        // la fin du geste précédent.
+                        if (mode == ModeGeste.ZOOM) return@detectDragGestures
+                        if (outil == null) {
+                            mode = ModeGeste.DEPLACEMENT
+                            return@detectDragGestures
+                        }
+                        mode = ModeGeste.OUTIL
                         // Le maintien démarre ici. Rien n'est appliqué : c'est
                         // le compte à rebours qui décidera.
                         maintien = Maintien(parcelleSous(position), position)
                     },
-                    onDragEnd = { maintien = null },
-                    onDragCancel = { maintien = null }
+                    onDragEnd = { maintien = null; mode = ModeGeste.REPOS },
+                    onDragCancel = { maintien = null; mode = ModeGeste.REPOS }
                 ) { changement, delta ->
                     changement.consume()
+                    if (mode == ModeGeste.ZOOM) return@detectDragGestures
                     if (outil == null) {
                         // Déplacement borné : sortir des limites donnerait
                         // l'impression d'un jardin perdu dans le vide. Quand le
@@ -296,20 +334,6 @@ fun GrilleJardin(
             }
             .size(with(densite) { tailleCase.toDp() })
 
-        // Le brouillard d'abord : il doit passer sous les parcelles.
-        //
-        // Il est dessiné d'un seul tenant, en nappes qui débordent largement
-        // des cases. Une image par case redonnait au brouillard la forme d'un
-        // damier, et le joueur devinait le découpage du terrain qu'il est
-        // justement censé ignorer.
-        NappeBrouillard(
-            cases = brouillard,
-            minX = minX,
-            minY = minY,
-            pas = pas,
-            camera = camera,
-            modifier = Modifier.matchParentSize()
-        )
 
         parcelles.forEach { parcelle ->
             CaseParcelle(
@@ -319,6 +343,27 @@ fun GrilleJardin(
                 modifier = placement(parcelle.x, parcelle.y)
             )
         }
+
+        // Le brouillard, par-dessus tout le terrain.
+        //
+        // Il couvre l'écran entier puis découpe les cases connues dedans : le
+        // vide au-delà de la frontière disparaît, alors que l'ancienne version
+        // posait des bulles sur les cases voisines et laissait voir le fond du
+        // cadre là où le monde aurait dû continuer.
+        //
+        // La couche hors écran est indispensable : `BlendMode.Clear` efface ce
+        // qui est déjà dessiné dans SA couche, et sans elle il effacerait tout
+        // le jardin en dessous.
+        NappeBrouillard(
+            connues = parId.keys,
+            minX = minX,
+            minY = minY,
+            pas = pas,
+            camera = camera,
+            modifier = Modifier.matchParentSize().graphicsLayer {
+                compositingStrategy = CompositingStrategy.Offscreen
+            }
+        )
 
         // Les Mimos, par-dessus les parcelles.
         //
@@ -439,49 +484,94 @@ private fun MimoDansLeJardin(
  */
 @Composable
 private fun NappeBrouillard(
-    cases: List<Int>,
+    connues: Set<Int>,
     minX: Int,
     minY: Int,
     pas: Float,
     camera: Offset,
     modifier: Modifier = Modifier
 ) {
-    if (cases.isEmpty()) return
-
-    // Une lente respiration, pour que la nappe ne soit pas figée. Les décalages
-    // sont dérivés de la position de la case : deux nappes voisines ne
-    // bougent donc pas ensemble.
+    // Une lente respiration, pour que la nappe ne soit pas figée.
     val transition = rememberInfiniteTransition(label = "brouillard")
     val souffle by transition.animateFloat(
         initialValue = 0f, targetValue = (2 * Math.PI).toFloat(),
-        animationSpec = infiniteRepeatable(tween(9000, easing = LinearEasing)),
+        animationSpec = infiniteRepeatable(tween(11000, easing = LinearEasing)),
         label = "souffleBrouillard"
     )
 
     Canvas(modifier) {
-        cases.forEach { cle ->
+        // --- Couche 1 : le masque. -----------------------------------------
+        //
+        // Tout l'écran est couvert, puis les cases connues sont découpées
+        // dedans. C'est l'inverse de la version précédente, qui posait des
+        // bulles sur les cases voisines et laissait le vide visible au-delà —
+        // on voyait le fond du cadre là où le monde aurait dû continuer.
+        val trous = connues.map { cle ->
+            Offset(
+                camera.x + (ExpansionEngine.xDe(cle) - minX) * pas,
+                camera.y + (ExpansionEngine.yDe(cle) - minY) * pas
+            )
+        }
+
+        drawRect(color = Color(0xFF0A1610).copy(alpha = 0.94f))
+        trous.forEach { coin ->
+            drawRect(
+                color = Color.Transparent,
+                topLeft = coin,
+                size = androidx.compose.ui.geometry.Size(pas, pas),
+                blendMode = BlendMode.Clear
+            )
+        }
+
+        // --- Couche 2 : les nuages. ----------------------------------------
+        //
+        // Ils débordent sur la frontière et cassent la découpe rectangulaire
+        // du masque : sans eux, le brouillard dessinerait exactement la grille
+        // qu'il est censé cacher.
+        val bord = frontiereDe(connues)
+        bord.forEach { cle ->
             val cx = camera.x + (ExpansionEngine.xDe(cle) - minX) * pas + pas / 2f
             val cy = camera.y + (ExpansionEngine.yDe(cle) - minY) * pas + pas / 2f
-            val graine = (cle * 2654435761u.toInt())
+            val graine = cle * 2654435761u.toInt()
 
-            // Quatre bulles par case, décalées et de tailles différentes.
-            // C'est leur recouvrement d'une case à l'autre qui efface la grille.
-            for (i in 0 until 4) {
+            for (i in 0 until 5) {
                 val angle = souffle + (graine + i * 977) % 628 / 100f
-                val rayon = pas * (0.42f + ((graine / (i + 3)) % 24) / 100f)
-                val amplitude = pas * 0.10f
+                val rayon = pas * (0.46f + ((graine / (i + 3)) % 28) / 100f)
+                val amplitude = pas * 0.13f
                 drawCircle(
-                    color = Color(0xFF0A1610).copy(alpha = 0.30f),
+                    color = Color(0xFF0A1610).copy(alpha = 0.32f),
                     radius = rayon,
                     center = Offset(
-                        cx + cos(angle) * amplitude + ((graine / (i + 5)) % 30 - 15) * pas / 100f,
-                        cy + sin(angle) * amplitude + ((graine / (i + 7)) % 30 - 15) * pas / 100f
+                        cx + cos(angle) * amplitude + ((graine / (i + 5)) % 34 - 17) * pas / 100f,
+                        cy + sin(angle) * amplitude + ((graine / (i + 7)) % 34 - 17) * pas / 100f
                     )
                 )
             }
         }
+
+        // --- Couche 3 : la brume de bord. ----------------------------------
+        // Plus claire et plus petite, elle adoucit la transition avec le sol.
+        bord.forEach { cle ->
+            val cx = camera.x + (ExpansionEngine.xDe(cle) - minX) * pas + pas / 2f
+            val cy = camera.y + (ExpansionEngine.yDe(cle) - minY) * pas + pas / 2f
+            val graine = cle * 40503
+            drawCircle(
+                color = Color(0xFF6E8C7B).copy(alpha = 0.10f),
+                radius = pas * 0.55f,
+                center = Offset(
+                    cx + cos(souffle * 1.3f + graine % 7) * pas * 0.09f,
+                    cy + sin(souffle * 1.1f + graine % 5) * pas * 0.09f
+                )
+            )
+        }
     }
 }
+
+/** Cases inconnues touchant une case connue. */
+private fun frontiereDe(connues: Set<Int>): List<Int> =
+    connues.flatMap { ExpansionEngine.voisines(it) }
+        .filter { it !in connues }
+        .distinct()
 
 @Composable
 private fun CaseParcelle(
@@ -509,56 +599,56 @@ private fun CaseParcelle(
     )
 
     val cultivable = parcelle.cultivable
-    val bordure = when {
-        // Une case pas encore achetée reste grisée et muette. Le contour bleu
-        // qu'elle portait la faisait passer pour une case sélectionnable, alors
-        // qu'elle n'appartient pas encore au joueur.
-        parcelle.deblocage == ExpansionEngine.Deblocage.EN_CHANTIER -> AccentGold.copy(alpha = 0.5f)
-        parcelle.prete -> AccentGold.copy(alpha = pulse)
-        else -> Color.Transparent
-    }
 
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
 
-        // Couche 1 — la case elle-même.
+        // Couche 1 — le sol.
         //
-        // L'illustration porte sa propre forme, ses bords irréguliers et sa
-        // texture : aucun fond ni arrondi n'est dessiné par l'interface. Poser
-        // une couleur derrière ferait réapparaître le carré que l'image est
-        // justement censée remplacer.
-        if (cultivable) {
-            Image(
-                painter = painterResource(ArtJardin.parcelle(parcelle.etatHumidite)),
-                contentDescription = null,
-                contentScale = ContentScale.Fit,
-                // Le fondu suit l'humidité : un sol qui vire brutalement au
-                // brun sombre ressemblerait à un défaut d'affichage plutôt
-                // qu'à de l'eau qui pénètre la terre.
-                alpha = 0.88f + 0.12f * melange,
-                modifier = Modifier.fillMaxSize()
-            )
-        } else {
-            Box(
-                Modifier.fillMaxSize()
-                    .clip(RoundedCornerShape(13.dp))
-                    .background(Color(0xFF14201A))
-            )
+        // Aucun arrondi, aucune bordure, aucun fond : la texture occupe la
+        // case entière et se joint bord à bord avec ses voisines. Les coins
+        // arrondis faisaient ressembler le terrain à une grille de boutons
+        // d'interface, ce qu'un champ n'est pas.
+        //
+        // Une case non acquise garde la texture du monde — l'herbe — et reçoit
+        // seulement un cadenas par-dessus. Un rectangle gris à sa place
+        // trouerait le paysage.
+        Image(
+            painter = painterResource(
+                when {
+                    !cultivable -> ArtJardin.herbe
+                    parcelle.etat == PlotState.UNCLEARED -> ArtJardin.terreSeche
+                    else -> ArtJardin.parcelle(parcelle.etatHumidite)
+                }
+            ),
+            contentDescription = null,
+            // Crop, pas Fit : la texture doit remplir la case sans laisser de
+            // marge, sinon les jointures rouvriraient.
+            contentScale = ContentScale.Crop,
+            // Le fondu suit l'humidité : un sol qui vire brutalement au brun
+            // sombre ressemblerait à un défaut d'affichage plutôt qu'à de
+            // l'eau qui pénètre la terre.
+            alpha = if (cultivable) 0.9f + 0.1f * melange else 1f,
+            modifier = Modifier.fillMaxSize()
+        )
+
+        // Voile de désaturation sur ce qui n'est pas encore à nous. Assez
+        // léger pour qu'on reconnaisse le terrain qu'on s'apprête à acheter.
+        if (!cultivable) {
+            Box(Modifier.fillMaxSize().background(Color(0xFF0B140F).copy(alpha = 0.42f)))
         }
 
         // Couche 2 — ce qui pousse dessus, ou l'état de la case.
+        //
+        // Le cadenas est une couche indépendante posée sur la texture, jamais
+        // une image de remplacement : il disparaît seul au déblocage, sans
+        // qu'il faille changer le sol en même temps.
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             when {
                 parcelle.deblocage == ExpansionEngine.Deblocage.EN_CHANTIER ->
                     Text("🚧", fontSize = 22.sp)
 
                 parcelle.deblocage == ExpansionEngine.Deblocage.DECOUVERTE ->
-                    IconeArt(ArtJardin.terrain(parcelle.terrain), taille = 34.dp)
-
-                parcelle.etat == PlotState.UNCLEARED ->
-                    IconeArt(
-                        ArtJardin.terrain(ExpansionEngine.Terrain.ROCHEUX),
-                        taille = 34.dp
-                    )
+                    Text("🔒", fontSize = 22.sp)
 
                 parcelle.stage != null ->
                     IconeArt(
@@ -595,24 +685,30 @@ private fun CaseParcelle(
             }
         }
 
-        // Couche 3 — le cadre de guidage.
+        // Couche 3 — le guidage.
         //
-        // Posé par-dessus l'illustration plutôt que dessiné avec elle : c'est
-        // une indication d'interface, pas une partie du jardin. La surbrillance
-        // ne s'allume que là où l'outil tenu agit vraiment.
-        val cadre = if (surbrillance) AccentCyan else bordure
+        // Un liseré rectangulaire, jamais arrondi : il souligne une case du
+        // terrain, il ne dessine pas une carte d'interface. Il ne s'allume que
+        // là où l'outil tenu agit vraiment, ou sur une récolte prête.
+        val cadre = when {
+            surbrillance -> AccentCyan
+            parcelle.prete -> AccentGold.copy(alpha = pulse)
+            else -> Color.Transparent
+        }
         if (cadre != Color.Transparent) {
-            Box(
-                Modifier.fillMaxSize()
-                    .border(
-                        width = if (surbrillance || parcelle.prete) 2.dp else 1.dp,
-                        color = cadre,
-                        shape = RoundedCornerShape(13.dp)
-                    )
-            )
+            Box(Modifier.fillMaxSize().border(2.dp, cadre, RectangleShape))
         }
     }
 }
+
+/**
+ * Le geste en cours sur le terrain.
+ *
+ * Un seul à la fois, et c'est tout l'intérêt : deux détecteurs Compose
+ * indépendants modifiaient l'offset de la caméra en même temps, si bien que le
+ * terrain glissait pendant qu'on essayait de l'agrandir.
+ */
+private enum class ModeGeste { REPOS, DEPLACEMENT, ZOOM, OUTIL }
 
 /** Doigt posé sur une case, en attente de validation. */
 private data class Maintien(val cle: Int, val position: Offset)

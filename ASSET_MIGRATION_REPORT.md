@@ -136,3 +136,46 @@ Le rendu réel. Netteté à la taille d'affichage, halo blanc éventuel autour d
 transparences, contraste du portrait recadré en cercle par le lanceur, lisibilité
 du texte de case par-dessus une terre sombre. Rien de tout cela ne se voit dans
 un compilateur.
+
+
+---
+
+# Deuxième vague — textures de terrain (v1.29.0)
+
+Quatre PNG ajoutés au dossier source le 1er août.
+
+| Fichier d'origine | Renommé en | Rôle | Format constaté |
+|---|---|---|---|
+| `Terre herbe.png` | `plot_grass.png` | terrain non cultivé | 2048², **opaque, carré** |
+| `Terre sec.png` | `plot_dry.png` | terre sèche, ou non labourée | 2048², opaque, carré |
+| `Terre labourer .png` | `plot_tilled.png` | terre labourée, prête à semer | 2048², opaque, carré |
+| `Terre mouillée .png` | `plot_wet.png` | terre arrosée | 2048², opaque, carré |
+
+**Le format change tout.** Les trois premières textures, livrées en juillet,
+avaient des bords rongés et de la transparence : il fallait les espacer, et on
+voyait le fond du cadre entre les cases. Celles-ci sont des carrés pleins —
+elles se joignent bord à bord et forment un sol continu.
+
+## Remplacements
+
+| Ancien asset | Nouveau | Écran | État | Ancien supprimé |
+|---|---|---|---|---|
+| `plot_empty.png` | `plot_dry.png` | cases du jardin | remplacé | oui |
+| `plot_prepared.png` | `plot_tilled.png` | cases du jardin | remplacé | oui |
+| `plot_watered.png` | `plot_wet.png` | cases du jardin | remplacé | oui |
+| *(rectangle gris)* | `plot_grass.png` | cases non acquises | ajouté | — |
+| `art_parcelle_encombree` | `plot_dry.png` | cases à labourer | remplacé | non, encore utilisé pour les terrains rocheux |
+
+## Ce qui a changé dans le rendu
+
+- **écart entre cases : −2 dp → 0**, et la taille est arrondie au pixel entier
+  avant de servir de pas. Sans cet arrondi, une taille fractionnaire décale
+  chaque case d'un sous-pixel de plus que la précédente, et une ligne claire
+  finit par apparaître entre les colonnes lointaines ;
+- **`RoundedCornerShape` → `RectangleShape`** sur les cases et leur liseré. Des
+  coins arrondis font ressembler un champ à une grille de boutons ;
+- **`ContentScale.Fit` → `Crop`** : `Fit` laissait une marge quand la case
+  n'était pas exactement carrée, ce qui rouvrait les jointures ;
+- **une case verrouillée garde la texture du monde** — l'herbe — et reçoit un
+  voile sombre plus un cadenas en couche indépendante. Le cadenas disparaît
+  seul au déblocage, sans qu'il faille changer le sol.

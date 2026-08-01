@@ -48,8 +48,16 @@ function Redimensionner {
 # 256 px couvrent meme un ecran a forte densite.
 "Parcelles et plantes"
 $nodpi = Join-Path $res "drawable-nodpi"
-foreach ($n in @("plot_empty", "plot_prepared", "plot_watered")) {
+# Textures de terrain. Opaques et carrees, sans bord irregulier : elles se
+# joignent bord a bord et forment un sol continu. C'est ce qui remplace les
+# anciennes cases a coins arrondis, qui ressemblaient a des boutons.
+foreach ($n in @("plot_grass", "plot_dry", "plot_tilled", "plot_wet")) {
     Redimensionner (Join-Path $source "$n.png") (Join-Path $nodpi "$n.png") 256
+}
+# Anciennes textures a bords irreguliers, remplacees.
+foreach ($n in @("plot_empty", "plot_prepared", "plot_watered")) {
+    $vieux = Join-Path $nodpi "$n.png"
+    if (Test-Path $vieux) { Remove-Item $vieux -Force; "  supprime : $n.png" }
 }
 foreach ($n in @("plant_stage_0_seed", "plant_stage_1", "plant_stage_2",
                  "plant_stage_3", "plant_stage_4", "plant_stage_5_ready")) {

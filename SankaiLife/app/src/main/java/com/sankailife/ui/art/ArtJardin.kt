@@ -71,25 +71,38 @@ object ArtJardin {
     }
 
     /**
-     * La case de parcelle entière : forme, terre, bords, texture.
+     * La texture d'une case cultivée, selon son humidité.
      *
-     * Ce n'est pas une teinte posée sur un carré dessiné par l'interface,
-     * c'est l'image complète de la case. Les bords irréguliers viennent de
-     * l'illustration, pas d'un `RoundedCornerShape`.
+     * Les images sont **opaques et carrées**, sans bord irrégulier : posées
+     * côte à côte sans écart, elles forment un sol continu. Les anciennes
+     * avaient des bords rongés, ce qui laissait voir le fond entre les cases
+     * et donnait une grille de boutons.
      *
-     * Trois illustrations couvrent les cinq paliers d'humidité : la nuance
-     * entre « sec » et « un peu sec » se lit mal sur une case de 76 dp, et
-     * inventer deux variantes intermédiaires par retouche numérique jurerait
-     * avec le reste.
+     * Trois textures couvrent les cinq paliers d'humidité : la nuance entre
+     * « sec » et « un peu sec » se lit mal sur une case de 78 dp, et fabriquer
+     * des intermédiaires par retouche jurerait avec le reste.
      */
     @DrawableRes
     fun parcelle(etat: MoistureEngine.Etat): Int = when (etat) {
         MoistureEngine.Etat.SEC,
-        MoistureEngine.Etat.LEGEREMENT_SEC -> R.drawable.plot_empty
-        MoistureEngine.Etat.HUMIDE -> R.drawable.plot_prepared
+        MoistureEngine.Etat.LEGEREMENT_SEC -> R.drawable.plot_dry
+        MoistureEngine.Etat.HUMIDE -> R.drawable.plot_tilled
         MoistureEngine.Etat.BIEN_ARROSE,
-        MoistureEngine.Etat.DETREMPE -> R.drawable.plot_watered
+        MoistureEngine.Etat.DETREMPE -> R.drawable.plot_wet
     }
+
+    /**
+     * L'herbe : le terrain tel qu'il est avant d'être cultivé.
+     *
+     * Sert aux cases découvertes mais pas encore achetées, et à celles en
+     * chantier. Une case verrouillée garde ainsi la texture du monde et reçoit
+     * seulement un cadenas par-dessus, au lieu d'un rectangle gris qui trouait
+     * le paysage.
+     */
+    @DrawableRes val herbe = R.drawable.plot_grass
+
+    /** Terre non labourée, après une récolte. */
+    @DrawableRes val terreSeche = R.drawable.plot_dry
 
     @DrawableRes
     fun meteo(meteo: WeatherEngine.Meteo): Int = when (meteo) {
