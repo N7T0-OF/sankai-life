@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sankailife.core.domain.engine.MemorisationEngine
 import com.sankailife.ui.components.SectionTitle
 import com.sankailife.ui.theme.sankaiColors
 
@@ -31,6 +32,7 @@ import com.sankailife.ui.theme.sankaiColors
 fun AllStatsScreen(viewModel: ProfileViewModel, onBack: () -> Unit) {
     val user by viewModel.user.collectAsState()
     val brut by viewModel.rawUser.collectAsState()
+    val memo by viewModel.memorisation.collectAsState()
     val c = MaterialTheme.sankaiColors
 
     Column(Modifier.fillMaxSize().background(c.background)) {
@@ -53,6 +55,32 @@ fun AllStatsScreen(viewModel: ProfileViewModel, onBack: () -> Unit) {
             LigneStat("Niveau actuel", "${user.level}")
             LigneStat("XP dans le niveau", "${user.xp} / ${user.xpNext}")
             LigneStat("Série actuelle", "${user.streakDays} jours")
+
+            // Mémorisation avant l'économie : c'est ce que l'application sert
+            // à faire. Les pièces et les coffres n'en sont que le moteur.
+            SectionTitle("Mémorisation")
+            Text(MemorisationEngine.resume(memo), color = c.textSecondary,
+                fontSize = 13.sp, modifier = Modifier.padding(bottom = 4.dp))
+            LigneStat("Phrases enregistrées", "${memo.total}")
+            LigneStat(
+                "En dernière boîte",
+                "${memo.maitrisees}" +
+                    if (memo.total > 0)
+                        " (${MemorisationEngine.pourcentage(
+                            MemorisationEngine.partMaitrisee(memo.total, memo.maitrisees))})"
+                    else ""
+            )
+            if (memo.jamaisVues > 0) LigneStat("Jamais présentées", "${memo.jamaisVues}")
+            LigneStat("Réponses données", "${memo.revisions}")
+            // Le taux reste muet tant qu'il ne veut rien dire : afficher
+            // « 100 % » après une seule bonne réponse féliciterait quelqu'un
+            // qui n'a encore rien appris.
+            val taux = MemorisationEngine.tauxReussite(memo.revisions, memo.reussites)
+            LigneStat(
+                "Taux de bonnes réponses",
+                taux?.let { MemorisationEngine.pourcentage(it) }
+                    ?: "après ${MemorisationEngine.REVISIONS_POUR_UN_TAUX} réponses"
+            )
 
             SectionTitle("Activité")
             LigneStat("Temps de focus total",

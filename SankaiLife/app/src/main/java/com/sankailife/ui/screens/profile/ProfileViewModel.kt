@@ -8,6 +8,7 @@ import com.sankailife.SankaiApplication
 import com.sankailife.core.data.db.entities.UserEntity
 import com.sankailife.core.data.repository.UserRepository
 import com.sankailife.core.domain.engine.ArenaEngine
+import com.sankailife.core.domain.engine.MemorisationEngine
 import com.sankailife.core.domain.model.ALL_THEMES
 import com.sankailife.core.domain.model.Theme
 import com.sankailife.core.domain.model.UserState
@@ -33,6 +34,28 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         combine(user, app.database.arenaRewardDao().getReclamees()) { u, prises ->
             ArenaEngine.recompensesAReclamer(u.level, prises.toSet()).size
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    /**
+     * L'état de la mémorisation, tous modules confondus.
+     *
+     * Les statistiques ne parlaient jusqu'ici que du jeu — XP, pièces, coffres.
+     * Dans une application dont le but est d'apprendre, c'est la moitié qui
+     * manquait.
+     */
+    val memorisation: StateFlow<MemorisationEngine.Etat> =
+        app.database.memoDao()
+            .statsMemorisation(System.currentTimeMillis(), MemorisationEngine.BOITE_MAITRISEE)
+            .map {
+                MemorisationEngine.Etat(
+                    total = it.total,
+                    maitrisees = it.maitrisees,
+                    dues = it.dues,
+                    revisions = it.revisions,
+                    reussites = it.reussites,
+                    entamees = it.entamees
+                )
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), MemorisationEngine.Etat())
 
     data class Regularite(val sept: Int = 0, val trente: Int = 0, val quatreVingtDix: Int = 0)
 

@@ -1,5 +1,19 @@
 # Changelog Sankai Life
 
+## 1.41.0 — 1er août 2026
+
+- L'écran Mémo Intelligent devient utilisable pour réviser : chaque module
+  annonce son nombre de phrases, combien sont dues, et porte un bouton
+  « Réviser ». Il fallait jusqu'ici repasser par Mode Vie.
+- Le bouton « + » ouvre enfin l'éditeur du module qu'il vient de créer, au lieu
+  d'ajouter une ligne vide dans la liste sans rien dire.
+- Nouvelle section « Mémorisation » dans les Statistiques : phrases
+  enregistrées, cartes en dernière boîte, réponses données, taux de bonnes
+  réponses. Le taux reste masqué tant qu'il ne repose pas sur assez de réponses
+  pour vouloir dire quelque chose.
+- Les flèches de retour s'inversent d'elles-mêmes dans les langues écrites de
+  droite à gauche.
+
 ## 1.40.0 — 1er août 2026
 
 - Nouvelle session « Mes erreurs » : rassemble, tous modules confondus, les

@@ -11,6 +11,21 @@ data class StatsModule(
     val dues: Int
 )
 
+/**
+ * Projection : l'état de la mémorisation, tous modules confondus.
+ *
+ * Les sommes passent par `IFNULL` : sur une base vide, `SUM` renvoie NULL et
+ * non zéro, ce qui ferait échouer la conversion vers un entier non nullable.
+ */
+data class StatsMemorisation(
+    val total: Int,
+    val maitrisees: Int,
+    val dues: Int,
+    val revisions: Int,
+    val reussites: Int,
+    val entamees: Int
+)
+
 @Dao
 interface UserDao {
     @Query("SELECT * FROM user WHERE id=1 LIMIT 1")
@@ -183,6 +198,24 @@ interface MemoDao {
         GROUP BY profileId
     """)
     fun statsParModule(maintenant: Long): Flow<List<StatsModule>>
+
+    /**
+     * L'état global de la mémorisation.
+     *
+     * `boiteMax` est passé en paramètre plutôt qu'écrit en dur : le nombre de
+     * boîtes appartient à `FlashcardEngine`, et le figer ici ferait mentir
+     * l'écran le jour où il change.
+     */
+    @Query("""
+        SELECT COUNT(*) AS total,
+               IFNULL(SUM(CASE WHEN box >= :boiteMax THEN 1 ELSE 0 END), 0) AS maitrisees,
+               IFNULL(SUM(CASE WHEN nextReviewAtMillis <= :maintenant THEN 1 ELSE 0 END), 0) AS dues,
+               IFNULL(SUM(reviewCount), 0) AS revisions,
+               IFNULL(SUM(successCount), 0) AS reussites,
+               IFNULL(SUM(CASE WHEN reviewCount > 0 THEN 1 ELSE 0 END), 0) AS entamees
+        FROM memo_line
+    """)
+    fun statsMemorisation(maintenant: Long, boiteMax: Int): Flow<StatsMemorisation>
 
     /**
      * Cartes assez révisées pour qu'un taux d'échec veuille dire quelque chose.
