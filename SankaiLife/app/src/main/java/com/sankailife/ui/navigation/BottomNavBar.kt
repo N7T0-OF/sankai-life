@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sankailife.core.haptics.LocalHaptics
 import com.sankailife.ui.components.LiquidGlassSurface
+import com.sankailife.core.domain.engine.DeblocageEngine
+import androidx.compose.material.icons.filled.Lock
 import com.sankailife.ui.theme.sankaiColors
 
 data class NavItem(
@@ -61,6 +63,8 @@ fun SankaiBottomNavBar(
     showLabels: Boolean,
     challengeBadge: Int,
     homeBadge: Int = 0,
+    niveau: Int = 1,
+    onVerrou: (DeblocageEngine.Verrou) -> Unit = {},
     onNavigate: (String) -> Unit
 ) {
     val c = MaterialTheme.sankaiColors
@@ -84,6 +88,19 @@ fun SankaiBottomNavBar(
         ) {
             bottomNavItems.forEach { item ->
                 val isSelected = currentRoute == item.route
+
+                // Le verrou de niveau, s'il y en a un pour cet onglet.
+                //
+                // L'onglet reste visible et grisé plutôt que disparaître : une
+                // barre qui change de composition en cours de partie déplace
+                // les autres boutons sous le doigt, et on n'apprend jamais ce
+                // qui existe plus loin.
+                val fonction = when (item.route) {
+                    Screen.Challenges.route -> DeblocageEngine.Fonction.DEFIS
+                    else -> null
+                }
+                val verrou = fonction?.let { DeblocageEngine.verrou(it, niveau) }
+
                 val badge = when (item.route) {
                     Screen.Challenges.route -> challengeBadge
                     // Un coffre prêt se signale ici plutôt que par une carte
@@ -117,7 +134,9 @@ fun SankaiBottomNavBar(
                             indication = null
                         ) {
                             if (!isSelected) haptics.click()
-                            onNavigate(item.route)
+                            // Un cadenas ne se contente pas de refuser : il
+                            // explique ce qu'on obtient et quand.
+                            if (verrou != null) onVerrou(verrou) else onNavigate(item.route)
                         }
                         .padding(horizontal = padH, vertical = 8.dp),
                     contentAlignment = Alignment.Center
@@ -131,9 +150,13 @@ fun SankaiBottomNavBar(
                             }
                         }) {
                             Icon(
-                                imageVector = if (isSelected) item.iconSelected else item.iconUnselected,
+                                imageVector = when {
+                                    verrou != null -> Icons.Filled.Lock
+                                    isSelected -> item.iconSelected
+                                    else -> item.iconUnselected
+                                },
                                 contentDescription = item.label,
-                                tint = iconColor,
+                                tint = if (verrou != null) c.textDisabled else iconColor,
                                 modifier = Modifier.size(23.dp)
                             )
                         }

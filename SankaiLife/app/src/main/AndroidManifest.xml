@@ -114,6 +114,11 @@
             android:name=".core.notifications.CoffreAlarmReceiver"
             android:exported="false" />
 
+        <!-- Rappel quotidien de révision. -->
+        <receiver
+            android:name=".core.notifications.RevisionAlarmReceiver"
+            android:exported="false" />
+
         <!--
           Reprogramme toutes les alarmes après un redémarrage, une mise à jour
           de l'app, ou un changement d'heure ou de fuseau horaire : Android

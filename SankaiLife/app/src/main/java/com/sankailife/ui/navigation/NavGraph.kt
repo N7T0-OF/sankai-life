@@ -53,6 +53,16 @@ fun SankaiNavGraph() {
     val showLabels by settingsVm.showNavLabels.collectAsState()
     val claimableCount by challengesVm.claimableCount.collectAsState()
     val coffresPrets by homeVm.coffresPrets.collectAsState()
+    val user by homeVm.user.collectAsState()
+
+    // Le verrou qu'on vient de toucher, s'il y en a un.
+    var verrouAffiche by remember {
+        mutableStateOf<com.sankailife.core.domain.engine.DeblocageEngine.Verrou?>(null)
+    }
+
+    verrouAffiche?.let { v ->
+        FeuilleVerrou(verrou = v, onFermer = { verrouAffiche = null })
+    }
 
     val noBottomBarRoutes = setOf(
         Screen.Settings.route, Screen.MemoEditor.route,
@@ -72,6 +82,8 @@ fun SankaiNavGraph() {
                     showLabels = showLabels,
                     challengeBadge = claimableCount,
                     homeBadge = coffresPrets,
+                    niveau = user.level,
+                    onVerrou = { verrouAffiche = it },
                     onNavigate = { route ->
                         navController.navigate(route) {
                             popUpTo(navController.graph.findStartDestination().id) { saveState = true }

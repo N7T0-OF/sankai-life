@@ -8,6 +8,7 @@ import com.sankailife.core.ads.AdsManager
 import com.sankailife.core.connectivity.ConnectivityObserver
 import com.sankailife.core.data.db.SankaiDatabase
 import com.sankailife.core.data.preferences.AppPreferences
+import com.sankailife.core.notifications.RevisionAlarmReceiver
 import com.sankailife.core.notifications.MemoAlarmScheduler
 import com.sankailife.core.notifications.NotificationScheduler
 import com.sankailife.core.notifications.SankaiNotifications
@@ -35,6 +36,11 @@ class SankaiApplication : Application() {
 
         // Filet de sécurité périodique, qui replanifie sans jamais notifier.
         NotificationScheduler.programmer(this)
+
+        // Rappel quotidien de révision. Reprogrammé à chaque lancement pour la
+        // même raison que les mémos : une alarme perdue après un force stop ne
+        // se rétablit pas toute seule.
+        RevisionAlarmReceiver.programmerProchaine(this)
 
         // AdMob s'initialise en tâche de fond. S'il échoue (hors ligne, SDK
         // indisponible), l'app continue exactement pareil, sans pub.
