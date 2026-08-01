@@ -147,7 +147,20 @@ class UserRepository(private val db: SankaiDatabase) {
         pseudo = pseudo, level = level, xp = xp, xpNext = xpNext,
         coins = coins, gems = gems, streakDays = streakDays,
         totalFocusMinutes = totalFocusMinutes, totalAdsWatched = totalAdsWatched,
-        totalChestsOpened = totalChestsOpened, adCountToday = adCountToday,
+        totalChestsOpened = totalChestsOpened,
+        // Le compteur du jour est remis à zéro à la lecture, pas seulement à
+        // l'écriture.
+        //
+        // C'était le bug : `recordAdWatched` comparait bien la date, mais ce
+        // convertisseur exposait la valeur brute de la base. Tant qu'aucune
+        // publicité n'était regardée après minuit, l'écran affichait le total
+        // de la veille — et un compteur bloqué à 50 refusait toute nouvelle
+        // publicité alors que la limite était réinitialisée côté logique.
+        //
+        // La ligne en base n'est pas modifiée ici : la remise à zéro est
+        // dérivée, donc il n'existe aucun instant où l'affichage et la règle
+        // peuvent diverger.
+        adCountToday = if (lastAdDate == LocalDate.now().toString()) adCountToday else 0,
         moduleSlots = moduleSlots, focusSlots = focusSlots,
         bestStreak = bestStreak, streakShields = streakShields
     )

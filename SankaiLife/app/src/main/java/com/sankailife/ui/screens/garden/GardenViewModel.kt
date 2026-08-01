@@ -497,8 +497,15 @@ class GardenViewModel(application: Application) : AndroidViewModel(application) 
     private val _zoom = MutableStateFlow(1f)
     val zoom: StateFlow<Float> = _zoom
 
-    fun majZoom(facteur: Float) {
-        _zoom.value = (_zoom.value * facteur).coerceIn(ZOOM_MIN, ZOOM_MAX)
+    /**
+     * Reçoit le zoom **absolu**, pas un facteur.
+     *
+     * La grille doit connaître l'échelle réellement appliquée pour recentrer
+     * la caméra sur les doigts : lui renvoyer un facteur écrêté ici la ferait
+     * calculer un décalage avec une valeur qu'elle n'a pas.
+     */
+    fun majZoom(valeur: Float) {
+        _zoom.value = valeur.coerceIn(ZOOM_MIN, ZOOM_MAX)
     }
 
     fun recentrer() { _zoom.value = 1f }

@@ -266,7 +266,8 @@ fun GardenScreen(
                     onAppliquer = { viewModel.appliquerOutil(it) },
                     onOuvrirDetail = { selection = it },
                     onZoom = { viewModel.majZoom(it) },
-                    onOuvrirMimo = { mimoSelectionne = it }
+                    onOuvrirMimo = { mimoSelectionne = it },
+                    onReposerOutil = { viewModel.choisirOutil(null) }
                 )
 
                 // Ambiance, posée sur le terrain seul.

@@ -15,8 +15,11 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import com.sankailife.core.garden.domain.MimoMondeEngine
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -77,7 +80,8 @@ fun GrilleJardin(
     onAppliquer: (Int) -> Unit,
     onOuvrirDetail: (GardenViewModel.ParcelleUi) -> Unit,
     onZoom: (Float) -> Unit,
-    onOuvrirMimo: (MimoMondeEngine.MimoUi) -> Unit
+    onOuvrirMimo: (MimoMondeEngine.MimoUi) -> Unit,
+    onReposerOutil: () -> Unit
 ) {
     val c = MaterialTheme.sankaiColors
     val haptics = LocalHaptics.current
@@ -87,15 +91,51 @@ fun GrilleJardin(
     var cameraInitialisee by remember { mutableStateOf(false) }
     var tailleVue by remember { mutableStateOf(IntOffset.Zero) }
 
-    // Parcelles déjà traitées pendant le glissement courant : sans cette
-    // mémoire, un doigt qui tremble sur une case l'arroserait plusieurs fois.
-    val dejaTraitees = remember { mutableStateListOf<Int>() }
+    // Le zoom est relu à chaque geste : une lambda de `pointerInput` capture
+    // la valeur du moment où elle a été créée, et calculerait le recentrage
+    // avec une échelle périmée.
+    val zoomCourant = rememberUpdatedState(zoom)
+
+    // Le maintien en cours, s'il y en a un.
+    var maintien by remember { mutableStateOf<Maintien?>(null) }
+    var progression by remember { mutableStateOf(0f) }
+
+    // Compte à rebours du maintien.
+    //
+    // Le glissement n'applique plus rien tout seul : il fallait deux secondes
+    // de doigt immobile sur la case. C'est ce qui empêche de planter six
+    // graines par erreur en balayant le terrain.
+    LaunchedEffect(maintien?.cle) {
+        val m = maintien
+        if (m == null || m.cle < 0) { progression = 0f; return@LaunchedEffect }
+
+        progression = 0f
+        val pas = 40L
+        var ecoule = 0L
+        while (ecoule < DUREE_MAINTIEN_MS) {
+            delay(pas)
+            ecoule += pas
+            progression = ecoule / DUREE_MAINTIEN_MS.toFloat()
+        }
+        haptics.reward()
+        onAppliquer(m.cle)
+        progression = 0f
+        // La case reste sous le doigt : on repart pour un tour, ce qui permet
+        // d'enchaîner sans relever la main.
+        maintien = m.copy(cle = -1)
+    }
 
     // Le zoom agit sur la taille des cases, pas sur une transformation
     // graphique : les illustrations restent dessinées à leur résolution
     // naturelle au lieu d'être étirées, donc elles ne bavent pas.
-    val tailleCase = with(densite) { (76.dp * zoom).toPx() }
-    val ecart = with(densite) { (8.dp * zoom).toPx() }
+    //
+    // L'écart entre cases est négatif : les textures se chevauchent de deux
+    // points et forment un terrain continu. Avec un écart positif, on voyait
+    // le fond du cadre entre chaque parcelle et le jardin ressemblait à une
+    // grille de boutons. Les bords irréguliers des illustrations font le
+    // raccord tout seuls.
+    val tailleCase = with(densite) { (78.dp * zoom).toPx() }
+    val ecart = with(densite) { (-2).dp.toPx() * zoom }
     val pas = tailleCase + ecart
 
     val parId = remember(parcelles) { parcelles.associateBy { it.id } }
@@ -129,8 +169,8 @@ fun GrilleJardin(
         val col = (px / pas).toInt()
         val ligne = (py / pas).toInt()
         if (col !in 0 until colonnes || ligne !in 0 until lignes) return -1
-        // Rejette les touches tombant dans l'écart entre deux cases.
-        if (px % pas > tailleCase || py % pas > tailleCase) return -1
+        // Plus de rejet dans l'entre-deux : les cases se touchent désormais,
+        // il n'y a plus d'interstice où un appui pourrait se perdre.
 
         val cle = ExpansionEngine.cle(minX + col, minY + ligne)
         return if (parId.containsKey(cle)) cle else -1
@@ -153,29 +193,43 @@ fun GrilleJardin(
                     cameraInitialisee = true
                 }
             }
-            // Le pincement est capté avant le glissement : sans cet ordre, un
-            // pincement serait interprété comme deux doigts qui déplacent la
-            // caméra et le zoom ne partirait jamais.
-            .pointerInput(Unit) {
-                detectTransformGestures { _, _, changementZoom, _ ->
-                    if (changementZoom != 1f) onZoom(changementZoom)
+            // Pincement : zoom ancré sous les doigts, et déplacement à deux
+            // doigts. Capté avant le glissement, sinon un pincement passerait
+            // pour deux doigts qui déplacent la caméra.
+            .pointerInput(parcelles.size) {
+                detectTransformGestures { centroide, deplacement, facteur, _ ->
+                    if (facteur != 1f) {
+                        val avant = zoomCourant.value
+                        val apres = (avant * facteur).coerceIn(
+                            GardenViewModel.ZOOM_MIN, GardenViewModel.ZOOM_MAX
+                        )
+                        // Le point du jardin sous les doigts doit rester sous
+                        // les doigts. Sans cette correction, la caméra reste
+                        // ancrée à son origine et tout le terrain fuit vers le
+                        // coin supérieur gauche — c'était le bug signalé.
+                        //
+                        // On raisonne sur le rapport réel, pas sur le facteur
+                        // demandé : aux bornes du zoom, le facteur est écrêté
+                        // et l'appliquer tel quel décalerait la vue.
+                        val rapport = apres / avant
+                        camera = centroide - (centroide - camera) * rapport
+                        onZoom(apres)
+                    }
+                    if (deplacement != Offset.Zero) {
+                        camera += deplacement
+                    }
                 }
             }
             .pointerInput(outil, parcelles.size, zoom) {
                 detectDragGestures(
                     onDragStart = { position ->
-                        dejaTraitees.clear()
-                        if (outil != null) {
-                            val cle = parcelleSous(position)
-                            if (cle >= 0) {
-                                dejaTraitees.add(cle)
-                                haptics.click()
-                                onAppliquer(cle)
-                            }
-                        }
+                        if (outil == null) return@detectDragGestures
+                        // Le maintien démarre ici. Rien n'est appliqué : c'est
+                        // le compte à rebours qui décidera.
+                        maintien = Maintien(parcelleSous(position), position)
                     },
-                    onDragEnd = { dejaTraitees.clear() },
-                    onDragCancel = { dejaTraitees.clear() }
+                    onDragEnd = { maintien = null },
+                    onDragCancel = { maintien = null }
                 ) { changement, delta ->
                     changement.consume()
                     if (outil == null) {
@@ -191,23 +245,42 @@ fun GrilleJardin(
                             (camera.y + delta.y).coerceIn(minCamY, maxCamY)
                         )
                     } else {
+                        // Changer de case relance le compte à rebours. Le
+                        // glissement n'applique plus rien de lui-même : c'était
+                        // la cause des plantations par erreur.
                         val cle = parcelleSous(changement.position)
-                        if (cle >= 0 && cle !in dejaTraitees) {
-                            dejaTraitees.add(cle)
-                            haptics.click()
-                            onAppliquer(cle)
+                        if (cle != maintien?.cle) {
+                            maintien = Maintien(cle, changement.position)
+                        } else {
+                            maintien = maintien?.copy(position = changement.position)
                         }
                     }
                 }
             }
             .pointerInput(parcelles.size, outil) {
-                detectTapGestures { position ->
-                    val cle = parcelleSous(position)
-                    val parcelle = parId[cle] ?: return@detectTapGestures
-                    haptics.click()
-                    // Un tap avec outil applique, sans outil il inspecte.
-                    if (outil != null) onAppliquer(cle) else onOuvrirDetail(parcelle)
-                }
+                detectTapGestures(
+                    onTap = { position ->
+                        val cle = parcelleSous(position)
+                        val parcelle = parId[cle]
+                        when {
+                            // Toucher le vide en tenant un outil le repose.
+                            // Sans ça, on reste prisonnier de l'objet en main.
+                            parcelle == null && outil != null -> {
+                                haptics.click(); onReposerOutil()
+                            }
+                            parcelle == null -> Unit
+                            outil == null -> { haptics.click(); onOuvrirDetail(parcelle) }
+                            // Avec un outil, un simple appui n'agit plus : il
+                            // faut maintenir. Le détail reste consultable.
+                            else -> onOuvrirDetail(parcelle)
+                        }
+                    },
+                    onLongPress = { position ->
+                        if (parcelleSous(position) < 0 && outil != null) {
+                            haptics.click(); onReposerOutil()
+                        }
+                    }
+                )
             }
     ) {
         fun placement(x: Int, y: Int) = Modifier
@@ -251,6 +324,25 @@ fun GrilleJardin(
                             ExpansionEngine.xDe(cle), ExpansionEngine.yDe(cle)
                         ),
                         onClic = { onOuvrirMimo(mimo) }
+                    )
+                }
+            }
+        }
+
+        // Le cercle de maintien, dessiné sur la case visée.
+        maintien?.takeIf { it.cle >= 0 && progression > 0f }?.let { m ->
+            val p = parId[m.cle]
+            if (p != null) {
+                Box(
+                    placement(p.x, p.y),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        progress = { progression },
+                        color = AccentCyan,
+                        trackColor = Color.Black.copy(alpha = 0.35f),
+                        strokeWidth = 4.dp,
+                        modifier = Modifier.size(40.dp)
                     )
                 }
             }
@@ -368,7 +460,9 @@ private fun CaseParcelle(
 
     val cultivable = parcelle.cultivable
     val bordure = when {
-        parcelle.deblocage == ExpansionEngine.Deblocage.DECOUVERTE -> AccentCyan.copy(alpha = 0.45f)
+        // Une case pas encore achetée reste grisée et muette. Le contour bleu
+        // qu'elle portait la faisait passer pour une case sélectionnable, alors
+        // qu'elle n'appartient pas encore au joueur.
         parcelle.deblocage == ExpansionEngine.Deblocage.EN_CHANTIER -> AccentGold.copy(alpha = 0.5f)
         parcelle.prete -> AccentGold.copy(alpha = pulse)
         else -> Color.Transparent
@@ -424,28 +518,31 @@ private fun CaseParcelle(
 
                 else -> Spacer(Modifier.height(30.dp))
             }
-            Spacer(Modifier.height(1.dp))
-            Text(
-                when {
-                    parcelle.deblocage == ExpansionEngine.Deblocage.DECOUVERTE ->
-                        "${parcelle.coutDeblocage} 🪙"
-                    parcelle.deblocage == ExpansionEngine.Deblocage.EN_CHANTIER ->
-                        formaterCourt(parcelle.minutesChantier)
-                    parcelle.etat == PlotState.UNCLEARED -> "Pierres"
-                    parcelle.etat == PlotState.EMPTY -> parcelle.etatHumidite.libelle
-                    parcelle.prete -> "Prêt"
-                    parcelle.besoinEau -> "Soif"
-                    else -> formaterCourt(parcelle.minutesRestantes)
-                },
-                color = when {
-                    parcelle.deblocage == ExpansionEngine.Deblocage.DECOUVERTE -> AccentCyan
-                    parcelle.prete -> AccentGold
-                    parcelle.besoinEau -> AccentCyan
-                    else -> c.textSecondary
-                },
-                fontSize = 8.sp,
-                textAlign = TextAlign.Center
-            )
+            // Aucun texte sur la case.
+            //
+            // Le prix, le temps restant, « Prêt », « Soif » : tout ça vivait
+            // ici et décalait les plantes vers le haut. L'information n'a pas
+            // disparu — elle est dans la fiche, qui s'ouvre en touchant la
+            // case. Une case doit montrer ce qui pousse, pas le raconter.
+            //
+            // Seul un point de couleur subsiste : il attire l'œil sans occuper
+            // de place ni pousser le dessin hors du centre.
+            if (parcelle.prete || parcelle.besoinEau ||
+                parcelle.deblocage == ExpansionEngine.Deblocage.EN_CHANTIER
+            ) {
+                Spacer(Modifier.height(2.dp))
+                Box(
+                    Modifier.size(6.dp)
+                        .clip(CircleShape)
+                        .background(
+                            when {
+                                parcelle.prete -> AccentGold
+                                parcelle.besoinEau -> AccentCyan
+                                else -> c.textSecondary
+                            }
+                        )
+                )
+            }
         }
 
         // Couche 3 — le cadre de guidage.
@@ -466,6 +563,17 @@ private fun CaseParcelle(
         }
     }
 }
+
+/** Doigt posé sur une case, en attente de validation. */
+private data class Maintien(val cle: Int, val position: Offset)
+
+/**
+ * Durée du maintien avant qu'un outil ne s'applique.
+ *
+ * Deux secondes : assez long pour qu'un balayage accidentel ne déclenche rien,
+ * assez court pour ne pas rendre le travail à la chaîne pénible.
+ */
+private const val DUREE_MAINTIEN_MS = 2000L
 
 private fun formaterCourt(minutes: Long): String = when {
     minutes <= 0 -> "Prêt"

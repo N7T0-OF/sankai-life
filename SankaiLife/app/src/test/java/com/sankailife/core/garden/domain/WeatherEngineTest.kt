@@ -31,15 +31,50 @@ class WeatherEngineTest {
     }
 
     @Test
-    fun `le beau temps domine et la pluie reste minoritaire`() {
-        // La pluie arrose gratuitement. Trop fréquente, elle rendrait
-        // l'arrosage facultatif — donc la révision qui produit l'eau aussi.
-        val annee = (1..365).map {
-            WeatherEngine.meteoDuJour(java.time.LocalDate.ofYearDay(2026, it).toString())
+    fun `il ne pleut jamais en continu sur une journee`() {
+        // C'était le défaut de la première version : la météo était tirée par
+        // jour, donc un jour pluvieux pleuvait vingt-quatre heures d'affilée.
+        for (j in 1..120) {
+            val jour = java.time.LocalDate.ofYearDay(2026, j).toString()
+            assertTrue("le ciel de fond ne pleut pas", !WeatherEngine.cielDuJour(jour).pleut)
         }
-        val pluvieux = annee.count { it.pleut }
-        assertTrue("trop de pluie : $pluvieux", pluvieux < annee.size / 2)
-        assertTrue("pas assez de pluie : $pluvieux", pluvieux > 0)
+    }
+
+    @Test
+    fun `la pluie reste rare sur l'annee`() {
+        val avecAverse = (1..365).count {
+            WeatherEngine.averse(java.time.LocalDate.ofYearDay(2026, it).toString()) != null
+        }
+        // Environ un jour sur trois, jamais tous les jours : la pluie arrose
+        // gratuitement, permanente elle rendrait la révision facultative.
+        assertTrue("trop d'averses : $avecAverse", avecAverse < 200)
+        assertTrue("pas assez d'averses : $avecAverse", avecAverse > 50)
+    }
+
+    @Test
+    fun `une averse dure moins de trente minutes`() {
+        for (j in 1..365) {
+            val a = WeatherEngine.averse(java.time.LocalDate.ofYearDay(2026, j).toString())
+                ?: continue
+            assertTrue("averse trop longue : ${a.dureeMinutes}",
+                a.dureeMinutes in 1..WeatherEngine.DUREE_MAX_MINUTES)
+            // Une pluie nocturne que personne ne voit ne serait qu'un cadeau
+            // invisible.
+            assertTrue("averse hors journee", a.debutMinutes >= 6 * 60)
+        }
+    }
+
+    @Test
+    fun `la pluie ne couvre qu'une fraction de la journee`() {
+        val jour = (1..365).first {
+            WeatherEngine.averse(java.time.LocalDate.ofYearDay(2026, it).toString()) != null
+        }
+        val iso = java.time.LocalDate.ofYearDay(2026, jour).toString()
+        val minutesPluvieuses = (0 until 24 * 60).count {
+            WeatherEngine.meteoA(iso, it).pleut
+        }
+        assertTrue("il pleut trop longtemps : $minutesPluvieuses min",
+            minutesPluvieuses <= WeatherEngine.DUREE_MAX_MINUTES)
     }
 
     @Test

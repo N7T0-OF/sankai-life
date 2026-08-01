@@ -38,25 +38,74 @@ object WeatherEngine {
     }
 
     /**
-     * Météo d'un jour donné.
+     * Le temps de fond d'une journée.
      *
-     * La répartition penche vers le beau temps : la pluie doit rester une
-     * bonne surprise. Trop fréquente, elle rendrait l'arrosage — donc la
-     * révision qui produit l'eau — facultatif.
+     * **Il ne pleut jamais ici.** C'était le défaut de la première version :
+     * tirer la météo par jour signifiait qu'un jour pluvieux pleuvait vingt-
+     * quatre heures d'affilée. La pluie est devenue une averse ponctuelle,
+     * traitée séparément par [averse].
      */
-    fun meteoDuJour(jourIso: String): Meteo {
-        val graine = abs(("meteo:$jourIso").hashCode()) % 100
+    fun cielDuJour(jourIso: String): Meteo {
+        val graine = abs(("ciel:$jourIso").hashCode()) % 100
         return when {
-            graine < 4 -> Meteo.CANICULE
-            graine < 46 -> Meteo.SOLEIL
-            graine < 74 -> Meteo.NUAGEUX
-            graine < 93 -> Meteo.PLUIE
-            else -> Meteo.ORAGE
+            graine < 8 -> Meteo.CANICULE
+            graine < 58 -> Meteo.SOLEIL
+            else -> Meteo.NUAGEUX
         }
     }
 
-    fun meteoActuelle(zone: ZoneId = ZoneId.systemDefault()): Meteo =
-        meteoDuJour(LocalDate.now(zone).toString())
+    /** Une averse : quand elle commence, combien de temps elle dure. */
+    data class Averse(val debutMinutes: Int, val dureeMinutes: Int, val meteo: Meteo)
+
+    /** Minutes minimales entre deux averses. Une par jour au plus. */
+    const val DUREE_MAX_MINUTES = 25
+
+    /**
+     * L'averse du jour, s'il y en a une.
+     *
+     * Environ un jour sur trois, pendant vingt minutes au plus. Calculée depuis
+     * la date comme le reste : hors ligne, un tirage stocké finirait par
+     * diverger, et relancer l'application changerait le temps qu'il fait.
+     *
+     * La rareté est délibérée. La pluie arrose gratuitement ; permanente, elle
+     * rendrait l'arrosage facultatif, donc la révision qui produit l'eau aussi.
+     */
+    fun averse(jourIso: String): Averse? {
+        val graine = abs(("averse:$jourIso").hashCode())
+        if (graine % 100 >= 34) return null
+
+        val intensite = when ((graine / 100) % 100) {
+            in 0..64 -> Meteo.PLUIE
+            else -> Meteo.ORAGE
+        }
+        // Les averses tombent entre 6 h et 21 h : une pluie nocturne que
+        // personne ne voit ne serait qu'un cadeau invisible.
+        val debut = 6 * 60 + (graine / 10_000) % (15 * 60)
+        val duree = when (intensite) {
+            Meteo.ORAGE -> 6 + (graine / 7) % 7
+            else -> 10 + (graine / 13) % 16
+        }
+        return Averse(debut, duree.coerceAtMost(DUREE_MAX_MINUTES), intensite)
+    }
+
+    /** La météo à un instant précis : averse en cours, sinon ciel du jour. */
+    fun meteoA(jourIso: String, minutesDepuisMinuit: Int): Meteo {
+        val a = averse(jourIso) ?: return cielDuJour(jourIso)
+        val dedans = minutesDepuisMinuit >= a.debutMinutes &&
+            minutesDepuisMinuit < a.debutMinutes + a.dureeMinutes
+        return if (dedans) a.meteo else cielDuJour(jourIso)
+    }
+
+    fun meteoActuelle(zone: ZoneId = ZoneId.systemDefault()): Meteo {
+        val maintenant = java.time.LocalDateTime.now(zone)
+        return meteoA(
+            maintenant.toLocalDate().toString(),
+            maintenant.hour * 60 + maintenant.minute
+        )
+    }
+
+    /** Conservé pour les tests et l'affichage : le temps dominant du jour. */
+    fun meteoDuJour(jourIso: String): Meteo = cielDuJour(jourIso)
 
     /** Prévision des jours suivants, pour décider quand arroser. */
     fun previsions(jours: Int, zone: ZoneId = ZoneId.systemDefault()): List<Pair<LocalDate, Meteo>> {
@@ -91,11 +140,37 @@ object WeatherEngine {
         var jour = debut.toLocalDate()
 
         while (!jour.isAfter(fin.toLocalDate())) {
-            val debutUtile = maxOf(debut, jour.atStartOfDay())
-            val finUtile = minOf(fin, jour.plusDays(1).atStartOfDay())
-            if (finUtile.isAfter(debutUtile)) {
-                val minutes = java.time.Duration.between(debutUtile, finUtile).toMinutes()
-                if (minutes > 0) resultat.add(Segment(meteoDuJour(jour.toString()), minutes))
+            val debutJour = maxOf(debut, jour.atStartOfDay())
+            val finJour = minOf(fin, jour.plusDays(1).atStartOfDay())
+
+            if (finJour.isAfter(debutJour)) {
+                val ciel = cielDuJour(jour.toString())
+                val a = averse(jour.toString())
+
+                if (a == null) {
+                    resultat.add(
+                        Segment(ciel, java.time.Duration.between(debutJour, finJour).toMinutes())
+                    )
+                } else {
+                    // La journée se découpe en trois : avant l'averse, pendant,
+                    // après. Compter l'averse sur toute la journée reviendrait
+                    // à arroser le jardin gratuitement pendant vingt heures.
+                    val debutAverse = jour.atStartOfDay().plusMinutes(a.debutMinutes.toLong())
+                    val finAverse = debutAverse.plusMinutes(a.dureeMinutes.toLong())
+
+                    fun ajouter(d: java.time.LocalDateTime, f: java.time.LocalDateTime, m: Meteo) {
+                        val d2 = maxOf(d, debutJour)
+                        val f2 = minOf(f, finJour)
+                        if (f2.isAfter(d2)) {
+                            val minutes = java.time.Duration.between(d2, f2).toMinutes()
+                            if (minutes > 0) resultat.add(Segment(m, minutes))
+                        }
+                    }
+
+                    ajouter(debutJour, debutAverse, ciel)
+                    ajouter(debutAverse, finAverse, a.meteo)
+                    ajouter(finAverse, finJour, ciel)
+                }
             }
             jour = jour.plusDays(1)
         }

@@ -61,20 +61,61 @@ foreach ($n in @("plant_stage_0_seed", "plant_stage_1", "plant_stage_2",
 Redimensionner (Join-Path $source "currency_coin.png") (Join-Path $nodpi "currency_coin.png") 128
 
 # --- Icone de l'application ----------------------------------------------
-# Deux jeux distincts :
-#   ic_launcher        : icone carree classique, pour Android 7 et anterieur ;
-#   ic_launcher_back   : couche de fond de l'icone adaptative, recadree par le
-#                        systeme en cercle, carre arrondi ou goutte. Android
-#                        rogne 18 dp de chaque cote sur 108 : le visage etant
-#                        centre, il survit a tous les masques.
+#
+# La premiere version mettait l'illustration en couche de FOND, pleine page.
+# Resultat : Android rogne 18 dp de chaque cote sur 108, soit un tiers de
+# l'image, et le visage arrivait enorme et coupe.
+#
+# L'illustration passe donc en couche AVANT, reduite a 62 % du canevas et
+# centree, avec des marges transparentes. Elle tient alors entierement dans la
+# zone sure quel que soit le masque du telephone : cercle, carre arrondi,
+# goutte, ou icone thematique.
+function IconeAvantPlan {
+    param([string]$Entree, [string]$Sortie, [int]$Taille)
+
+    $img = [System.Drawing.Image]::FromFile($Entree)
+    try {
+        $bmp = New-Object System.Drawing.Bitmap($Taille, $Taille,
+            [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+        $g = [System.Drawing.Graphics]::FromImage($bmp)
+        try {
+            $g.Clear([System.Drawing.Color]::Transparent)
+            $g.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
+            $g.InterpolationMode  = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+            $g.SmoothingMode      = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+
+            # 62 % : la zone sure d'Android fait 66/108, on garde une marge.
+            $interieur = [int]($Taille * 0.62)
+            $decalage  = [int](($Taille - $interieur) / 2)
+            $g.DrawImage($img, $decalage, $decalage, $interieur, $interieur)
+        } finally { $g.Dispose() }
+
+        $dossier = Split-Path -Parent $Sortie
+        if (-not (Test-Path $dossier)) { New-Item -ItemType Directory -Force $dossier | Out-Null }
+        $bmp.Save($Sortie, [System.Drawing.Imaging.ImageFormat]::Png)
+        $bmp.Dispose()
+    } finally { $img.Dispose() }
+
+    $ko = [math]::Round((Get-Item $Sortie).Length / 1KB)
+    "  {0,-46} {1,4}x{1,-4} {2,5} ko" -f (Split-Path -Leaf $Sortie), $Taille, $ko
+}
+
 "Icone de l'application"
 $densites = @{ "mdpi" = 1; "hdpi" = 1.5; "xhdpi" = 2; "xxhdpi" = 3; "xxxhdpi" = 4 }
 foreach ($d in $densites.Keys) {
     $f = $densites[$d]
+    # Icone carree classique, Android 7 et anterieur : pas de rognage, donc
+    # l'illustration peut occuper toute la surface.
     Redimensionner (Join-Path $source "app_icon.png") `
         (Join-Path $res "mipmap-$d\ic_launcher.png") ([int](48 * $f))
-    Redimensionner (Join-Path $source "app_icon.png") `
-        (Join-Path $res "mipmap-$d\ic_launcher_background.png") ([int](108 * $f))
+    # Couche avant de l'icone adaptative.
+    IconeAvantPlan (Join-Path $source "app_icon.png") `
+        (Join-Path $res "mipmap-$d\ic_launcher_avant.png") ([int](108 * $f))
+}
+# L'ancienne couche de fond pleine page n'a plus lieu d'etre.
+foreach ($d in $densites.Keys) {
+    $vieux = Join-Path $res "mipmap-$d\ic_launcher_background.png"
+    if (Test-Path $vieux) { Remove-Item $vieux -Force; "  supprime : mipmap-$d/ic_launcher_background.png" }
 }
 # Play Store : 512 x 512, hors APK.
 Redimensionner (Join-Path $source "app_icon.png") `
