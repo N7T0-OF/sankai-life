@@ -1,6 +1,7 @@
 package com.sankailife.core.notifications
 
 import com.sankailife.core.data.db.entities.MemoProfileEntity
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import kotlin.random.Random
@@ -43,10 +44,13 @@ object MemoScheduleEngine {
 
     /**
      * Créneaux d'un module en mode aléatoire, tirés dans la plage définie.
-     * Un nouveau tirage a lieu à chaque replanification, donc l'heure change
-     * d'un jour à l'autre — c'est tout l'intérêt du mode.
+     *
+     * La graine dépend du profil, de ses réglages et du jour. Une
+     * replanification (lancement, watchdog, alarme précédente) retrouve donc
+     * exactement les mêmes créneaux pour la journée, tandis que le lendemain
+     * reçoit un nouveau tirage.
      */
-    fun creneauxAleatoires(profil: MemoProfileEntity, alea: Random): List<Int> {
+    fun creneauxAleatoires(profil: MemoProfileEntity, jour: LocalDate): List<Int> {
         val debut = (profil.randomStartHour.coerceIn(0, 23) * 60) +
                     profil.randomStartMinute.coerceIn(0, 59)
         var fin = (profil.randomEndHour.coerceIn(0, 23) * 60) +
@@ -56,18 +60,38 @@ object MemoScheduleEngine {
 
         val frequence = profil.frequencyPerDay.coerceIn(1, 6)
         val ecartMinimal = 30
+        val amplitude = fin - debut
+        val capacite = (amplitude / ecartMinimal) + 1
+        val nombre = frequence.coerceAtMost(capacite)
+        val marge = amplitude - (nombre - 1) * ecartMinimal
+        val alea = Random(graineQuotidienne(profil, jour))
 
-        val tirages = mutableListOf<Int>()
-        var tentatives = 0
-        while (tirages.size < frequence && tentatives < 60) {
-            tentatives++
-            val candidat = alea.nextInt(debut, fin + 1)
-            // Deux notifications collées seraient vécues comme un bug.
-            if (tirages.none { kotlin.math.abs(it - candidat) < ecartMinimal }) {
-                tirages += candidat
-            }
+        // Transformation classique des tirages espacés : on tire et trie des
+        // positions dans la marge libre, puis on ajoute 30 min par rang. Cela
+        // garantit le nombre demandé et l'écart minimal sans boucle aléatoire.
+        val positionsDansMarge = List(nombre) {
+            if (marge == 0) 0 else alea.nextInt(marge + 1)
+        }.sorted()
+
+        return positionsDansMarge.mapIndexed { index, position ->
+            debut + position + index * ecartMinimal
         }
-        return tirages.sorted()
+    }
+
+    private fun graineQuotidienne(profil: MemoProfileEntity, jour: LocalDate): Int {
+        var graine = 17
+        fun melanger(valeur: Int) { graine = 31 * graine + valeur }
+
+        melanger((profil.id xor (profil.id ushr 32)).toInt())
+        melanger(profil.name.hashCode())
+        val epoch = jour.toEpochDay()
+        melanger((epoch xor (epoch ushr 32)).toInt())
+        melanger(profil.frequencyPerDay)
+        melanger(profil.randomStartHour)
+        melanger(profil.randomStartMinute)
+        melanger(profil.randomEndHour)
+        melanger(profil.randomEndMinute)
+        return graine
     }
 
     /**
@@ -81,8 +105,7 @@ object MemoScheduleEngine {
     fun prochainDeclenchement(
         profil: MemoProfileEntity,
         maintenant: LocalDateTime,
-        heuresSilencieuses: QuietHours,
-        alea: Random = Random.Default
+        heuresSilencieuses: QuietHours
     ): LocalDateTime? {
         val jours = joursActifs(profil)
         if (jours.isEmpty()) return null
@@ -92,7 +115,7 @@ object MemoScheduleEngine {
             if (jour.dayOfWeek.value !in jours) continue
 
             val creneaux = if (profil.randomMode) {
-                creneauxAleatoires(profil, alea)
+                creneauxAleatoires(profil, jour)
             } else {
                 creneauxFixes(profil)
             }
@@ -111,9 +134,8 @@ object MemoScheduleEngine {
         profil: MemoProfileEntity,
         maintenant: LocalDateTime,
         heuresSilencieuses: QuietHours,
-        zone: ZoneId = ZoneId.systemDefault(),
-        alea: Random = Random.Default
-    ): Long? = prochainDeclenchement(profil, maintenant, heuresSilencieuses, alea)
+        zone: ZoneId = ZoneId.systemDefault()
+    ): Long? = prochainDeclenchement(profil, maintenant, heuresSilencieuses)
         ?.atZone(zone)
         ?.toInstant()
         ?.toEpochMilli()

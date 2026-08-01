@@ -15,6 +15,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -30,7 +37,7 @@ fun ResourceBar(level: Int, xp: Int, xpNext: Int, coins: Int, gems: Int) {
         modifier = Modifier
             .fillMaxWidth()
             .background(c.surface1)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = SankaiSpacing.Lg, vertical = SankaiSpacing.Sm),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Level badge
@@ -40,7 +47,8 @@ fun ResourceBar(level: Int, xp: Int, xpNext: Int, coins: Int, gems: Int) {
                 .background(c.accentSecondary)
                 .padding(horizontal = 10.dp, vertical = 4.dp)
         ) {
-            Text("LVL $level", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text("LVL $level", color = Color.White, style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold)
         }
         Spacer(Modifier.width(10.dp))
         // XP bar
@@ -51,8 +59,14 @@ fun ResourceBar(level: Int, xp: Int, xpNext: Int, coins: Int, gems: Int) {
                 color = c.accentSecondary,
                 trackColor = c.surface3
             )
-            Text("$xp / $xpNext XP", color = c.textSecondary, fontSize = 9.sp,
-                modifier = Modifier.padding(top = 2.dp))
+            Text(
+                "$xp / $xpNext XP",
+                color = c.textSecondary,
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Clip,
+                modifier = Modifier.padding(top = SankaiSpacing.Xxs)
+            )
         }
         Spacer(Modifier.width(12.dp))
 
@@ -61,17 +75,28 @@ fun ResourceBar(level: Int, xp: Int, xpNext: Int, coins: Int, gems: Int) {
         // La pièce était un rond de couleur de 10 dp à côté d'un chiffre de
         // 13 sp : on ne voyait pas le dessin. C'est l'illustration qui doit
         // porter la reconnaissance, le chiffre ne fait que préciser.
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.clearAndSetSemantics {
+                contentDescription = "${formatNumber(coins)} pièces"
+            }
+        ) {
             IconeArt(ArtJardin.piece, taille = 24.dp)
             Spacer(Modifier.width(4.dp))
-            Text(formatNumber(coins), color = c.textPrimary, fontSize = 13.sp,
+            Text(formatNumber(coins), color = c.textPrimary, style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold)
         }
         Spacer(Modifier.width(10.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.clearAndSetSemantics {
+                contentDescription = "${formatNumber(gems)} gemmes"
+            }
+        ) {
             Icon(Icons.Filled.Diamond, null, tint = GemColor, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(4.dp))
-            Text("$gems", color = c.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            Text(formatNumber(gems), color = c.textPrimary,
+                style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -83,13 +108,13 @@ fun SankaiCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val c = MaterialTheme.sankaiColors
-    val mod = if (onClick != null) modifier.clickable { onClick() } else modifier
+    val mod = if (onClick != null) modifier.clickable(role = Role.Button) { onClick() } else modifier
     Box(
         modifier = mod
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(SankaiRadius.Medium))
             .background(c.surface2)
-            .border(0.5.dp, c.border, RoundedCornerShape(16.dp))
+            .border(0.5.dp, c.border, RoundedCornerShape(SankaiRadius.Medium))
     ) {
         Column(modifier = Modifier.padding(16.dp), content = content)
     }
@@ -118,11 +143,18 @@ fun SankaiButton(
     }
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
+            .heightIn(min = 48.dp)
+            .clip(RoundedCornerShape(SankaiRadius.Small))
             .background(bg)
             // Tous les boutons de l'app passent par ici : c'est le seul endroit
             // à modifier pour changer la sensation d'un appui.
-            .then(if (enabled) Modifier.clickable { haptics.click(); onClick() } else Modifier)
+            .then(
+                if (enabled) Modifier.clickable(role = Role.Button) { haptics.click(); onClick() }
+                else Modifier.semantics {
+                    role = Role.Button
+                    disabled()
+                }
+            )
             .padding(horizontal = if (small) 14.dp else 20.dp, vertical = if (small) 8.dp else 14.dp),
         contentAlignment = Alignment.Center
     ) {

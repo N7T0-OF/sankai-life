@@ -28,13 +28,16 @@ val admobTestAppId = "ca-app-pub-3940256099942544~3347511713"
 val admobTestRewardedId = "ca-app-pub-3940256099942544/5224354917"
 
 val admobProdAppId: String = admobProps.getProperty("ADMOB_APP_ID")
-    ?: "ca-app-pub-9004438844977083~6279544832"
+    ?: admobTestAppId
 val admobProdRewardedId: String = admobProps.getProperty("ADMOB_REWARDED_UNIT_ID")
-    ?: "ca-app-pub-9004438844977083/8842249130"
+    ?: admobTestRewardedId
+val hasProdAdmob = admobProps.getProperty("ADMOB_APP_ID") != null &&
+    admobProps.getProperty("ADMOB_REWARDED_UNIT_ID") != null
 
 // ---------------------------------------------------------------------------
-// Signature release : keystore.properties (non versionné). Absent => on signe
-// avec la clé debug pour que `assembleRelease` marche quand même en local.
+// Signature release : keystore.properties (non versionné). Sans ce fichier,
+// Gradle peut compiler un APK release non signé pour le contrôle local, mais
+// ne retombe jamais sur une clé debug trompeuse.
 // ---------------------------------------------------------------------------
 val keystoreProps = Properties().apply {
     val f = rootProject.file("keystore.properties")
@@ -86,13 +89,9 @@ android {
 
             manifestPlaceholders["admobAppId"] = admobProdAppId
             buildConfigField("String", "ADMOB_REWARDED_UNIT_ID", "\"$admobProdRewardedId\"")
-            buildConfigField("boolean", "ADMOB_IS_REAL", "true")
+            buildConfigField("boolean", "ADMOB_IS_REAL", hasProdAdmob.toString())
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = if (hasReleaseKeystore) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
-            }
+            if (hasReleaseKeystore) signingConfig = signingConfigs.getByName("release")
         }
     }
 
@@ -112,8 +111,8 @@ android {
     }
 
     lint {
-        abortOnError = false
-        checkReleaseBuilds = false
+        abortOnError = true
+        checkReleaseBuilds = true
     }
 }
 
@@ -135,6 +134,9 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
     implementation("androidx.activity:activity-compose:1.9.3")
+    // Activity Result doit s'appuyer sur Fragment 1.3.0+ ; on fixe une version
+    // moderne au lieu de conserver une ancienne version transitive.
+    implementation("androidx.fragment:fragment-ktx:1.8.9")
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.core:core-splashscreen:1.0.1")
 
@@ -148,6 +150,7 @@ dependencies {
     // Monétisation — pubs récompensées uniquement. L'app reste 100% utilisable
     // sans réseau : voir AdsManager / AdsAvailability.
     implementation("com.google.android.gms:play-services-ads:23.6.0")
+    implementation("com.google.android.ump:user-messaging-platform:4.0.0")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

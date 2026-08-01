@@ -26,6 +26,7 @@ import com.sankailife.core.data.sauvegarde.SauvegardeRepository
 import com.sankailife.ui.components.SankaiButton
 import com.sankailife.ui.theme.*
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 /**
  * Sauvegarde et restauration, dans les paramètres.
@@ -51,6 +52,9 @@ fun SauvegardeSection() {
     var apercu by remember { mutableStateOf<SauvegardeRepository.Apercu?>(null) }
     var fichierChoisi by remember { mutableStateOf<Uri?>(null) }
     var sections by remember { mutableStateOf(SauvegardeEngine.Section.entries.toSet()) }
+    var restaurationEnAttente by remember {
+        mutableStateOf<Pair<Uri, Set<SauvegardeEngine.Section>>?>(null)
+    }
 
     val creerFichier = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/zip")
@@ -71,8 +75,35 @@ fun SauvegardeSection() {
         if (uri == null) return@rememberLauncherForActivityResult
         portee.launch {
             fichierChoisi = uri
-            apercu = runCatching { depot.inspecter(uri) }.getOrNull()
-            if (apercu == null) message = "Fichier illisible."
+            val nouvelApercu = runCatching { depot.inspecter(uri) }.getOrNull()
+            apercu = nouvelApercu
+            if (nouvelApercu == null) message = "Fichier illisible."
+            else {
+                message = null
+                sections = nouvelApercu.sections.toSet()
+            }
+        }
+    }
+
+    val creerSauvegardeSecurite = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/zip")
+    ) { destinationSecurite ->
+        val attente = restaurationEnAttente
+        restaurationEnAttente = null
+        if (destinationSecurite == null || attente == null) {
+            message = "Restauration annulée : la sauvegarde de sécurité est obligatoire."
+            return@rememberLauncherForActivityResult
+        }
+        portee.launch {
+            message = runCatching {
+                depot.restaurer(attente.first, attente.second, destinationSecurite)
+            }.fold(
+                onSuccess = { faites ->
+                    "Sauvegarde de sécurité créée • Restauré : " +
+                        faites.joinToString { s -> s.libelle }
+                },
+                onFailure = { e -> "Échec : ${e.message}" }
+            )
         }
     }
 
@@ -190,8 +221,8 @@ fun SauvegardeSection() {
                         Spacer(Modifier.height(14.dp))
                         Text(
                             "Les mémos importés s'ajoutent aux tiens, ils ne les " +
-                                "remplacent pas. Une sauvegarde de sécurité de ton " +
-                                "profil actuel est écrite avant toute modification.",
+                                "remplacent pas. Avant de modifier le profil, Android " +
+                                "te demandera où écrire la sauvegarde de sécurité.",
                             color = c.textDisabled, fontSize = 11.sp
                         )
 
@@ -202,17 +233,10 @@ fun SauvegardeSection() {
                             onClick = {
                                 val uri = fichierChoisi ?: return@SankaiButton
                                 apercu = null
-                                portee.launch {
-                                    message = runCatching {
-                                        depot.restaurer(uri, sections, null)
-                                    }.fold(
-                                        onSuccess = { faites ->
-                                            "Restauré : " +
-                                                faites.joinToString { s -> s.libelle }
-                                        },
-                                        onFailure = { e -> "Échec : ${e.message}" }
-                                    )
-                                }
+                                restaurationEnAttente = uri to sections.toSet()
+                                creerSauvegardeSecurite.launch(
+                                    "SankaiLife-avant-restauration-${LocalDate.now()}.zip"
+                                )
                             },
                             modifier = Modifier.fillMaxWidth()
                         )

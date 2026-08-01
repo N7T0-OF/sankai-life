@@ -41,11 +41,18 @@ import com.sankailife.core.garden.domain.Seed
 import com.sankailife.core.haptics.LocalHaptics
 import androidx.compose.ui.platform.LocalContext
 import com.sankailife.core.garden.domain.ConseilEngine
+import com.sankailife.core.garden.domain.WeatherVisualEngine
 import com.sankailife.ui.navigation.Screen
 import com.sankailife.ui.art.ArtJardin
 import com.sankailife.ui.art.IconeArt
 import com.sankailife.ui.components.SankaiButton
 import com.sankailife.ui.theme.*
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import java.time.LocalDate
 
 /**
  * Le jardin.
@@ -85,15 +92,42 @@ fun GardenScreen(
     val niveauArrosoir by viewModel.niveauArrosoir.collectAsState()
     val ambiance by viewModel.ambiance.collectAsState()
     val intensitePluie by viewModel.intensitePluie.collectAsState()
+    val demandeRecentrage by viewModel.demandeRecentrage.collectAsState()
+    val qualiteGraphique by viewModel.qualiteGraphique.collectAsState()
 
     // Respect du réglage système « réduire les animations ». C'est un réglage
     // d'accessibilité, pas une préférence esthétique : une pluie animée peut
     // provoquer des nausées.
-    val animationsReduites = android.provider.Settings.Global.getFloat(
-        LocalContext.current.contentResolver,
-        android.provider.Settings.Global.ANIMATOR_DURATION_SCALE,
-        1f
-    ) == 0f
+    val context = LocalContext.current
+    val animationsReduites = remember(context) {
+        android.provider.Settings.Global.getFloat(
+            context.contentResolver,
+            android.provider.Settings.Global.ANIMATOR_DURATION_SCALE,
+            1f
+        ) == 0f
+    }
+    val renduMeteo = remember(meteo, phase, qualiteGraphique, animationsReduites) {
+        WeatherVisualEngine.state(
+            weather = meteo,
+            phase = phase,
+            quality = qualiteGraphique,
+            dayId = LocalDate.now().toString(),
+            reduceMotion = animationsReduites
+        )
+    }
+
+    // La simulation se rattrape a l'ouverture puis toutes les minutes, mais
+    // uniquement tant que cet ecran est visible. La transaction cote depot est
+    // idempotente : reprise et recomposition ne peuvent pas doubler le temps.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(viewModel, lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (isActive) {
+                viewModel.synchroniserTemps()
+                delay(60_000L)
+            }
+        }
+    }
 
     val mimos by viewModel.mimos.collectAsState()
     val offres by viewModel.offres.collectAsState()
@@ -263,6 +297,12 @@ fun GardenScreen(
                     outil = outil,
                     zoom = zoom,
                     mimos = mimosMonde,
+                    demandeRecentrage = demandeRecentrage,
+                    ambiance = ambiance,
+                    renduMeteo = renduMeteo,
+                    qualiteGraphique = qualiteGraphique,
+                    intensitePluie = intensitePluie,
+                    animationsReduites = animationsReduites,
                     modifier = Modifier.fillMaxSize(),
                     onAppliquer = { viewModel.appliquerOutil(it) },
                     onOuvrirDetail = { selection = it },
@@ -270,26 +310,6 @@ fun GardenScreen(
                     onOuvrirMimo = { mimoSelectionne = it },
                     onReposerOutil = { viewModel.choisirOutil(null) }
                 )
-
-                // Ambiance, posée sur le terrain seul.
-                //
-                // Ni le bandeau ni les boutons ne sont teintés : assombrir les
-                // commandes rendrait l'application pénible le soir, qui est
-                // justement le moment où beaucoup l'ouvriront. Aucune de ces
-                // couches ne porte de modificateur de saisie — les gestes
-                // passent au travers jusqu'aux parcelles.
-                //
-                // L'ordre est celui du cahier des charges : décor, plantes,
-                // lumière, météo, particules. L'interface reste au-dessus.
-                Box(Modifier.matchParentSize().clip(RoundedCornerShape(14.dp))) {
-                    VoileAmbiance(ambiance, Modifier.matchParentSize())
-                    CielEtoile(ambiance.etoiles, Modifier.matchParentSize())
-                    PluieAnimee(
-                        intensite = intensitePluie,
-                        animationsReduites = animationsReduites,
-                        modifier = Modifier.matchParentSize()
-                    )
-                }
 
                 // Les boutons flottants, posés PAR-DESSUS le terrain plutôt
                 // qu'en dessous : ils ne coûtent aucune hauteur, et c'est tout

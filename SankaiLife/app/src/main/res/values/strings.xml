@@ -1,3 +1,72 @@
 <resources>
-    <string name="app_name">Sankai Life</string>
+    <!--
+      Textes de l'application, en francais.
+
+      Le francais est la langue de reference : c'est ici qu'on ecrit, les
+      dossiers `values-xx` traduisent. Un texte absent d'une traduction retombe
+      automatiquement sur celui-ci — l'application reste utilisable, seule la
+      phrase manquante reste en francais.
+
+      Les cles suivent `ecran_role`. Un nom qui decrit l'endroit plutot que le
+      contenu survit a une reformulation.
+    -->
+    <string name="app_name" translatable="false">Sankai Life</string>
+
+    <!-- Navigation -->
+    <string name="nav_shop">Boutique</string>
+    <string name="nav_life">Vie</string>
+    <string name="nav_home">Accueil</string>
+    <string name="nav_challenges">Défis</string>
+    <string name="nav_profile">Profil</string>
+
+    <!-- Actions communes -->
+    <string name="action_continue">Continuer</string>
+    <string name="action_cancel">Annuler</string>
+    <string name="action_back">Retour</string>
+    <string name="action_skip">Passer</string>
+    <string name="action_install">Installer</string>
+    <string name="action_export">Exporter</string>
+    <string name="action_restore">Restaurer</string>
+    <string name="action_review">Réviser</string>
+
+    <!-- Accueil -->
+    <string name="home_greeting">Bonjour, %1$s 👋</string>
+    <string name="home_subtitle">Reste focus et progresse !</string>
+    <string name="home_enter_garden">🌿  Entrer dans le jardin</string>
+    <string name="home_settings">Paramètres</string>
+
+    <!-- Coffres -->
+    <string name="chest_ready">PRÊT</string>
+    <string name="chest_common">Commun</string>
+    <string name="chest_daily">Quotidien</string>
+    <string name="chest_rare">Rare</string>
+    <string name="chest_epic">Épique</string>
+    <string name="chest_legendary">Légendaire</string>
+    <string name="chest_weekly">Hebdo</string>
+    <string name="chest_arena">Arène</string>
+
+    <!-- Jardin -->
+    <string name="garden_leave">Quitter le jardin</string>
+    <string name="garden_bag">Ton sac</string>
+    <string name="garden_preparing">Préparation du jardin…</string>
+
+    <!-- Notifications -->
+    <string name="notif_chest_title">Ton coffre est prêt</string>
+    <string name="notif_chest_text">Ouvre Sankai Life pour récupérer ta récompense.</string>
+    <string name="notif_review_title">C\'est l\'heure de réviser</string>
+    <string name="notif_review_one">1 carte t\'attend.</string>
+    <string name="notif_review_many">%1$d cartes t\'attendent.</string>
+
+    <!-- Paramètres -->
+    <string name="settings_language">Langue de l\'application</string>
+    <string name="settings_language_auto">Automatique</string>
+    <string name="settings_language_hint">Suit la langue de ton téléphone. Tu peux forcer une langue si tu préfères.</string>
+    <string name="settings_replay_tutorial">Revoir le tutoriel</string>
+
+    <!-- Flash cards -->
+    <string name="cards_judge_again">À revoir</string>
+    <string name="cards_judge_hard">Difficile</string>
+    <string name="cards_judge_ok">Correct</string>
+    <string name="cards_judge_easy">Facile</string>
+    <string name="cards_knew_it">Je savais</string>
 </resources>

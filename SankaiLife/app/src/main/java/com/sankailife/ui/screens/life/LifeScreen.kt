@@ -26,7 +26,16 @@ fun LifeScreen(viewModel: LifeViewModel, onNavigate: (String) -> Unit) {
     val user     by viewModel.user.collectAsState()
     val profiles by viewModel.memoProfiles.collectAsState()
     val objectifsEnCours by viewModel.objectivesPending.collectAsState()
+    val message by viewModel.message.collectAsState()
     val c = MaterialTheme.sankaiColors
+    val snackbar = remember { SnackbarHostState() }
+
+    LaunchedEffect(message) {
+        if (message.isNotBlank()) {
+            snackbar.showSnackbar(message)
+            viewModel.messageAffiche()
+        }
+    }
 
     // Le verrou qu'on vient de toucher. Même fiche que dans la navigation :
     // un cadenas doit s'expliquer de la même façon partout, sinon on croit
@@ -36,9 +45,10 @@ fun LifeScreen(viewModel: LifeViewModel, onNavigate: (String) -> Unit) {
         FeuilleVerrou(verrou = v, onFermer = { verrouAffiche = null })
     }
 
-    Column(Modifier.fillMaxSize().background(c.background)) {
-        ResourceBar(user.level, user.xp, user.xpNext, user.coins, user.gems)
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
+    Box(Modifier.fillMaxSize().background(c.background)) {
+        Column(Modifier.fillMaxSize()) {
+            ResourceBar(user.level, user.xp, user.xpNext, user.coins, user.gems)
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
             Text("Mode Vie", color = c.textPrimary, fontSize = 24.sp, fontWeight = FontWeight.Bold)
             Text("Tes modules actifs", color = c.textSecondary, fontSize = 13.sp)
 
@@ -124,8 +134,10 @@ fun LifeScreen(viewModel: LifeViewModel, onNavigate: (String) -> Unit) {
                     )
                 }
             }
-            Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(16.dp))
+            }
         }
+        SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(16.dp))
     }
 }
 

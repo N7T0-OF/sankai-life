@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Langues declarees a Android.
+
+  Sans ce fichier, le selecteur de langue par application des Parametres
+  systeme n'apparait pas : Android ne propose le choix que pour les
+  applications qui declarent ce qu'elles savent parler.
+
+  Le francais est en premier : c'est la langue de reference du projet, celle
+  dans laquelle les textes sont ecrits avant d'etre traduits.
+-->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="fr" />
+    <locale android:name="en" />
+    <locale android:name="pt" />
+</locale-config>

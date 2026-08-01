@@ -73,18 +73,26 @@ class GardenViewModel(application: Application) : AndroidViewModel(application) 
      * restants resteraient figés tant que la base ne change pas, ce qui donne
      * l'impression d'un jardin arrêté.
      */
-    private val tick = flow {
-        while (true) { emit(Unit); delay(60_000) }
-    }
+    /** Une seule horloge partagée par tous les états dérivés du Jardin. */
+    private val tick: StateFlow<Long> = flow {
+        while (true) {
+            emit(System.currentTimeMillis())
+            delay(60_000)
+        }
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        System.currentTimeMillis()
+    )
 
     val parcelles: StateFlow<List<ParcelleUi>> =
-        combine(repo.parcellesFlow, repo.culturesFlow, user, tick) { plots, crops, u, _ ->
-            val areneActuelle = ArenaEngine.areneActuelle(u.level).id
+        combine(repo.parcellesFlow, repo.culturesFlow, tick) { plots, crops, _ ->
             val maintenant = System.currentTimeMillis()
+            val culturesParParcelle = crops.associateBy { it.plotId }
 
             plots.map { plot ->
                 val sol = SoilType.parId(plot.solId)
-                val culture = crops.firstOrNull { it.plotId == plot.id }
+                val culture = culturesParParcelle[plot.id]
                 val graine = culture?.let { seedParId(it.seedId) }
                 val deblocage = runCatching {
                     ExpansionEngine.Deblocage.valueOf(plot.deblocage)
@@ -157,6 +165,11 @@ class GardenViewModel(application: Application) : AndroidViewModel(application) 
             _defi.value = runCatching { repo.defiSouvenir() }.getOrNull()
             _chargement.value = false
         }
+    }
+
+    /** Mise à l'heure silencieuse, appelée uniquement par le Jardin composé. */
+    suspend fun synchroniserTemps() {
+        repo.synchroniserTemps()
     }
 
     // --- Mimos -------------------------------------------------------------
@@ -429,6 +442,7 @@ class GardenViewModel(application: Application) : AndroidViewModel(application) 
      * avec le temps qui passe, pas avec une écriture en base, donc un flux
      * Room seul ne se réveillerait jamais.
      */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val cartesDues: StateFlow<Int> = tick
         .flatMapLatest {
             app.database.memoDao().compterToutesCartesDues(System.currentTimeMillis())
@@ -497,6 +511,17 @@ class GardenViewModel(application: Application) : AndroidViewModel(application) 
     private val _zoom = MutableStateFlow(1f)
     val zoom: StateFlow<Float> = _zoom
 
+    private val _demandeRecentrage = MutableStateFlow(0L)
+    val demandeRecentrage: StateFlow<Long> = _demandeRecentrage
+
+    /** La préférence choisie est conservée ; l'économie batterie force LOW à l'exécution. */
+    val qualiteGraphique: StateFlow<GraphicsQuality> = combine(
+        app.preferences.graphicsQuality,
+        app.preferences.batterySaver
+    ) { qualite, economie ->
+        if (economie) GraphicsQuality.LOW else GraphicsQuality.parId(qualite)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GraphicsQuality.NORMAL)
+
     /**
      * Reçoit le zoom **absolu**, pas un facteur.
      *
@@ -508,7 +533,10 @@ class GardenViewModel(application: Application) : AndroidViewModel(application) 
         _zoom.value = valeur.coerceIn(ZOOM_MIN, ZOOM_MAX)
     }
 
-    fun recentrer() { _zoom.value = 1f }
+    fun recentrer() {
+        _zoom.value = 1f
+        _demandeRecentrage.value += 1L
+    }
 
     /** Masque l'interface pour observer le jardin seul. */
     private val _interfaceMasquee = MutableStateFlow(false)

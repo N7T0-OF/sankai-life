@@ -2,17 +2,28 @@ package com.sankailife.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.sankailife.ui.theme.SankaiElevation
+import com.sankailife.ui.theme.SankaiGlass
+import com.sankailife.ui.theme.SankaiRadius
+import com.sankailife.ui.theme.SankaiSpacing
 import com.sankailife.ui.theme.sankaiColors
 
 /**
@@ -33,30 +44,36 @@ import com.sankailife.ui.theme.sankaiColors
 @Composable
 fun LiquidGlassSurface(
     modifier: Modifier = Modifier,
-    forme: RoundedCornerShape = RoundedCornerShape(24.dp),
+    forme: RoundedCornerShape = RoundedCornerShape(SankaiRadius.Large),
     selectionne: Boolean = false,
-    intensite: Float = 0.94f,
+    intensite: Float = SankaiGlass.NavigationIntensity,
     content: @Composable BoxScope.() -> Unit
 ) {
     val c = MaterialTheme.sankaiColors
 
     // Deux teintes proches : le dégradé donne l'épaisseur, sans quoi la
     // surface paraît plate et l'effet de verre disparaît.
-    val fond = Brush.verticalGradient(
-        listOf(
-            c.surface2.copy(alpha = intensite),
-            c.surface1.copy(alpha = (intensite + 0.04f).coerceAtMost(1f))
+    val fond = remember(c.surface1, c.surface2, intensite) {
+        Brush.verticalGradient(
+            listOf(
+                c.surface2.copy(alpha = intensite),
+                c.surface1.copy(alpha = (intensite + 0.04f).coerceAtMost(1f))
+            )
         )
-    )
+    }
 
     // Liseré : plus clair en haut, presque nul en bas. C'est lui qui simule
     // la lumière rasante sur une tranche de verre.
-    val liseré = Brush.verticalGradient(
-        listOf(
-            Color.White.copy(alpha = if (selectionne) 0.22f else 0.12f),
-            Color.White.copy(alpha = 0.02f)
+    val liseré = remember(selectionne) {
+        Brush.verticalGradient(
+            listOf(
+                Color.White.copy(
+                    alpha = if (selectionne) SankaiGlass.SelectedHighlight else 0.12f
+                ),
+                Color.White.copy(alpha = 0.02f)
+            )
         )
-    )
+    }
 
     Box(
         modifier = modifier
@@ -76,6 +93,59 @@ fun LiquidGlassChip(
 ) = LiquidGlassSurface(
     modifier = modifier,
     forme = RoundedCornerShape(rayon),
-    intensite = 0.88f,
+    intensite = SankaiGlass.ChipIntensity,
     content = content
 )
+
+/** Carte de verre partagée, avec une cible tactile et un rôle corrects si elle est cliquable. */
+@Composable
+fun SankaiGlassCard(
+    modifier: Modifier = Modifier,
+    selectionne: Boolean = false,
+    onClick: (() -> Unit)? = null,
+    forme: RoundedCornerShape = RoundedCornerShape(SankaiRadius.Large),
+    contentPadding: PaddingValues = PaddingValues(SankaiSpacing.Lg),
+    content: @Composable BoxScope.() -> Unit
+) {
+    val interaction = if (onClick != null) {
+        Modifier
+            .clip(forme)
+            .clickable(role = Role.Button, onClick = onClick)
+    } else {
+        Modifier
+    }
+
+    LiquidGlassSurface(
+        modifier = modifier.then(interaction),
+        forme = forme,
+        selectionne = selectionne,
+        intensite = SankaiGlass.CardIntensity
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize().padding(contentPadding),
+            content = content
+        )
+    }
+}
+
+/** Bouton flottant en verre, toujours au moins aussi grand que la cible Android de 48 dp. */
+@Composable
+fun SankaiFloatingButton(
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit
+) {
+    LiquidGlassSurface(
+        modifier = modifier
+            .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+            .shadow(SankaiElevation.Medium, CircleShape, clip = false)
+            .clip(CircleShape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics { this.contentDescription = contentDescription },
+        forme = RoundedCornerShape(SankaiRadius.Pill),
+        intensite = SankaiGlass.FloatingIntensity
+    ) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center, content = content)
+    }
+}

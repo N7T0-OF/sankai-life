@@ -9,6 +9,7 @@ import android.os.Build
 import com.sankailife.SankaiApplication
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
@@ -32,6 +33,7 @@ class CoffreAlarmReceiver : BroadcastReceiver() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val app = context.applicationContext as? SankaiApplication ?: return@launch
+                if (!app.preferences.notifications.first()) return@launch
 
                 // Le coffre est relu avant d'annoncer quoi que ce soit : il a
                 // pu être ouvert entre la programmation de l'alarme et son
@@ -111,6 +113,30 @@ class CoffreAlarmReceiver : BroadcastReceiver() {
                 PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
             ) ?: return
             alarmes.cancel(enAttente)
+        }
+
+        /** Rétablit les alarmes perdues après reboot, mise à jour ou force-stop. */
+        suspend fun replanifierTous(
+            context: Context,
+            notifierDejaPrets: Boolean = false
+        ) {
+            val app = context.applicationContext as? SankaiApplication ?: return
+            val maintenant = System.currentTimeMillis()
+            val notificationsActives = app.preferences.notifications.first()
+            app.database.chestDao().getActiveChestsOnce().forEach { coffre ->
+                if (coffre.unlocksAtMillis > maintenant) {
+                    programmer(context, coffre.id, coffre.unlocksAtMillis)
+                } else if (notifierDejaPrets && notificationsActives) {
+                    // L'identifiant stable remplace une éventuelle notification
+                    // identique au lieu de l'empiler.
+                    SankaiNotifications.afficherRecompense(
+                        context = context,
+                        titre = "Ton coffre est prêt",
+                        texte = "Ouvre Sankai Life pour récupérer ta récompense.",
+                        notificationId = ID_BASE + coffre.id.toInt()
+                    )
+                }
+            }
         }
     }
 }

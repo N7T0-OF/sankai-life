@@ -61,14 +61,16 @@ class ChallengesViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun claimChallenge(id: String) = viewModelScope.launch {
-        val result = gameRepo.claimChallenge(id) ?: return@launch
-        val (coins, xp) = result
-        userRepo.addCoins(coins)
-        userRepo.addXp(xp)
-        showToast(buildString {
-            if (coins > 0) append("+$coins 🪙 ")
-            if (xp > 0)   append("+$xp XP")
-        })
+        when (val result = gameRepo.claimChallenge(id)) {
+            null -> Unit
+            GameRepository.ReclamationDefi.CoffresPleins ->
+                showToast("Libère un emplacement de coffre avant de réclamer")
+            is GameRepository.ReclamationDefi.Reussie -> showToast(buildString {
+                if (result.pieces > 0) append("+${result.pieces} 🪙 ")
+                if (result.xp > 0) append("+${result.xp} XP ")
+                if (result.coffre.isNotBlank()) append("• coffre ${result.coffre.lowercase()}")
+            }.trim())
+        }
     }
 
     private fun showToast(msg: String) = viewModelScope.launch {

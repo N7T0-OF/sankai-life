@@ -40,6 +40,7 @@ import com.sankailife.ui.components.ResourceBar
 import com.sankailife.ui.components.SankaiButton
 import com.sankailife.ui.theme.sankaiColors
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 private fun couleurDepuisHex(hex: String, defaut: Color): Color =
@@ -64,6 +65,7 @@ fun ArenasScreen(viewModel: ArenasViewModel, onBack: () -> Unit) {
     val toast by viewModel.toast.collectAsState()
     val c = MaterialTheme.sankaiColors
     val haptics = LocalHaptics.current
+    val coroutineScope = rememberCoroutineScope()
 
     val etatListe = rememberLazyListState()
     val indexCourant = remember(user.level) { viewModel.indexArenCourante(user.level) }
@@ -84,7 +86,7 @@ fun ArenasScreen(viewModel: ArenasViewModel, onBack: () -> Unit) {
         }
     }
 
-    val loinDeSaProgression by remember {
+    val loinDeSaProgression by remember(etatListe, indexCourant) {
         derivedStateOf { abs(etatListe.firstVisibleItemIndex - indexCourant) > 1 }
     }
 
@@ -165,6 +167,13 @@ fun ArenasScreen(viewModel: ArenasViewModel, onBack: () -> Unit) {
                     .clickable {
                         haptics.click()
                         detail = null
+                        coroutineScope.launch {
+                            val hauteur = etatListe.layoutInfo.viewportSize.height
+                            etatListe.animateScrollToItem(
+                                index = indexCourant,
+                                scrollOffset = if (hauteur > 0) -hauteur / 3 else 0
+                            )
+                        }
                     }
                     .padding(horizontal = 16.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -179,7 +188,9 @@ fun ArenasScreen(viewModel: ArenasViewModel, onBack: () -> Unit) {
 
         AnimatedVisibility(
             visible = toast.isNotBlank(),
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 28.dp)
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = if (loinDeSaProgression) 78.dp else 28.dp)
         ) {
             Box(
                 Modifier.padding(horizontal = 24.dp)

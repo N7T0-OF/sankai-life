@@ -72,8 +72,8 @@
 
         <!--
           Identifiant d'application AdMob. La valeur vient de admob.properties ;
-          sans ce fichier c'est l'ID de TEST officiel de Google qui est injecté,
-          ce qui permet de compiler et tester sans compte AdMob.
+          le build debug injecte toujours l'ID de TEST officiel de Google,
+          tandis que la publication release exige les identifiants de production.
           Voir exemple/guides/BRANCHER-GOOGLE-ADMOB.md
         -->
         <meta-data

@@ -41,6 +41,9 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sankailife.core.garden.domain.ExpansionEngine
+import com.sankailife.core.garden.domain.GardenWeatherVisualState
+import com.sankailife.core.garden.domain.GraphicsQuality
+import com.sankailife.core.garden.domain.LightingEngine
 import com.sankailife.core.garden.domain.MoistureEngine
 import com.sankailife.core.garden.domain.OutilJardin
 import com.sankailife.core.garden.domain.PlotState
@@ -57,6 +60,7 @@ import com.sankailife.ui.theme.sankaiColors
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.foundation.Canvas
 import kotlin.math.cos
+import kotlin.math.floor
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
@@ -85,6 +89,12 @@ fun GrilleJardin(
     outil: OutilJardin?,
     zoom: Float,
     mimos: List<MimoMondeEngine.MimoUi>,
+    demandeRecentrage: Long,
+    ambiance: LightingEngine.Ambiance,
+    renduMeteo: GardenWeatherVisualState,
+    qualiteGraphique: GraphicsQuality,
+    intensitePluie: LightingEngine.IntensitePluie,
+    animationsReduites: Boolean,
     modifier: Modifier = Modifier,
     onAppliquer: (Int) -> Unit,
     onOuvrirDetail: (GardenViewModel.ParcelleUi) -> Unit,
@@ -165,18 +175,58 @@ fun GrilleJardin(
     val largeurTotale = colonnes * pas
     val hauteurTotale = lignes * pas
 
+    /** Position de l'origine absolue du monde qui centre le terrain connu. */
+    fun cameraCentree(): Offset = Offset(
+        (tailleVue.x - largeurTotale) / 2f - minX * pas,
+        (tailleVue.y - hauteurTotale) / 2f - minY * pas
+    )
+
+    /** Garde le terrain visible et centre les dimensions plus petites. */
+    fun bornerCamera(candidate: Offset): Offset {
+        val x = if (largeurTotale <= tailleVue.x) {
+            (tailleVue.x - largeurTotale) / 2f - minX * pas
+        } else {
+            candidate.x.coerceIn(
+                tailleVue.x - (maxX + 1) * pas,
+                -minX * pas
+            )
+        }
+        val y = if (hauteurTotale <= tailleVue.y) {
+            (tailleVue.y - hauteurTotale) / 2f - minY * pas
+        } else {
+            candidate.y.coerceIn(
+                tailleVue.y - (maxY + 1) * pas,
+                -minY * pas
+            )
+        }
+        return Offset(x, y)
+    }
+
+    // La camera vit dans la grille pour garder les gestes fluides. Ce jeton
+    // rend toutefois la commande de recentrage du ViewModel effective.
+    LaunchedEffect(demandeRecentrage) {
+        if (cameraInitialisee && tailleVue.x > 0 && tailleVue.y > 0) {
+            camera = cameraCentree()
+        }
+    }
+
+    // L'origine absolue evite tout saut quand minX/minY reculent lors d'une
+    // extension au nord ou a l'ouest. On ne fait ici qu'ajuster les limites.
+    LaunchedEffect(pas, minX, maxX, minY, maxY, tailleVue) {
+        if (cameraInitialisee && tailleVue.x > 0 && tailleVue.y > 0) {
+            camera = bornerCamera(camera)
+        }
+    }
+
     /** Convertit une position à l'écran en identifiant de parcelle, ou -1. */
     fun parcelleSous(position: Offset): Int {
-        val px = position.x - camera.x
-        val py = position.y - camera.y
-        if (px < 0 || py < 0) return -1
-        val col = (px / pas).toInt()
-        val ligne = (py / pas).toInt()
-        if (col !in 0 until colonnes || ligne !in 0 until lignes) return -1
+        val x = floor((position.x - camera.x) / pas).toInt()
+        val y = floor((position.y - camera.y) / pas).toInt()
+        if (x !in minX..maxX || y !in minY..maxY) return -1
         // Plus de rejet dans l'entre-deux : les cases se touchent désormais,
         // il n'y a plus d'interstice où un appui pourrait se perdre.
 
-        val cle = ExpansionEngine.cle(minX + col, minY + ligne)
+        val cle = ExpansionEngine.cle(x, y)
         return if (parId.containsKey(cle)) cle else -1
     }
 
@@ -191,10 +241,12 @@ fun GrilleJardin(
                 // terrain connu. Sans ça le joueur arriverait dans un coin.
                 if (!cameraInitialisee && taille.width > 0) {
                     camera = Offset(
-                        (taille.width - largeurTotale) / 2f,
-                        (taille.height - hauteurTotale) / 2f
+                        (taille.width - largeurTotale) / 2f - minX * pas,
+                        (taille.height - hauteurTotale) / 2f - minY * pas
                     )
                     cameraInitialisee = true
+                } else if (cameraInitialisee) {
+                    camera = bornerCamera(camera)
                 }
             }
             // Surveillance de la levée des doigts.
@@ -269,14 +321,7 @@ fun GrilleJardin(
                         // Déplacement borné : sortir des limites donnerait
                         // l'impression d'un jardin perdu dans le vide. Quand le
                         // terrain est plus petit que l'écran, il reste centré.
-                        val minCamX = (tailleVue.x - largeurTotale).coerceAtMost(0f)
-                        val minCamY = (tailleVue.y - hauteurTotale).coerceAtMost(0f)
-                        val maxCamX = maxOf(0f, tailleVue.x - largeurTotale)
-                        val maxCamY = maxOf(0f, tailleVue.y - hauteurTotale)
-                        camera = Offset(
-                            (camera.x + delta.x).coerceIn(minCamX, maxCamX),
-                            (camera.y + delta.y).coerceIn(minCamY, maxCamY)
-                        )
+                        camera = bornerCamera(camera + delta)
                     } else {
                         // Changer de case relance le compte à rebours. Le
                         // glissement n'applique plus rien de lui-même : c'était
@@ -319,8 +364,8 @@ fun GrilleJardin(
         fun placement(x: Int, y: Int) = Modifier
             .offset {
                 IntOffset(
-                    (camera.x + (x - minX) * pas).roundToInt(),
-                    (camera.y + (y - minY) * pas).roundToInt()
+                    (camera.x + x * pas).roundToInt(),
+                    (camera.y + y * pas).roundToInt()
                 )
             }
             .size(with(densite) { tailleCase.toDp() })
@@ -371,6 +416,27 @@ fun GrilleJardin(
                 }
             }
         }
+
+        // Pile visuelle du monde, clippee avec le terrain et sous toute
+        // l'interface : cycle du jour, etoiles, lumiere meteo, nuages, pluie.
+        VoileAmbiance(ambiance, Modifier.matchParentSize())
+        CielEtoile(ambiance.etoiles, Modifier.matchParentSize())
+        WeatherLightingOverlay(renduMeteo.lighting, Modifier.matchParentSize())
+        CloudShadowOverlay(
+            state = renduMeteo.clouds,
+            wind = renduMeteo.wind,
+            quality = qualiteGraphique,
+            reduceMotion = animationsReduites,
+            worldOffset = camera,
+            zoom = zoom,
+            modifier = Modifier.matchParentSize()
+        )
+        PluieAnimee(
+            intensite = intensitePluie,
+            wind = renduMeteo.wind,
+            animationsReduites = animationsReduites,
+            modifier = Modifier.matchParentSize()
+        )
 
         // Le cercle de maintien, dessiné sur la case visée.
         maintien?.takeIf { it.cle >= 0 && progression > 0f }?.let { m ->

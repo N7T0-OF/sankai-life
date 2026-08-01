@@ -1,335 +1,406 @@
 package com.sankailife.ui.screens.home
 
-import android.app.Activity
-import androidx.compose.animation.*
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.graphics.Brush
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sankailife.core.data.db.entities.ChestEntity
 import com.sankailife.core.domain.engine.ArenaEngine
-import com.sankailife.core.garden.domain.CropStage
-import com.sankailife.core.garden.domain.DayNightEngine
 import com.sankailife.ui.art.ArtJardin
 import com.sankailife.ui.art.IconeArt
-import com.sankailife.ui.components.*
+import com.sankailife.ui.components.ChestRewardDialog
+import com.sankailife.ui.components.LevelUpDialog
+import com.sankailife.ui.components.ResourceBar
+import com.sankailife.ui.components.SankaiButton
+import com.sankailife.ui.components.SankaiFloatingButton
+import com.sankailife.ui.components.SankaiGlassCard
 import com.sankailife.ui.navigation.Screen
-import com.sankailife.ui.screens.arenas.CarteResumeArene
 import com.sankailife.ui.theme.*
 import kotlinx.coroutines.delay
 
 @Composable
 fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
-    val user    by viewModel.user.collectAsState()
-    val chests  by viewModel.chests.collectAsState()
-    val toast   by viewModel.toastMessage.collectAsState()
-    val adCd    by viewModel.adCooldown.collectAsState()
-    val showLvl by viewModel.showLevelUp.collectAsState()
-    val lvlNum  by viewModel.levelUpLevel.collectAsState()
-    val chestRw by viewModel.chestReward.collectAsState()
-    val enLigne by viewModel.isOnline.collectAsState()
-    val arenesAReclamer by viewModel.arenesAReclamer.collectAsState()
-    val moduleContextuel by viewModel.moduleContextuel.collectAsState()
+    val user by viewModel.user.collectAsStateWithLifecycle()
+    val chests by viewModel.chests.collectAsStateWithLifecycle()
+    val showLevelUp by viewModel.showLevelUp.collectAsStateWithLifecycle()
+    val levelUpLevel by viewModel.levelUpLevel.collectAsStateWithLifecycle()
+    val chestReward by viewModel.chestReward.collectAsStateWithLifecycle()
+    val arenesAReclamer by viewModel.arenesAReclamer.collectAsStateWithLifecycle()
     val c = MaterialTheme.sankaiColors
+    val fontScale = LocalDensity.current.fontScale
 
-    // Les publicités ne partent plus de l'accueil : elles restent accessibles
-    // depuis la boutique, sur action volontaire.
-
-    // Dialogs
-    if (showLvl) LevelUpDialog(level = lvlNum, coins = lvlNum * 50, onDismiss = { viewModel.dismissLevelUp() })
-    chestRw?.let { rw ->
-        ChestRewardDialog("Coffre ouvert !", rw.coins, rw.gems, rw.xp, onDismiss = { viewModel.dismissChestReward() })
+    if (showLevelUp) {
+        LevelUpDialog(
+            level = levelUpLevel,
+            coins = levelUpLevel * 50,
+            onDismiss = viewModel::dismissLevelUp
+        )
+    }
+    chestReward?.let { reward ->
+        ChestRewardDialog(
+            title = "Coffre ouvert !",
+            coins = reward.coins,
+            gems = reward.gems,
+            xp = reward.xp,
+            onDismiss = viewModel::dismissChestReward
+        )
     }
 
-    Box(Modifier.fillMaxSize().background(c.background)) {
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxSize().background(c.background)
+    ) {
+        // Le mode compact conserve le hub non défilant : il retire les détails
+        // secondaires avant de réduire la zone centrale ou les cibles tactiles.
+        val compact = maxHeight < 700.dp || maxWidth < 350.dp || fontScale >= 1.35f
+
         Column(Modifier.fillMaxSize()) {
-            // Resource bar
             ResourceBar(user.level, user.xp, user.xpNext, user.coins, user.gems)
 
-            // L'accueil ne défile plus.
-            //
-            // Le diorama du jardin en a été retiré : il faisait dépasser le
-            // contenu, et l'accueil n'a pas à raconter le jardin — le bouton
-            // qui y mène suffit. Restent l'arène, l'entrée du jeu et les
-            // coffres.
-            //
-            // Le défilement est retiré, pas seulement inutilisé : une colonne
-            // défilante impose une hauteur infinie à ses enfants, dans laquelle
-            // `weight` n'a aucun sens et fait planter la mise en page. C'est
-            // l'un ou l'autre, et ici c'est l'arène qui doit absorber la place.
-            //
-            // Conséquence à surveiller : à très grande taille de police, le
-            // contenu ne peut plus déborder — il comprime l'arène. Elle est
-            // faite pour ça, mais c'est un compromis, pas un choix gratuit.
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-            ) {
-                // Header
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Bonjour, ${user.pseudo} 👋", color = c.textPrimary,
-                            fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                        Text("Reste focus et progresse !", color = c.textSecondary, fontSize = 13.sp)
-                    }
-                    StreakBadge(user.streakDays)
-                    Spacer(Modifier.width(8.dp))
-                    // Accès direct aux paramètres. Ils vivaient derrière le
-                    // profil, ce qui obligeait à passer par un écran qui n'a
-                    // rien à voir pour couper une notification.
-                    Box(
-                        Modifier.size(38.dp)
-                            .clip(CircleShape)
-                            .background(c.surface2)
-                            .border(1.dp, c.border, CircleShape)
-                            .clickable { onNavigate(Screen.Settings.route) },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Filled.Settings,
-                            contentDescription = "Paramètres",
-                            tint = c.textSecondary,
-                            modifier = Modifier.size(19.dp)
-                        )
-                    }
-                }
+            HomeHub(
+                pseudo = user.pseudo,
+                streak = user.streakDays,
+                niveau = user.level,
+                arenesAReclamer = arenesAReclamer,
+                compact = compact,
+                modifier = Modifier.weight(1f),
+                onSettings = { onNavigate(Screen.Settings.route) },
+                onArena = { onNavigate(Screen.Arenas.route) },
+                onGarden = { onNavigate(Screen.Garden.route) }
+            )
 
-                Spacer(Modifier.height(14.dp))
-
-                // L'arène prend tout l'espace restant : c'est elle l'élément
-                // visuel principal, et lui donner le poids libéré par le
-                // diorama évite un grand vide sous le bouton.
-                Box(Modifier.weight(1f)) {
-                    CarteResumeArene(
-                        niveau = user.level,
-                        nombreAReclamer = arenesAReclamer,
-                        onVoirParcours = { onNavigate(Screen.Arenas.route) }
-                    )
-                }
-
-                Spacer(Modifier.height(12.dp))
-
-                // Entrée du mode jeu. Bouton unique et large, à la façon d'un
-                // hub : le jardin est un univers séparé, pas une section.
-                SankaiButton(
-                    "🌿  Entrer dans le jardin",
-                    onClick = { onNavigate(Screen.Garden.route) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(Modifier.height(10.dp))
-            }
-
-            // Barre fixe des coffres, hors zone de défilement.
-            // Elle porte tout le système : emplacements, minuteries, ouverture.
-            // Aucune carte ne doit la doubler dans le contenu principal —
-            // c'était la redondance à supprimer, pas la barre elle-même.
             BarreCoffres(
                 chests = chests,
-                onOpen = { viewModel.openChest(it) },
-                formatTimer = { viewModel.formatChestTimer(it) }
+                compact = compact,
+                onOpen = viewModel::openChest,
+                formatTimer = viewModel::formatChestTimer
             )
-        }
-
-        // Toast overlay
-        AnimatedVisibility(
-            visible = toast.isNotBlank(),
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 90.dp),
-            enter = fadeIn() + slideInVertically { it },
-            exit  = fadeOut() + slideOutVertically { it }
-        ) {
-            Box(
-                Modifier.clip(RoundedCornerShape(24.dp)).background(c.surface2)
-                    .border(1.dp, c.accent, RoundedCornerShape(24.dp)).padding(horizontal = 20.dp, vertical = 10.dp)
-            ) {
-                Text(toast, color = c.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-            }
         }
     }
 }
 
-/**
- * Aperçu du jardin sur l'accueil.
- *
- * Volontairement non interactif : un appui ouvre le jardin, rien d'autre.
- * Y brancher les actions du jeu ferait de l'accueil un second écran de jeu, et
- * obligerait à charger tout le mode jardin dès le démarrage de l'application.
- *
- * Il reflète l'avancement — arène, phase du jour — sans lire l'état complet des
- * parcelles, qui coûterait une requête à chaque retour sur l'accueil.
- */
 @Composable
-fun DioramaJardin(niveau: Int, onEntrer: () -> Unit) {
-    val c = MaterialTheme.sankaiColors
-    val arene = ArenaEngine.areneActuelle(niveau)
-    val phase = DayNightEngine.phase()
-    val nuit = DayNightEngine.intensiteNuit()
-
-    Box(
-        Modifier.fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        Color(0xFF1B3A26).copy(alpha = 1f - nuit * 0.5f),
-                        Color(0xFF0C1D14)
-                    )
-                )
-            )
-            .border(1.dp, Color(0xFF2E5238), RoundedCornerShape(18.dp))
-            .clickable { onEntrer() }
-            .padding(14.dp)
-    ) {
-        Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconeArt(ArtJardin.arbre, taille = 30.dp)
-                Spacer(Modifier.width(10.dp))
-                Column(Modifier.weight(1f)) {
-                    Text("Ton jardin", color = c.textPrimary,
-                        fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                    Text(phase.libelle, color = c.textSecondary, fontSize = 11.sp)
-                }
-                IconeArt(ArtJardin.phase(phase), taille = 26.dp)
-            }
-            Spacer(Modifier.height(10.dp))
-            // Rangée décorative : une silhouette de terrain, pas une grille
-            // fonctionnelle. Elle donne l'échelle sans rien promettre.
-            Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                listOf(
-                    CropStage.GERME, CropStage.POUSSE, CropStage.JEUNE,
-                    CropStage.MATURE, CropStage.MATURE
-                ).forEachIndexed { index, stade ->
-                    Box(
-                        Modifier.weight(1f).height(38.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFF3E2C1B)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        IconeArt(
-                            ArtJardin.plante(stade, prete = index == 4),
-                            taille = 32.dp
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-/**
- * Carte de module contextuelle.
- *
- * Retirée de l'accueil : celui-ci ne présente plus que l'arène, le jardin et
- * les coffres. Conservée parce qu'elle reste utilisée par Mode Vie, où un
- * raccourci vers le module en cours est à sa place.
- */
-@Composable
-fun CarteModuleContextuel(
-    module: HomeViewModel.ModuleContextuel,
-    onOuvrir: (String) -> Unit
+private fun HomeHub(
+    pseudo: String,
+    streak: Int,
+    niveau: Int,
+    arenesAReclamer: Int,
+    compact: Boolean,
+    modifier: Modifier = Modifier,
+    onSettings: () -> Unit,
+    onArena: () -> Unit,
+    onGarden: () -> Unit
 ) {
     val c = MaterialTheme.sankaiColors
-    SankaiCard {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier.size(42.dp).clip(RoundedCornerShape(12.dp))
-                    .background(c.accent.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(module.emoji, fontSize = 20.sp)
-            }
-            Spacer(Modifier.width(12.dp))
+    val gap = if (compact) SankaiSpacing.Sm else SankaiSpacing.Md
+
+    Column(
+        modifier = modifier.fillMaxWidth().padding(
+            start = SankaiSpacing.Lg,
+            top = gap,
+            end = SankaiSpacing.Lg,
+            bottom = SankaiSpacing.Sm
+        )
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    module.titre, color = c.textSecondary, fontSize = 10.sp,
-                    fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp
+                    text = "Bonjour, $pseudo 👋",
+                    color = c.textPrimary,
+                    style = if (compact) MaterialTheme.typography.headlineMedium
+                            else MaterialTheme.typography.headlineLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    module.ligne1, color = c.textPrimary,
-                    fontSize = 15.sp, fontWeight = FontWeight.SemiBold
+                if (!compact) {
+                    Text(
+                        "Reste focus et progresse !",
+                        color = c.textSecondary,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+            Spacer(Modifier.width(SankaiSpacing.Sm))
+            StreakCompact(streak)
+            Spacer(Modifier.width(SankaiSpacing.Sm))
+            SankaiFloatingButton(
+                contentDescription = "Paramètres",
+                onClick = onSettings,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    Icons.Filled.Settings,
+                    contentDescription = null,
+                    tint = c.textPrimary,
+                    modifier = Modifier.size(21.dp)
                 )
-                Text(module.ligne2, color = c.textSecondary, fontSize = 12.sp)
             }
         }
-        Spacer(Modifier.height(12.dp))
+
+        Spacer(Modifier.height(gap))
+        ArenaHeroCard(
+            niveau = niveau,
+            nombreAReclamer = arenesAReclamer,
+            compact = compact,
+            onVoirParcours = onArena,
+            modifier = Modifier.fillMaxWidth().weight(1f)
+        )
+        Spacer(Modifier.height(gap))
         SankaiButton(
-            module.libelleBouton,
-            onClick = { onOuvrir(module.route) },
-            small = true,
-            modifier = Modifier.fillMaxWidth()
+            text = "🌿  Entrer dans le jardin",
+            onClick = onGarden,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
         )
     }
 }
 
-/**
- * Barre de coffres fixe en bas de l'accueil.
- *
- * Quatre emplacements toujours affichés, même vides : voir un emplacement
- * libre donne envie de le remplir, alors qu'une liste qui rétrécit ne dit rien.
- */
+@Composable
+private fun StreakCompact(streak: Int) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(SankaiRadius.Pill))
+            .background(WarningAmber.copy(alpha = 0.12f))
+            .border(1.dp, WarningAmber.copy(alpha = 0.35f), RoundedCornerShape(SankaiRadius.Pill))
+            .padding(horizontal = SankaiSpacing.Md, vertical = SankaiSpacing.Sm),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text("🔥", fontSize = 13.sp)
+        Spacer(Modifier.width(SankaiSpacing.Xs))
+        Text("$streak j", color = WarningAmber, style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold)
+    }
+}
+
+/** Élément principal du hub. Il remplit réellement la hauteur que l'accueil lui réserve. */
+@Composable
+fun ArenaHeroCard(
+    niveau: Int,
+    nombreAReclamer: Int,
+    compact: Boolean,
+    onVoirParcours: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val c = MaterialTheme.sankaiColors
+    val actuelle = ArenaEngine.areneActuelle(niveau)
+    val suivante = ArenaEngine.areneSuivante(niveau)
+    val accent = remember(actuelle.accentHex, c.accent) {
+        runCatching { Color(android.graphics.Color.parseColor(actuelle.accentHex)) }
+            .getOrDefault(c.accent)
+    }
+    val progression = ArenaEngine.progressionVersSuivante(niveau)
+
+    SankaiGlassCard(
+        modifier = modifier,
+        selectionne = true,
+        onClick = onVoirParcours,
+        forme = RoundedCornerShape(SankaiRadius.Large),
+        contentPadding = PaddingValues(if (compact) SankaiSpacing.Md else SankaiSpacing.Lg)
+    ) {
+        Column(Modifier.fillMaxSize()) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    if (!compact) {
+                        Text(
+                            "ARÈNE ACTUELLE",
+                            color = accent,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.1.sp
+                        )
+                    }
+                    Text(
+                        actuelle.nom,
+                        color = c.textPrimary,
+                        style = if (compact) MaterialTheme.typography.titleMedium
+                                else MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                if (nombreAReclamer > 0) {
+                    Box(
+                        Modifier
+                            .clip(RoundedCornerShape(SankaiRadius.Pill))
+                            .background(MaterialTheme.colorScheme.error)
+                            .padding(horizontal = SankaiSpacing.Sm, vertical = SankaiSpacing.Xs)
+                    ) {
+                        Text(
+                            if (compact) "$nombreAReclamer" else "$nombreAReclamer à réclamer",
+                            color = MaterialTheme.colorScheme.onError,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .heightIn(min = if (compact) 38.dp else 72.dp)
+                    .padding(vertical = if (compact) SankaiSpacing.Xs else SankaiSpacing.Sm)
+                    .clip(RoundedCornerShape(SankaiRadius.Medium))
+                    .background(
+                        Brush.radialGradient(
+                            listOf(accent.copy(alpha = 0.24f), Color.Transparent)
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(actuelle.emoji, fontSize = if (compact) 36.sp else 64.sp)
+            }
+
+            if (!compact) {
+                Text(
+                    actuelle.description,
+                    color = c.textSecondary,
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(Modifier.height(SankaiSpacing.Sm))
+            }
+
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Niveau $niveau", color = c.textSecondary,
+                    style = MaterialTheme.typography.labelMedium)
+                suivante?.let {
+                    Text("Objectif ${it.niveauRequis}", color = accent,
+                        style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                }
+            }
+            Spacer(Modifier.height(SankaiSpacing.Xs))
+            LinearProgressIndicator(
+                progress = { progression.coerceIn(0f, 1f) },
+                modifier = Modifier.fillMaxWidth().height(7.dp)
+                    .clip(RoundedCornerShape(SankaiRadius.Pill)),
+                color = accent,
+                trackColor = c.surface3
+            )
+            Spacer(Modifier.height(if (compact) SankaiSpacing.Xs else SankaiSpacing.Sm))
+            Text(
+                text = if (suivante != null) {
+                    if (compact) "${suivante.emoji} ${suivante.nom}"
+                    else "${suivante.emoji} ${suivante.nom} • encore ${ArenaEngine.niveauxRestants(niveau)} niveaux"
+                } else {
+                    "Sommet atteint • le parcours continue"
+                },
+                color = c.textSecondary,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = if (compact) 1 else 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (!compact && suivante != null) {
+                Text(
+                    "Récompense : ${suivante.recompense.resume()}",
+                    color = accent,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            if (!compact) {
+                Spacer(Modifier.height(SankaiSpacing.Sm))
+                Text(
+                    "Voir le parcours  →",
+                    color = accent,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.align(Alignment.End)
+                )
+            }
+        }
+    }
+}
+
+/** Dock fixe : les quatre emplacements ne bougent jamais avec le contenu central. */
 @Composable
 fun BarreCoffres(
     chests: List<ChestEntity>,
     onOpen: (Long) -> Unit,
-    formatTimer: (ChestEntity) -> String
+    formatTimer: (ChestEntity) -> String,
+    compact: Boolean = false
 ) {
     val c = MaterialTheme.sankaiColors
-    // Un tick par seconde suffit à animer les comptes à rebours.
     var tick by remember { mutableLongStateOf(0L) }
-    LaunchedEffect(Unit) { while (true) { delay(1000); tick++ } }
-
+    val minuterieActive = chests.any { !it.isReady }
+    LaunchedEffect(minuterieActive) {
+        if (!minuterieActive) return@LaunchedEffect
+        while (true) {
+            delay(1_000)
+            tick++
+        }
+    }
     val prets = chests.count { it.isReady }
 
     Column(
         Modifier
             .fillMaxWidth()
             .background(c.surface1)
-            .padding(horizontal = 12.dp, vertical = 10.dp)
+            .padding(
+                horizontal = SankaiSpacing.Md,
+                vertical = if (compact) SankaiSpacing.Sm else SankaiSpacing.Md
+            )
     ) {
         Row(
-            Modifier.fillMaxWidth().padding(bottom = 8.dp),
+            Modifier.fillMaxWidth().padding(bottom = if (compact) SankaiSpacing.Xs else SankaiSpacing.Sm),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(
-                "Coffres  ${chests.size}/4",
-                color = c.textSecondary, fontSize = 11.sp, fontWeight = FontWeight.SemiBold
-            )
+            Text("Coffres  ${chests.size}/4", color = c.textSecondary,
+                style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
             if (prets > 0) {
-                Text(
-                    "$prets prêt${if (prets > 1) "s" else ""} !",
-                    color = c.accent, fontSize = 11.sp, fontWeight = FontWeight.Bold
-                )
+                Text("$prets prêt${if (prets > 1) "s" else ""} !", color = c.accent,
+                    style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
             }
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(SankaiSpacing.Sm)) {
             repeat(4) { slot ->
-                val chest = chests.find { it.slotIndex == slot }
+                val chest = chests.firstOrNull { it.slotIndex == slot }
                 ChestSlotUI(
                     chest = chest,
+                    slotNumber = slot + 1,
+                    compact = compact,
                     onOpen = { chest?.let { onOpen(it.id) } },
-                    timer = chest?.let { if (tick >= 0) formatTimer(it) else "" } ?: "",
+                    // La lecture de tick limite la recomposition au dock, une fois par seconde.
+                    timer = chest?.let { if (tick >= 0) formatTimer(it) else "" }.orEmpty(),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -337,12 +408,6 @@ fun BarreCoffres(
     }
 }
 
-/**
- * Nom lisible d'une rareté.
- *
- * Le type stocké est en anglais et en majuscules parce qu'il vient de la base ;
- * l'afficher tel quel exposerait une convention interne au joueur.
- */
 private fun libelleRarete(type: String): String = when (type.uppercase()) {
     "DAILY" -> "Quotidien"
     "RARE" -> "Rare"
@@ -354,106 +419,120 @@ private fun libelleRarete(type: String): String = when (type.uppercase()) {
 }
 
 @Composable
-fun ChestSlotUI(chest: ChestEntity?, onOpen: () -> Unit, timer: String, modifier: Modifier = Modifier) {
+fun ChestSlotUI(
+    chest: ChestEntity?,
+    onOpen: () -> Unit,
+    timer: String,
+    modifier: Modifier = Modifier,
+    slotNumber: Int? = null,
+    compact: Boolean = false
+) {
     val c = MaterialTheme.sankaiColors
     val chestColor = when (chest?.type) {
-        "RARE"       -> ChestRare
-        "EPIC"       -> ChestEpic
-        "LEGENDARY"  -> ChestLegendary
-        "DAILY"      -> ChestDaily
-        else         -> if (chest != null) ChestCommon else c.surface3
+        "RARE" -> ChestRare
+        "EPIC" -> ChestEpic
+        "LEGENDARY" -> ChestLegendary
+        "DAILY" -> ChestDaily
+        "WEEKLY", "ARENA" -> c.accentSecondary
+        else -> if (chest != null) ChestCommon else c.surface3
     }
     val isReady = chest?.isReady == true
+    val halo = if (isReady) {
+        val transition = rememberInfiniteTransition(label = "coffrePret")
+        val value by transition.animateFloat(
+            initialValue = 0.5f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                tween(SankaiMotion.RewardPulse),
+                RepeatMode.Reverse
+            ),
+            label = "haloCoffre"
+        )
+        value
+    } else {
+        1f
+    }
 
-    // Halo réservé au coffre prêt : c'est ce qui remplace la grande carte
-    // supprimée du contenu principal, sans encombrer l'écran.
-    val transition = rememberInfiniteTransition(label = "coffre")
-    val halo by transition.animateFloat(
-        initialValue = 0.45f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(950), RepeatMode.Reverse),
-        label = "haloCoffre"
-    )
+    val emplacement = slotNumber?.let { "Emplacement $it, " }.orEmpty()
+    val description = when {
+        chest == null -> "${emplacement}vide"
+        isReady -> "${emplacement}coffre ${libelleRarete(chest.type).lowercase()}, prêt"
+        else -> "${emplacement}coffre ${libelleRarete(chest.type).lowercase()}, disponible dans $timer"
+    }
 
     Box(
-        modifier = modifier.height(112.dp).clip(RoundedCornerShape(12.dp))
+        modifier = modifier
+            .height(if (compact) 82.dp else 104.dp)
+            .clip(RoundedCornerShape(SankaiRadius.Medium))
             .background(
-                if (chest != null) chestColor.copy(alpha = if (isReady) 0.22f else 0.15f)
+                if (chest != null) chestColor.copy(alpha = if (isReady) 0.22f else 0.14f)
                 else c.surface2
             )
             .border(
                 width = if (isReady) 2.dp else 1.dp,
                 color = if (isReady) chestColor.copy(alpha = halo) else c.border,
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(SankaiRadius.Medium)
             )
-            .then(if (isReady) Modifier.clickable { onOpen() } else Modifier),
+            .then(
+                if (isReady) Modifier.clickable(role = Role.Button, onClick = onOpen)
+                else Modifier
+            )
+            .clearAndSetSemantics {
+                contentDescription = description
+                stateDescription = when {
+                    chest == null -> "Vide"
+                    isReady -> "Prêt"
+                    else -> timer
+                }
+                if (isReady) {
+                    role = Role.Button
+                    onClick(label = "Ouvrir le coffre") {
+                        onOpen()
+                        true
+                    }
+                }
+            },
         contentAlignment = Alignment.Center
     ) {
         if (chest == null) {
-            Text("—", color = c.textDisabled, fontSize = 20.sp)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("+", color = c.textDisabled,
+                    style = MaterialTheme.typography.headlineMedium)
+                if (!compact) {
+                    Text("Libre", color = c.textDisabled,
+                        style = MaterialTheme.typography.labelSmall)
+                }
+            }
         } else {
-            // Minuterie au-dessus, coffre au centre, rareté en dessous.
-            //
-            // Rien n'est superposé au dessin, et c'est lui le plus grand des
-            // trois : un coffre doit se reconnaître d'un coup d'œil, le texte
-            // n'est là que pour préciser.
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp)
+                modifier = Modifier.padding(horizontal = SankaiSpacing.Xs, vertical = SankaiSpacing.Xs)
             ) {
                 Text(
                     if (isReady) "PRÊT" else timer,
                     color = if (isReady) chestColor else c.textSecondary,
-                    fontSize = 10.sp,
-                    fontWeight = if (isReady) FontWeight.Bold else FontWeight.Normal
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = if (isReady) FontWeight.Bold else FontWeight.Normal,
+                    maxLines = 1,
+                    overflow = TextOverflow.Clip
                 )
-                Spacer(Modifier.height(2.dp))
-                IconeArt(ArtJardin.coffre(chest.type), taille = 52.dp)
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    libelleRarete(chest.type),
-                    color = chestColor, fontSize = 9.sp, fontWeight = FontWeight.Bold
+                Spacer(Modifier.height(SankaiSpacing.Xxs))
+                IconeArt(
+                    ArtJardin.coffre(chest.type),
+                    taille = if (compact) 36.dp else 46.dp
                 )
+                if (!compact) {
+                    Spacer(Modifier.height(SankaiSpacing.Xxs))
+                    Text(
+                        libelleRarete(chest.type),
+                        color = chestColor,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
-        }
-    }
-}
-
-@Composable
-fun QuickActionButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    sublabel: String,
-    color: Color,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    onClick: () -> Unit
-) {
-    val c = MaterialTheme.sankaiColors
-    Box(
-        modifier = modifier.clip(RoundedCornerShape(12.dp))
-            .background(if (enabled) color.copy(0.12f) else c.surface2)
-            .border(1.dp, if (enabled) color.copy(0.4f) else c.border, RoundedCornerShape(12.dp))
-            .then(if (enabled) Modifier.clickable { onClick() } else Modifier)
-            .padding(12.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(icon, null, tint = if (enabled) color else c.textDisabled, modifier = Modifier.size(24.dp))
-            Spacer(Modifier.height(4.dp))
-            Text(label,    color = if (enabled) c.textPrimary else c.textDisabled, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-            Text(sublabel, color = if (enabled) color else c.textDisabled, fontSize = 10.sp)
-        }
-    }
-}
-
-@Composable
-fun StatCard(value: String, label: String, valueColor: Color, modifier: Modifier = Modifier) {
-    val c = MaterialTheme.sankaiColors
-    Box(modifier.clip(RoundedCornerShape(12.dp)).background(c.surface2).border(0.5.dp, c.border, RoundedCornerShape(12.dp)).padding(12.dp)) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-            Text(value, color = valueColor, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(2.dp))
-            Text(label, color = c.textSecondary, fontSize = 10.sp)
         }
     }
 }

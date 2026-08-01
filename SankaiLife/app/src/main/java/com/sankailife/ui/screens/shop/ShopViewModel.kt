@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.sankailife.SankaiApplication
 import com.sankailife.core.ads.RegarderPubUseCase
 import com.sankailife.core.ads.ResultatPub
+import com.sankailife.core.ads.PrivacyConsentManager
 import com.sankailife.core.data.repository.GameRepository
 import com.sankailife.core.data.repository.UserRepository
 import com.sankailife.core.domain.engine.ChestEngine
@@ -48,6 +49,8 @@ class ShopViewModel(application: Application) : AndroidViewModel(application) {
     val isOnline: StateFlow<Boolean> = app.connectivity.isOnline
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), app.connectivity.currentlyOnline())
 
+    val adsAutorisees: StateFlow<Boolean> = PrivacyConsentManager.adsAutorisees
+
     /** Remise appliquée à l'offre du jour. */
     private val remiseOffre = 0.25f
 
@@ -86,6 +89,17 @@ class ShopViewModel(application: Application) : AndroidViewModel(application) {
         val u = user.value
         val prixPieces = coutReel(item, u)
 
+        if (item.id == "slot_module") {
+            val achat = userRepo.acheterSlotModule { base ->
+                if (estOffreDuJour(item)) {
+                    (base * (1f - remiseOffre)).toInt().coerceAtLeast(1)
+                } else base
+            }
+            if (achat == null) showToast("Pièces insuffisantes ❌")
+            else showToast("+1 slot module • ${achat.totalSlots} au total ✅")
+            return@launch
+        }
+
         if (prixPieces > u.coins) { showToast("Pièces insuffisantes ❌"); return@launch }
         if (item.costGems > u.gems) { showToast("Gemmes insuffisantes ❌"); return@launch }
 
@@ -95,7 +109,7 @@ class ShopViewModel(application: Application) : AndroidViewModel(application) {
             showToast("Pièces insuffisantes ❌"); return@launch
         }
         if (item.costGems > 0 && !userRepo.spendGems(item.costGems)) {
-            if (prixPieces > 0) userRepo.addCoins(prixPieces)
+            if (prixPieces > 0) userRepo.refundCoins(prixPieces)
             showToast("Gemmes insuffisantes ❌"); return@launch
         }
 
@@ -106,19 +120,10 @@ class ShopViewModel(application: Application) : AndroidViewModel(application) {
                     showToast("${item.name} ajouté ! 🎁")
                 } else {
                     // File pleine : on rembourse intégralement.
-                    if (prixPieces > 0) userRepo.addCoins(prixPieces)
+                    if (prixPieces > 0) userRepo.refundCoins(prixPieces)
                     if (item.costGems > 0) userRepo.addGems(item.costGems)
                     showToast("Coffres pleins (4/4) — remboursé")
                 }
-            }
-            "slot_module" -> {
-                val cu = app.database.userDao().getUserOnce()
-                if (cu == null) {
-                    if (prixPieces > 0) userRepo.addCoins(prixPieces)
-                    return@launch
-                }
-                app.database.userDao().updateModuleSlots(cu.moduleSlots + 1)
-                showToast("+1 slot module • ${cu.moduleSlots + 1} au total ✅")
             }
             "eau_10", "eau_30" -> {
                 val quantite = if (item.id == "eau_30") 30 else 10
@@ -161,7 +166,7 @@ class ShopViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private suspend fun rembourser(pieces: Int, gemmes: Int) {
-        if (pieces > 0) userRepo.addCoins(pieces)
+        if (pieces > 0) userRepo.refundCoins(pieces)
         if (gemmes > 0) userRepo.addGems(gemmes)
     }
 

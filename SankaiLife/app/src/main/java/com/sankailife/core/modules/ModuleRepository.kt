@@ -2,15 +2,14 @@ package com.sankailife.core.modules
 
 import android.content.Context
 import android.net.Uri
+import androidx.room.withTransaction
+import com.sankailife.core.data.archive.BoundedZipReader
 import com.sankailife.core.data.db.SankaiDatabase
 import com.sankailife.core.data.db.entities.MemoLineEntity
 import com.sankailife.core.data.db.entities.MemoProfileEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
-import java.io.ByteArrayOutputStream
-import java.util.zip.ZipEntry
-import java.util.zip.ZipInputStream
 
 /**
  * Lecture et installation d'un module d'apprentissage.
@@ -80,22 +79,27 @@ class ModuleRepository(
         manifeste: ModuleEngine.Manifeste,
         cartes: List<String>
     ): String = withContext(Dispatchers.IO) {
-        val existants = db.memoDao().getAllProfilesOnce().map { it.name }.toSet()
-        val nom = ModuleEngine.nomInstallation(manifeste.nom, existants)
+        db.withTransaction {
+            val dao = db.memoDao()
+            val existants = dao.getAllProfilesOnce().map { it.name }.toSet()
+            val nom = ModuleEngine.nomInstallation(manifeste.nom, existants)
 
-        val id = db.memoDao().upsertProfile(
-            MemoProfileEntity(
-                name = nom,
-                // Inactif à l'installation : un module importé ne doit pas se
-                // mettre à envoyer des notifications sans qu'on l'ait décidé.
-                isActive = false
+            val id = dao.upsertProfile(
+                MemoProfileEntity(
+                    name = nom,
+                    // Inactif à l'installation : un module importé ne doit pas se
+                    // mettre à envoyer des notifications sans qu'on l'ait décidé.
+                    isActive = false
+                )
             )
-        )
 
-        cartes.forEach { texte ->
-            db.memoDao().insertLine(MemoLineEntity(profileId = id, text = texte))
+            cartes.forEachIndexed { index, texte ->
+                dao.insertLine(
+                    MemoLineEntity(profileId = id, text = texte, orderIndex = index)
+                )
+            }
+            nom
         }
-        nom
     }
 
     /**
@@ -111,30 +115,20 @@ class ModuleRepository(
             ?.value
 
     private fun lireArchive(source: Uri): Map<String, ByteArray> {
-        val resultat = linkedMapOf<String, ByteArray>()
         contexte.contentResolver.openInputStream(source)?.use { flux ->
-            ZipInputStream(flux).use { zip ->
-                var entree: ZipEntry? = zip.nextEntry
-                var total = 0L
-                while (entree != null) {
-                    val nom = entree.name
-                    if (!entree.isDirectory && ModuleEngine.cheminSur(nom)) {
-                        val tampon = ByteArrayOutputStream()
-                        zip.copyTo(tampon)
-                        total += tampon.size()
-                        // La borne est vérifiée pendant la lecture, pas après :
-                        // une archive gonflée volontairement remplirait la
-                        // mémoire avant qu'on ait pu la refuser.
-                        if (total > ModuleEngine.MAX_OCTETS) {
-                            error("Fichier trop lourd.")
-                        }
-                        resultat[nom] = tampon.toByteArray()
-                    }
-                    zip.closeEntry()
-                    entree = zip.nextEntry
-                }
-            }
+            return BoundedZipReader.read(
+                source = flux,
+                limits = BoundedZipReader.Limits(
+                    maxTotalBytes = ModuleEngine.MAX_OCTETS.toLong(),
+                    maxEntryBytes = ModuleEngine.MAX_OCTETS.toLong(),
+                    maxEntries = MAX_ENTREES_ARCHIVE
+                ),
+                accepter = ModuleEngine::cheminSur
+            )
         } ?: error("Impossible de lire ce fichier.")
-        return resultat
+    }
+
+    private companion object {
+        const val MAX_ENTREES_ARCHIVE = 128
     }
 }

@@ -1,0 +1,52 @@
+<resources>
+    <!-- Português. Volta ao francês para o que ainda não está traduzido. -->
+    <string name="nav_shop">Loja</string>
+    <string name="nav_life">Vida</string>
+    <string name="nav_home">Início</string>
+    <string name="nav_challenges">Desafios</string>
+    <string name="nav_profile">Perfil</string>
+
+    <string name="action_continue">Continuar</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="action_back">Voltar</string>
+    <string name="action_skip">Ignorar</string>
+    <string name="action_install">Instalar</string>
+    <string name="action_export">Exportar</string>
+    <string name="action_restore">Restaurar</string>
+    <string name="action_review">Rever</string>
+
+    <string name="home_greeting">Olá, %1$s 👋</string>
+    <string name="home_subtitle">Mantém o foco e continua!</string>
+    <string name="home_enter_garden">🌿  Entrar no jardim</string>
+    <string name="home_settings">Definições</string>
+
+    <string name="chest_ready">PRONTO</string>
+    <string name="chest_common">Comum</string>
+    <string name="chest_daily">Diário</string>
+    <string name="chest_rare">Raro</string>
+    <string name="chest_epic">Épico</string>
+    <string name="chest_legendary">Lendário</string>
+    <string name="chest_weekly">Semanal</string>
+    <string name="chest_arena">Arena</string>
+
+    <string name="garden_leave">Sair do jardim</string>
+    <string name="garden_bag">A tua mochila</string>
+    <string name="garden_preparing">A preparar o jardim…</string>
+
+    <string name="notif_chest_title">O teu baú está pronto</string>
+    <string name="notif_chest_text">Abre o Sankai Life para receber a recompensa.</string>
+    <string name="notif_review_title">Hora de rever</string>
+    <string name="notif_review_one">1 cartão à tua espera.</string>
+    <string name="notif_review_many">%1$d cartões à tua espera.</string>
+
+    <string name="settings_language">Idioma da aplicação</string>
+    <string name="settings_language_auto">Automático</string>
+    <string name="settings_language_hint">Segue o idioma do teu telemóvel. Podes forçar um se preferires.</string>
+    <string name="settings_replay_tutorial">Rever o tutorial</string>
+
+    <string name="cards_judge_again">Rever</string>
+    <string name="cards_judge_hard">Difícil</string>
+    <string name="cards_judge_ok">Certo</string>
+    <string name="cards_judge_easy">Fácil</string>
+    <string name="cards_knew_it">Eu sabia</string>
+</resources>

@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.sankailife.SankaiApplication
-import com.sankailife.core.data.db.entities.ArenaRewardEntity
 import com.sankailife.core.data.repository.GameRepository
 import com.sankailife.core.data.repository.UserRepository
 import com.sankailife.core.domain.engine.ArenaEngine
@@ -89,27 +88,13 @@ class ArenasViewModel(application: Application) : AndroidViewModel(application) 
     fun reclamer(arene: Arena) = viewModelScope.launch {
         val u = user.value
         if (!ArenaEngine.estAtteinte(arene, u.level)) return@launch
-
-        // L'insertion sert de verrou : la clé primaire est l'identifiant de
-        // l'arène, donc un double appui n'insère rien la seconde fois et ne
-        // peut pas créditer deux fois.
-        val insere = arenaDao.marquerReclamee(
-            ArenaRewardEntity(arenaId = arene.id, claimedAt = System.currentTimeMillis())
-        )
-        if (insere == -1L) return@launch
-
-        val r = arene.recompense
-        if (r.coins > 0) userRepo.addCoins(r.coins)
-        if (r.gems > 0) userRepo.addGems(r.gems)
-        if (r.chestType.isNotBlank()) gameRepo.addChest(r.chestType)
-        if (r.moduleSlots > 0) {
-            val actuel = app.database.userDao().getUserOnce()
-            if (actuel != null) {
-                app.database.userDao().updateModuleSlots(actuel.moduleSlots + r.moduleSlots)
-            }
+        when (gameRepo.reclamerArene(arene)) {
+            GameRepository.ReclamationArene.Reussie ->
+                afficherToast("${arene.emoji} ${arene.nom} • ${arene.recompense.resume()}")
+            GameRepository.ReclamationArene.CoffresPleins ->
+                afficherToast("Libère un emplacement de coffre avant de réclamer")
+            null -> Unit
         }
-
-        afficherToast("${arene.emoji} ${arene.nom} • ${r.resume()}")
     }
 
     private fun afficherToast(message: String) = viewModelScope.launch {

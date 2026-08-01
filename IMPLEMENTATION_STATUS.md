@@ -3,7 +3,28 @@
 Suivi honnête du cahier des charges. Une ligne n'est marquée **terminé** que si
 le code compile et que la fonction est réellement câblée de bout en bout.
 
-Dernière mise à jour : build `assembleDebug` et `assembleRelease` verts.
+Dernière mise à jour : 1er août 2026 — vague critique Codex, phase 1 UI et
+météo nuageuse dynamique validées par la chaîne Gradle complète.
+
+---
+
+## Validation consolidée du 1er août 2026
+
+- `test` : 239 tests dans 24 suites pour chacune des variantes debug et
+  release, soit 478 exécutions sans échec, erreur ni test ignoré ;
+- `lintDebug` et `lintRelease` : 0 erreur, 77 avertissements non bloquants et
+  3 informations par variante ;
+- `assembleDebug` et `assembleRelease` : réussis, signatures APK v2 vérifiées ;
+- économie critique, slots mémo, récompenses, archives ZIP, sauvegarde `v2`,
+  consentement UMP et chaîne de publication durcis ;
+- accueil phase 1 livré ; refonte des autres écrans volontairement différée
+  jusqu'à la validation de l'accueil sur appareil ;
+- Jardin vivant et nuages procéduraux livrés avec profils `LOW`/`NORMAL`/`HIGH`,
+  vent partagé avec la pluie et réduction des animations.
+
+La compilation ne remplace pas les essais sur téléphone : restauration,
+alarmes/Doze, consentement réel, accessibilité et performances du Jardin
+restent à contrôler. Voir `CODEX_AUDIT.md` et `CODEX_HANDOFF.md` pour le détail.
 
 ---
 

@@ -17,6 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.sankailife.core.ads.AdsManager
+import com.sankailife.core.ads.PrivacyConsentManager
 import com.sankailife.core.haptics.AndroidHapticManager
 import com.sankailife.core.haptics.LocalHaptics
 import com.sankailife.ui.navigation.SankaiNavGraph
@@ -59,6 +60,10 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+
+        // UMP met à jour le choix à chaque lancement et n'autorise AdMob
+        // qu'une fois la collecte terminée (ou jugée non nécessaire).
+        PrivacyConsentManager.recueillir(this)
     }
 
     override fun onResume() {

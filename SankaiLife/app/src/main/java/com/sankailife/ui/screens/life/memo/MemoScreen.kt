@@ -27,9 +27,19 @@ fun MemoScreen(viewModel: MemoViewModel, onBack: () -> Unit, onEdit: (Long) -> U
     val contexte = LocalContext.current
     val portee = rememberCoroutineScope()
     val profiles by viewModel.profiles.collectAsState()
+    val message by viewModel.message.collectAsState()
     val c = MaterialTheme.sankaiColors
+    val snackbar = remember { SnackbarHostState() }
 
-    Column(Modifier.fillMaxSize().background(c.background)) {
+    LaunchedEffect(message) {
+        if (message.isNotBlank()) {
+            snackbar.showSnackbar(message)
+            viewModel.messageAffiche()
+        }
+    }
+
+    Box(Modifier.fillMaxSize().background(c.background)) {
+      Column(Modifier.fillMaxSize()) {
         // Top bar
         Row(Modifier.fillMaxWidth().padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -111,6 +121,8 @@ fun MemoScreen(viewModel: MemoViewModel, onBack: () -> Unit, onEdit: (Long) -> U
             }
             item { Spacer(Modifier.height(24.dp)) }
         }
+      }
+      SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(16.dp))
     }
 }
 

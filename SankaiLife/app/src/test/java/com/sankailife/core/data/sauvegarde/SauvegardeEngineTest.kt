@@ -59,6 +59,18 @@ class SauvegardeEngineTest {
     }
 
     @Test
+    fun `le format historique reste restaurable par le lecteur v2`() {
+        val v = SauvegardeEngine.verifier(
+            manifeste(versionFormat = 1),
+            "abc",
+            30
+        )
+
+        assertTrue(v is SauvegardeEngine.Verdict.Utilisable)
+        assertNotNull((v as SauvegardeEngine.Verdict.Utilisable).reserve)
+    }
+
+    @Test
     fun `une empreinte absente ne bloque pas`() {
         // Une sauvegarde ancienne peut ne pas en avoir. Refuser reviendrait à
         // rendre illisibles des fichiers parfaitement sains.
@@ -76,6 +88,33 @@ class SauvegardeEngineTest {
             )
         )
         assertEquals(listOf(SauvegardeEngine.Section.PROFIL), sections)
+    }
+
+    @Test
+    fun `les reglages ne sont pas annonces sans export DataStore`() {
+        val sections = SauvegardeEngine.sectionsARestaurer(
+            presentes = listOf("settings", "memos"),
+            demandees = setOf(
+                SauvegardeEngine.Section.REGLAGES,
+                SauvegardeEngine.Section.MEMOS
+            )
+        )
+
+        assertEquals(listOf(SauvegardeEngine.Section.MEMOS), sections)
+    }
+
+    @Test
+    fun `les copies de memos recoivent toujours un nom disponible`() {
+        val utilises = setOf("Portugais", "Portugais (2)", "Portugais (3)")
+
+        assertEquals(
+            "Portugais (4)",
+            SauvegardeEngine.nomMemoDisponible("Portugais", utilises)
+        )
+        assertEquals(
+            "Mémo restauré",
+            SauvegardeEngine.nomMemoDisponible("  ", utilises)
+        )
     }
 
     @Test
@@ -98,6 +137,12 @@ class SauvegardeEngineTest {
         assertEquals(64, a.length)
         assertTrue(a != b)
         assertEquals(a, SauvegardeEngine.empreinte("bonjour".toByteArray()))
+        assertEquals(
+            a,
+            SauvegardeEngine.empreinte(
+                listOf("bon".toByteArray(), "jour".toByteArray())
+            )
+        )
     }
 
     @Test

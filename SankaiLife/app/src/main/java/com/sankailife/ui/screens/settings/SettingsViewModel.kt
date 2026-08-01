@@ -26,6 +26,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val vibrations: StateFlow<Boolean>    = prefs.vibrations.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
     val notifications: StateFlow<Boolean> = prefs.notifications.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
     val batterySaver: StateFlow<Boolean>  = prefs.batterySaver.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    val graphicsQuality: StateFlow<String> = prefs.graphicsQuality.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "normal")
     val streakReminder: StateFlow<Boolean> = prefs.streakReminder.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     fun setThemeMode(mode: String)         = viewModelScope.launch { prefs.setThemeMode(mode) }
@@ -33,6 +34,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setVibrations(v: Boolean)          = viewModelScope.launch { prefs.setVibrations(v) }
     fun setNotifications(v: Boolean)       = viewModelScope.launch { prefs.setNotifications(v) }
     fun setBatterySaver(v: Boolean)        = viewModelScope.launch { prefs.setBatterySaver(v) }
+    fun setGraphicsQuality(v: String)      = viewModelScope.launch { prefs.setGraphicsQuality(v) }
     fun setStreakReminder(v: Boolean)      = viewModelScope.launch { prefs.setStreakReminder(v) }
 
     // ----- Heures silencieuses -------------------------------------------

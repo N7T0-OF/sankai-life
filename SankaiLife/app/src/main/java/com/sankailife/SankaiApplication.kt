@@ -4,7 +4,6 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
-import com.sankailife.core.ads.AdsManager
 import com.sankailife.core.connectivity.ConnectivityObserver
 import com.sankailife.core.data.db.SankaiDatabase
 import com.sankailife.core.data.preferences.AppPreferences
@@ -12,6 +11,7 @@ import com.sankailife.core.notifications.RevisionAlarmReceiver
 import com.sankailife.core.notifications.MemoAlarmScheduler
 import com.sankailife.core.notifications.NotificationScheduler
 import com.sankailife.core.notifications.SankaiNotifications
+import com.sankailife.core.notifications.CoffreAlarmReceiver
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -33,6 +33,7 @@ class SankaiApplication : Application() {
         // à chaque lancement : c'est ce qui rattrape une alarme perdue après un
         // force stop ou un nettoyage agressif du constructeur.
         scope.launch { runCatching { MemoAlarmScheduler.replanifierTout(this@SankaiApplication) } }
+        scope.launch { runCatching { CoffreAlarmReceiver.replanifierTous(this@SankaiApplication) } }
 
         // Filet de sécurité périodique, qui replanifie sans jamais notifier.
         NotificationScheduler.programmer(this)
@@ -42,9 +43,8 @@ class SankaiApplication : Application() {
         // se rétablit pas toute seule.
         RevisionAlarmReceiver.programmerProchaine(this)
 
-        // AdMob s'initialise en tâche de fond. S'il échoue (hors ligne, SDK
-        // indisponible), l'app continue exactement pareil, sans pub.
-        AdsManager.initialize(this)
+        // AdMob est volontairement absent d'ici : il ne sera initialisé par
+        // MainActivity qu'après validation de `canRequestAds()` par UMP.
     }
 
     private fun createNotificationChannels() {

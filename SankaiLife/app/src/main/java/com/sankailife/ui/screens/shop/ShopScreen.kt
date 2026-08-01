@@ -49,6 +49,7 @@ fun ShopScreen(viewModel: ShopViewModel) {
     val toast by viewModel.toast.collectAsState()
     val adCd by viewModel.adCooldown.collectAsState()
     val enLigne by viewModel.isOnline.collectAsState()
+    val adsAutorisees by viewModel.adsAutorisees.collectAsState()
     val c = MaterialTheme.sankaiColors
     val activity = LocalContext.current as? Activity
 
@@ -116,6 +117,7 @@ fun ShopScreen(viewModel: ShopViewModel) {
                                 adCd = adCd,
                                 nombreVues = user.adCountToday,
                                 enLigne = enLigne,
+                                adsAutorisees = adsAutorisees,
                                 onRegarder = { activity?.let { viewModel.watchAd(it) } }
                             )
                         }
@@ -271,6 +273,7 @@ private fun BlocPub(
     adCd: Long,
     nombreVues: Int,
     enLigne: Boolean,
+    adsAutorisees: Boolean,
     onRegarder: () -> Unit
 ) {
     val c = MaterialTheme.sankaiColors
@@ -282,7 +285,8 @@ private fun BlocPub(
         }
         Spacer(Modifier.height(4.dp))
         Text(
-            if (enLigne) "Aujourd'hui : $nombreVues / 50 • bonus tous les 5"
+            if (!adsAutorisees) "La pub reste désactivée tant que le choix de confidentialité n'est pas disponible"
+            else if (enLigne) "Aujourd'hui : $nombreVues / 50 • bonus tous les 5"
             else "Connexion requise — le reste de la boutique fonctionne hors ligne",
             color = c.textSecondary, fontSize = 11.sp
         )
@@ -290,12 +294,13 @@ private fun BlocPub(
         SankaiButton(
             when {
                 !enLigne -> "🔌 Hors ligne"
+                !adsAutorisees -> "Confidentialité en attente"
                 adCd > 0 -> "⏳ ${adCd}s"
                 nombreVues >= 50 -> "Limite atteinte"
                 else -> "▶  Regarder"
             },
             onClick = onRegarder,
-            enabled = enLigne && adCd <= 0 && nombreVues < 50,
+            enabled = enLigne && adsAutorisees && adCd <= 0 && nombreVues < 50,
             small = true,
             modifier = Modifier.fillMaxWidth()
         )

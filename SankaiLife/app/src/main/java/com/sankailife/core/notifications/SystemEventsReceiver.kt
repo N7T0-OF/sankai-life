@@ -34,6 +34,7 @@ class SystemEventsReceiver : BroadcastReceiver() {
         scope.launch {
             try {
                 MemoAlarmScheduler.replanifierTout(appContext)
+                CoffreAlarmReceiver.replanifierTous(appContext, notifierDejaPrets = true)
                 // Le rappel de révision se reprogramme lui-même chaque soir,
                 // mais un redémarrage efface toutes les alarmes du système :
                 // sans cette ligne, la chaîne s'arrêterait au premier reboot.

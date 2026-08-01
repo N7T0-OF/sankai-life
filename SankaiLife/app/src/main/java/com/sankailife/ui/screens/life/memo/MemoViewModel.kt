@@ -9,6 +9,7 @@ import com.sankailife.core.data.db.entities.MemoLineEntity
 import com.sankailife.core.data.db.entities.MemoProfileEntity
 import com.sankailife.core.domain.engine.MemoEngine
 import com.sankailife.core.domain.engine.PartageMemoEngine
+import com.sankailife.core.data.repository.MemoActivationRepository
 import com.sankailife.core.notifications.MemoAlarmScheduler
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -16,6 +17,10 @@ import kotlinx.coroutines.launch
 class MemoViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as SankaiApplication
     private val dao = app.database.memoDao()
+    private val activation = MemoActivationRepository(app.database)
+
+    private val _message = MutableStateFlow("")
+    val message: StateFlow<String> = _message
 
     val profiles: StateFlow<List<MemoProfileEntity>> =
         dao.getAllProfiles().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -178,9 +183,16 @@ class MemoViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun toggleProfile(profileId: Long, active: Boolean) = viewModelScope.launch {
-        dao.setActive(profileId, active)
-        replanifier()
+        when (val resultat = activation.definirActif(profileId, active)) {
+            MemoActivationRepository.Resultat.MisAJour -> replanifier()
+            is MemoActivationRepository.Resultat.LimiteAtteinte ->
+                _message.value = "${resultat.slots} slot(s) actif(s) maximum — achète un slot dans Mode Vie"
+            MemoActivationRepository.Resultat.ProfilIntrouvable ->
+                _message.value = "Ce profil mémo n'existe plus"
+        }
     }
+
+    fun messageAffiche() { _message.value = "" }
 
     private suspend fun replanifier() {
         runCatching { MemoAlarmScheduler.replanifierTout(app) }

@@ -16,14 +16,22 @@ import java.security.MessageDigest
 object SauvegardeEngine {
 
     /** Version du format de sauvegarde, indépendante de celle de l'app. */
-    const val VERSION_FORMAT = 1
+    // v2 ajoute les instantanés complets et imbrique User sous `profile.user`.
+    // Une ancienne application doit refuser ce format plutôt que restaurer
+    // silencieusement seulement les quelques champs qu'elle connaissait.
+    const val VERSION_FORMAT = 2
 
     const val EXTENSION = "sankai"
 
     /** Ce qu'une sauvegarde contient, section par section. */
-    enum class Section(val cle: String, val libelle: String) {
+    enum class Section(
+        val cle: String,
+        val libelle: String,
+        /** Cette section est-elle réellement portée par le fichier JSON actuel ? */
+        val priseEnCharge: Boolean = true
+    ) {
         PROFIL("profile", "Profil et progression"),
-        REGLAGES("settings", "Paramètres"),
+        REGLAGES("settings", "Paramètres", priseEnCharge = false),
         MEMOS("memos", "Mémos et flash cards"),
         JARDIN("garden", "Jardin, parcelles et Mimos"),
         COFFRES("chests", "Coffres et défis")
@@ -101,7 +109,23 @@ object SauvegardeEngine {
         presentes: List<String>,
         demandees: Set<Section>
     ): List<Section> = Section.entries
-        .filter { it.cle in presentes && it in demandees }
+        .filter { it.priseEnCharge && it.cle in presentes && it in demandees }
+
+    /**
+     * Trouve un nom disponible pour un mémo restauré sans remplacer l'existant.
+     *
+     * Les identifiants de la sauvegarde ne sont jamais réutilisés pour les
+     * mémos : une restauration ajoute des copies. Le nom suit la même règle
+     * afin que deux copies successives restent distinguables.
+     */
+    fun nomMemoDisponible(nomSouhaite: String, nomsUtilises: Set<String>): String {
+        val base = nomSouhaite.trim().ifEmpty { "Mémo restauré" }
+        if (base !in nomsUtilises) return base
+
+        var numero = 2
+        while ("$base ($numero)" in nomsUtilises) numero++
+        return "$base ($numero)"
+    }
 
     /**
      * Conduite à tenir sur un doublon.
@@ -113,10 +137,14 @@ object SauvegardeEngine {
     enum class SurDoublon { REMPLACER, FUSIONNER, COPIER, IGNORER }
 
     /** Empreinte du contenu, pour détecter un fichier abîmé. */
-    fun empreinte(contenu: ByteArray): String =
-        MessageDigest.getInstance("SHA-256")
-            .digest(contenu)
-            .joinToString("") { "%02x".format(it) }
+    fun empreinte(contenu: ByteArray): String = empreinte(listOf(contenu))
+
+    /** Calcule l'empreinte sans concaténer plusieurs gros fichiers en mémoire. */
+    fun empreinte(contenus: Iterable<ByteArray>): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        contenus.forEach { digest.update(it) }
+        return digest.digest().joinToString("") { "%02x".format(it) }
+    }
 
     /**
      * Nom du fichier proposé.

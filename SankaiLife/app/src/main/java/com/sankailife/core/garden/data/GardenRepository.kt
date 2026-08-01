@@ -6,6 +6,8 @@ import com.sankailife.core.data.db.SankaiDatabase
 import com.sankailife.core.data.repository.UserRepository
 import com.sankailife.core.garden.domain.*
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -22,6 +24,7 @@ class GardenRepository(
     private val clock: GardenClock = SystemGardenClock()
 ) {
     private val dao = db.gardenDao()
+    private val synchronisationMutex = Mutex()
 
     val etatFlow = dao.observerEtat()
     val parcellesFlow = dao.observerParcelles()
@@ -158,48 +161,76 @@ class GardenRepository(
         val rapportMimos: MimoEngine.Rapport = MimoEngine.Rapport()
     )
 
-    suspend fun ouvrirJardin(): Ouverture {
-        initialiser()
-        val etat = dao.etat() ?: return Ouverture(TrustedTimeEngine.Verdict.COHERENT)
+    /** Résultat d'une mise à l'heure, réutilisable sans déclencher de récit UI. */
+    data class Synchronisation(
+        val resultat: TrustedTimeEngine.Resultat,
+        val maintenantMillis: Long
+    )
 
-        val heureMurale = clock.now().toEpochMilli()
-        val elapsed = clock.elapsedRealtimeMillis()
+    /**
+     * Met à jour croissance, humidité et chantiers depuis le dernier repère.
+     *
+     * Cette opération est idempotente : le repère temporel est écrit dans la
+     * même transaction que les effets du temps. Elle ne fait volontairement
+     * travailler aucun Mimo et ne crée ni rapport ni défi, afin de pouvoir être
+     * appelée chaque minute tant que l'écran est visible.
+    */
+    suspend fun synchroniserTemps(): Synchronisation {
+        return synchronisationMutex.withLock {
+            // L'initialisation partage le même verrou : l'ouverture du VM et
+            // la première synchronisation de l'écran peuvent arriver ensemble.
+            initialiser()
+            db.withTransaction {
+                val etat = dao.etat()
+                val heureMurale = clock.now().toEpochMilli()
+                val elapsed = clock.elapsedRealtimeMillis()
 
-        val resultat = TrustedTimeEngine.evaluer(
-            TrustedTimeState(etat.derniereHeureMurale, etat.dernierElapsedRealtime),
-            heureMurale, elapsed
-        )
+                if (etat == null) {
+                    return@withTransaction Synchronisation(
+                        TrustedTimeEngine.Resultat(TrustedTimeEngine.Verdict.COHERENT, 0L),
+                        heureMurale
+                    )
+                }
 
-        if (resultat.minutesRetenues > 0) {
-            appliquerCroissance(resultat.minutesRetenues, heureMurale)
+                val resultat = TrustedTimeEngine.evaluer(
+                    TrustedTimeState(etat.derniereHeureMurale, etat.dernierElapsedRealtime),
+                    heureMurale,
+                    elapsed
+                )
+                if (resultat.minutesRetenues > 0) {
+                    appliquerCroissance(resultat.minutesRetenues, heureMurale)
+                }
+                acheverChantiers()
+
+                val jour = clock.currentDayId()
+                val remise = jour != etat.jourPlafond
+                val courant = dao.etat() ?: etat
+                dao.sauverEtat(
+                    courant.copy(
+                        derniereHeureMurale = heureMurale,
+                        dernierElapsedRealtime = elapsed,
+                        jourPlafond = jour,
+                        eauGagneeAujourdhui = if (remise) 0 else courant.eauGagneeAujourdhui
+                    )
+                )
+                Synchronisation(resultat, heureMurale)
+            }
         }
-        acheverChantiers()
+    }
+
+    suspend fun ouvrirJardin(): Ouverture {
+        val synchronisation = synchroniserTemps()
+        val resultat = synchronisation.resultat
 
         // Les Mimos travaillent après la croissance : ils doivent voir le
         // jardin tel qu'il est au retour, pas tel qu'il était au départ.
         // Sinon ils récolteraient des plantes qui n'étaient pas encore mûres.
         val rapport = if (resultat.minutesRetenues > 0) {
             appliquerTravailMimos(
-                debutMillis = heureMurale - resultat.minutesRetenues * 60_000,
-                finMillis = heureMurale
+                debutMillis = synchronisation.maintenantMillis - resultat.minutesRetenues * 60_000,
+                finMillis = synchronisation.maintenantMillis
             )
         } else MimoEngine.Rapport()
-
-        // Le plafond d'eau se remet à zéro au changement de jour.
-        val jour = clock.currentDayId()
-        val remise = jour != etat.jourPlafond
-
-        // L'état est relu : les Mimos viennent de dépenser eau et compost,
-        // écrire la copie d'origine annulerait leur travail.
-        val etatCourant = dao.etat() ?: etat
-        dao.sauverEtat(
-            etatCourant.copy(
-                derniereHeureMurale = heureMurale,
-                dernierElapsedRealtime = elapsed,
-                jourPlafond = jour,
-                eauGagneeAujourdhui = if (remise) 0 else etatCourant.eauGagneeAujourdhui
-            )
-        )
         return Ouverture(resultat.verdict, rapport)
     }
 

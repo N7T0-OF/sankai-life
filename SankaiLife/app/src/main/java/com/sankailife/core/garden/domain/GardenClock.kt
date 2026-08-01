@@ -1,7 +1,6 @@
 package com.sankailife.core.garden.domain
 
 import java.time.Instant
-import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.WeekFields
 import java.util.Locale
@@ -24,10 +23,10 @@ interface GardenClock {
      */
     fun elapsedRealtimeMillis(): Long
 
-    fun currentDayId(): String = LocalDate.ofInstant(now(), ZoneId.systemDefault()).toString()
+    fun currentDayId(): String = now().atZone(ZoneId.systemDefault()).toLocalDate().toString()
 
     fun currentWeekId(): String {
-        val date = LocalDate.ofInstant(now(), ZoneId.systemDefault())
+        val date = now().atZone(ZoneId.systemDefault()).toLocalDate()
         val champs = WeekFields.of(Locale.FRANCE)
         return "%d-S%02d".format(
             date.get(champs.weekBasedYear()),

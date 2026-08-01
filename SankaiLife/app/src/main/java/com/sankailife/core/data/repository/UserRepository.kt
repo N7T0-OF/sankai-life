@@ -1,8 +1,11 @@
 package com.sankailife.core.data.repository
 
+import androidx.room.withTransaction
 import com.sankailife.core.data.db.SankaiDatabase
 import com.sankailife.core.data.db.entities.DayRecordEntity
+import com.sankailife.core.data.db.entities.StatsEntity
 import com.sankailife.core.data.db.entities.UserEntity
+import com.sankailife.core.domain.engine.EconomyEngine
 import com.sankailife.core.domain.engine.RegularityEngine
 import com.sankailife.core.domain.engine.XpEngine
 import com.sankailife.core.domain.model.UserState
@@ -18,48 +21,78 @@ class UserRepository(private val db: SankaiDatabase) {
     }
 
     suspend fun ensureUser() {
-        if (dao.getUserOnce() == null) dao.upsert(UserEntity())
+        dao.insertIfAbsent(UserEntity())
     }
 
-    suspend fun addXp(amount: Int): Boolean {
-        val u = dao.getUserOnce() ?: return false
+    suspend fun addXp(amount: Int): Boolean = db.withTransaction {
+        if (amount <= 0) return@withTransaction false
+        val u = dao.getUserOnce() ?: return@withTransaction false
         val newXp = u.xp + amount
         val (newLevel, remainXp) = XpEngine.checkLevelUp(newXp, u.level)
         val didLevelUp = newLevel > u.level
         dao.updateXp(remainXp, XpEngine.xpForLevel(newLevel + 1), newLevel)
-        if (didLevelUp) {
-            val bonus = XpEngine.levelUpRewardCoins(newLevel)
-            addCoins(bonus)
-        }
-        db.statsDao().addEarnings(LocalDate.now().toString(), amount, 0)
-        return didLevelUp
+
+        val bonus = if (didLevelUp) XpEngine.levelUpRewardCoins(newLevel) else 0
+        if (bonus > 0) dao.creditCoins(bonus)
+        enregistrerStatistiques(xp = amount, pieces = bonus)
+        didLevelUp
     }
 
-    suspend fun addCoins(amount: Int) {
-        val u = dao.getUserOnce() ?: return
-        dao.updateCoins(u.coins + amount)
-        dao.addCoinsEarned(amount)
-        db.statsDao().addEarnings(LocalDate.now().toString(), 0, amount)
+    suspend fun addCoins(amount: Int) = db.withTransaction {
+        if (amount <= 0 || dao.creditCoins(amount) == 0) return@withTransaction
+        enregistrerStatistiques(pieces = amount)
     }
 
-    suspend fun spendCoins(amount: Int): Boolean {
-        val u = dao.getUserOnce() ?: return false
-        if (u.coins < amount) return false
-        dao.updateCoins(u.coins - amount)
-        dao.addCoinsSpent(amount)
-        return true
+    /** Un remboursement ne gonfle ni les gains cumulés ni les statistiques. */
+    suspend fun refundCoins(amount: Int) {
+        if (amount > 0) dao.refundCoins(amount)
+    }
+
+    suspend fun spendCoins(amount: Int): Boolean = db.withTransaction {
+        if (amount < 0 || dao.spendCoinsIfEnough(amount) == 0) return@withTransaction false
+        val jour = LocalDate.now().toString()
+        db.statsDao().insertIfAbsent(StatsEntity(date = jour))
+        db.statsDao().addSpending(jour, amount)
+        true
     }
 
     suspend fun addGems(amount: Int) {
-        val u = dao.getUserOnce() ?: return
-        dao.updateGems(u.gems + amount)
+        if (amount > 0) dao.creditGems(amount)
     }
 
-    suspend fun spendGems(amount: Int): Boolean {
-        val u = dao.getUserOnce() ?: return false
-        if (u.gems < amount) return false
-        dao.updateGems(u.gems - amount)
-        return true
+    suspend fun spendGems(amount: Int): Boolean =
+        amount >= 0 && dao.spendGemsIfEnough(amount) > 0
+
+    data class AchatSlotModule(val totalSlots: Int, val cout: Int)
+
+    /**
+     * Achète un slot avec le prix recalculé à l'intérieur de la transaction.
+     *
+     * Deux appuis simultanés paient donc bien deux paliers successifs, et un
+     * arrêt du processus ne peut plus laisser les pièces débitées sans livrer
+     * le slot. [transformerPrix] sert uniquement à appliquer une remise déjà
+     * affichée par la boutique.
+     */
+    suspend fun acheterSlotModule(
+        transformerPrix: (Int) -> Int = { it }
+    ): AchatSlotModule? = db.withTransaction {
+        val utilisateur = dao.getUserOnce() ?: return@withTransaction null
+        val cout = transformerPrix(EconomyEngine.slotCost(utilisateur.moduleSlots))
+            .coerceAtLeast(1)
+        if (dao.spendCoinsIfEnough(cout) == 0) return@withTransaction null
+
+        dao.addModuleSlots(1)
+        val jour = LocalDate.now().toString()
+        db.statsDao().insertIfAbsent(StatsEntity(date = jour))
+        db.statsDao().addSpending(jour, cout)
+        AchatSlotModule(totalSlots = utilisateur.moduleSlots + 1, cout = cout)
+    }
+
+    private suspend fun enregistrerStatistiques(xp: Int = 0, pieces: Int = 0) {
+        val jour = LocalDate.now().toString()
+        val stats = db.statsDao()
+        stats.insertIfAbsent(StatsEntity(date = jour))
+        stats.addEarnings(jour, xp, pieces)
     }
 
     /**

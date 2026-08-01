@@ -1,9 +1,13 @@
 package com.sankailife.core.data.repository
 
+import androidx.room.withTransaction
 import com.sankailife.core.data.db.SankaiDatabase
 import com.sankailife.core.notifications.CoffreAlarmReceiver
 import com.sankailife.core.data.db.entities.*
 import com.sankailife.core.domain.engine.ChestEngine
+import com.sankailife.core.domain.engine.XpEngine
+import com.sankailife.core.domain.engine.ArenaEngine
+import com.sankailife.core.domain.model.Arena
 import java.time.LocalDate
 
 /**
@@ -22,20 +26,22 @@ class GameRepository(
     val activeChests = chestDao.getActiveChests()
 
     suspend fun addChest(type: String): Boolean {
-        val count = chestDao.countActive()
-        if (count >= 4) return false
-        val timer = ChestEngine.timerMillis(type)
-        val slot  = (0..3).firstOrNull { s -> chestDao.getActiveChestsOnce().none { it.slotIndex == s } } ?: return false
-        val pretALe = System.currentTimeMillis() + timer
-        val id = chestDao.insert(ChestEntity(
-            type = type, slotIndex = slot,
-            unlocksAtMillis = pretALe
-        ))
+        val cree = db.withTransaction {
+            val actifs = chestDao.getActiveChestsOnce()
+            if (actifs.size >= 4) return@withTransaction null
+            val slot = (0..3).firstOrNull { s -> actifs.none { it.slotIndex == s } }
+                ?: return@withTransaction null
+            val pretALe = System.currentTimeMillis() + ChestEngine.timerMillis(type)
+            val id = chestDao.insert(
+                ChestEntity(type = type, slotIndex = slot, unlocksAtMillis = pretALe)
+            )
+            id to pretALe
+        } ?: return false
 
         // Rappel à l'heure d'ouverture. Un coffre met des heures à mûrir ;
         // sans rappel, il reste prêt pendant des jours et bloque son
         // emplacement, donc toute la progression derrière.
-        contexte?.let { CoffreAlarmReceiver.programmer(it, id, pretALe) }
+        contexte?.let { CoffreAlarmReceiver.programmer(it, cree.first, cree.second) }
         return true
     }
 
@@ -46,14 +52,54 @@ class GameRepository(
      * arrivent presque simultanément, seul le premier passe le verrou et
      * l'emplacement n'est crédité qu'une fois.
      */
-    suspend fun openChest(chestId: Long): ChestEngine.ChestReward? {
-        val chest = chestDao.getActiveChestsOnce().find { it.id == chestId } ?: return null
-        if (!chest.isReady) return null
-        if (chestDao.markOpened(chestId) == 0) return null
+    data class CoffreOuvert(
+        val recompense: ChestEngine.ChestReward,
+        val niveauGagne: Boolean,
+        val nouveauNiveau: Int
+    )
+
+    suspend fun openChest(chestId: Long): CoffreOuvert? {
+        val ouverture = db.withTransaction {
+            val chest = chestDao.getActiveChestsOnce().find { it.id == chestId }
+                ?: return@withTransaction null
+            if (!chest.isReady) return@withTransaction null
+
+            val utilisateur = db.userDao().getUserOnce() ?: return@withTransaction null
+            if (chestDao.markOpened(chestId) == 0) return@withTransaction null
+
+            val recompense = ChestEngine.generateReward(chest.type)
+            val gainXp = recompense.xp + XpEngine.XP_CHEST_OPEN
+            val (niveau, xpRestant) = XpEngine.checkLevelUp(
+                utilisateur.xp + gainXp,
+                utilisateur.level
+            )
+            val niveauGagne = niveau > utilisateur.level
+            val bonusNiveau = if (niveauGagne) XpEngine.levelUpRewardCoins(niveau) else 0
+            val gainPieces = recompense.coins + bonusNiveau
+
+            db.userDao().updateXp(xpRestant, XpEngine.xpForLevel(niveau + 1), niveau)
+            if (gainPieces > 0) db.userDao().creditCoins(gainPieces)
+            if (recompense.gems > 0) db.userDao().creditGems(recompense.gems)
+            db.userDao().incrementChests()
+            challengeDao.incrementProgress("weekly_chests", 1)
+
+            val jour = LocalDate.now().toString()
+            val stats = db.statsDao()
+            val actuelles = stats.getToday(jour) ?: StatsEntity(date = jour)
+            stats.upsert(
+                actuelles.copy(
+                    xpGained = actuelles.xpGained + gainXp,
+                    coinsGained = actuelles.coinsGained + gainPieces,
+                    chestsOpened = actuelles.chestsOpened + 1
+                )
+            )
+
+            CoffreOuvert(recompense, niveauGagne, niveau)
+        } ?: return null
+
         // Le rappel n'a plus lieu d'être : le coffre est ouvert.
         contexte?.let { CoffreAlarmReceiver.annuler(it, chestId) }
-        db.userDao().incrementChests()
-        return ChestEngine.generateReward(chest.type)
+        return ouverture
     }
 
     // ── Daily Chest ───────────────────────────────────────────────────
@@ -80,7 +126,7 @@ class GameRepository(
         if (!addChest("DAILY")) {
             // File pleine : on libère la réservation pour réessayer plus tard,
             // sinon le joueur perdrait son coffre du jour sans explication.
-            userDao.reserverCoffreQuotidien("")
+            userDao.libererCoffreQuotidien(aujourdhui)
         }
     }
 
@@ -105,16 +151,142 @@ class GameRepository(
     }
 
     suspend fun updateChallengeProgress(id: String, amount: Int) {
-        val all = challengeDao.getByType("DAILY") + challengeDao.getByType("WEEKLY")
-        val ch  = all.find { it.id == id } ?: return
-        challengeDao.updateProgress(id, ch.currentProgress + amount)
+        challengeDao.incrementProgress(id, amount)
     }
 
-    suspend fun claimChallenge(id: String): Pair<Int, Int>? {
-        val all = challengeDao.getByType("DAILY") + challengeDao.getByType("WEEKLY")
-        val ch  = all.find { it.id == id && it.isComplete && !it.isClaimed } ?: return null
-        challengeDao.markClaimed(id)
-        return Pair(ch.rewardCoins, ch.rewardXp)
+    sealed interface ReclamationDefi {
+        data class Reussie(
+            val pieces: Int,
+            val xp: Int,
+            val coffre: String
+        ) : ReclamationDefi
+        data object CoffresPleins : ReclamationDefi
+    }
+
+    suspend fun claimChallenge(id: String): ReclamationDefi? {
+        var alarmeCoffre: Pair<Long, Long>? = null
+        val resultat = db.withTransaction {
+            val all = challengeDao.getByType("DAILY") + challengeDao.getByType("WEEKLY")
+            val defi = all.find { it.id == id && it.isComplete && !it.isClaimed }
+                ?: return@withTransaction null
+            val utilisateur = db.userDao().getUserOnce() ?: return@withTransaction null
+
+            val typeCoffre = defi.rewardChestType
+            val emplacement = if (typeCoffre.isNotBlank()) {
+                val actifs = chestDao.getActiveChestsOnce()
+                if (actifs.size >= 4) return@withTransaction ReclamationDefi.CoffresPleins
+                (0..3).firstOrNull { slot -> actifs.none { it.slotIndex == slot } }
+                    ?: return@withTransaction ReclamationDefi.CoffresPleins
+            } else null
+
+            if (challengeDao.markClaimed(id) == 0) return@withTransaction null
+
+            val (niveau, xpRestant) = XpEngine.checkLevelUp(
+                utilisateur.xp + defi.rewardXp,
+                utilisateur.level
+            )
+            val bonusNiveau = if (niveau > utilisateur.level) {
+                XpEngine.levelUpRewardCoins(niveau)
+            } else 0
+            val piecesCreditees = defi.rewardCoins + bonusNiveau
+
+            db.userDao().updateXp(xpRestant, XpEngine.xpForLevel(niveau + 1), niveau)
+            if (piecesCreditees > 0) db.userDao().creditCoins(piecesCreditees)
+
+            if (typeCoffre.isNotBlank() && emplacement != null) {
+                val pretALe = System.currentTimeMillis() + ChestEngine.timerMillis(typeCoffre)
+                val coffreId = chestDao.insert(
+                    ChestEntity(
+                        type = typeCoffre,
+                        slotIndex = emplacement,
+                        unlocksAtMillis = pretALe
+                    )
+                )
+                alarmeCoffre = coffreId to pretALe
+            }
+
+            val jour = LocalDate.now().toString()
+            val stats = db.statsDao()
+            val actuelles = stats.getToday(jour) ?: StatsEntity(date = jour)
+            stats.upsert(
+                actuelles.copy(
+                    xpGained = actuelles.xpGained + defi.rewardXp,
+                    coinsGained = actuelles.coinsGained + piecesCreditees
+                )
+            )
+
+            ReclamationDefi.Reussie(
+                pieces = piecesCreditees,
+                xp = defi.rewardXp,
+                coffre = typeCoffre
+            )
+        }
+
+        alarmeCoffre?.let { (coffreId, pretALe) ->
+            contexte?.let { CoffreAlarmReceiver.programmer(it, coffreId, pretALe) }
+        }
+        return resultat
+    }
+
+    sealed interface ReclamationArene {
+        data object Reussie : ReclamationArene
+        data object CoffresPleins : ReclamationArene
+    }
+
+    /** Réserve et livre toute la récompense d'arène dans une même transaction. */
+    suspend fun reclamerArene(arene: Arena): ReclamationArene? {
+        var alarmeCoffre: Pair<Long, Long>? = null
+        val resultat = db.withTransaction {
+            val utilisateur = db.userDao().getUserOnce() ?: return@withTransaction null
+            if (!ArenaEngine.estAtteinte(arene, utilisateur.level)) return@withTransaction null
+
+            val recompense = arene.recompense
+            val emplacement = if (recompense.chestType.isNotBlank()) {
+                val actifs = chestDao.getActiveChestsOnce()
+                if (actifs.size >= 4) return@withTransaction ReclamationArene.CoffresPleins
+                (0..3).firstOrNull { slot -> actifs.none { it.slotIndex == slot } }
+                    ?: return@withTransaction ReclamationArene.CoffresPleins
+            } else null
+
+            val insere = db.arenaRewardDao().marquerReclamee(
+                ArenaRewardEntity(arenaId = arene.id, claimedAt = System.currentTimeMillis())
+            )
+            if (insere == -1L) return@withTransaction null
+
+            if (recompense.coins > 0) db.userDao().creditCoins(recompense.coins)
+            if (recompense.gems > 0) db.userDao().creditGems(recompense.gems)
+            if (recompense.moduleSlots > 0) {
+                db.userDao().addModuleSlots(recompense.moduleSlots)
+            }
+
+            if (recompense.chestType.isNotBlank() && emplacement != null) {
+                val pretALe = System.currentTimeMillis() +
+                    ChestEngine.timerMillis(recompense.chestType)
+                val coffreId = chestDao.insert(
+                    ChestEntity(
+                        type = recompense.chestType,
+                        slotIndex = emplacement,
+                        unlocksAtMillis = pretALe
+                    )
+                )
+                alarmeCoffre = coffreId to pretALe
+            }
+
+            if (recompense.coins > 0) {
+                val jour = LocalDate.now().toString()
+                val stats = db.statsDao()
+                val actuelles = stats.getToday(jour) ?: StatsEntity(date = jour)
+                stats.upsert(
+                    actuelles.copy(coinsGained = actuelles.coinsGained + recompense.coins)
+                )
+            }
+            ReclamationArene.Reussie
+        }
+
+        alarmeCoffre?.let { (coffreId, pretALe) ->
+            contexte?.let { CoffreAlarmReceiver.programmer(it, coffreId, pretALe) }
+        }
+        return resultat
     }
 
     private fun defaultDailyChallenges(date: String) = listOf(

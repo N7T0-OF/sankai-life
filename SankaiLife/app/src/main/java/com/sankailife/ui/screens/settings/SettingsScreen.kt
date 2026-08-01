@@ -1,5 +1,6 @@
 package com.sankailife.ui.screens.settings
 
+import android.app.Activity
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sankailife.core.haptics.LocalHaptics
+import com.sankailife.core.ads.PrivacyConsentManager
 import com.sankailife.core.notifications.QuietHours
 import com.sankailife.ui.components.SankaiButton
 import com.sankailife.ui.components.SectionTitle
@@ -27,6 +29,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit) {
     val vibrations  by viewModel.vibrations.collectAsState()
     val notifs      by viewModel.notifications.collectAsState()
     val battery     by viewModel.batterySaver.collectAsState()
+    val graphicsQuality by viewModel.graphicsQuality.collectAsState()
     val streak      by viewModel.streakReminder.collectAsState()
     val quietOn     by viewModel.quietEnabled.collectAsState()
     val quietStart  by viewModel.quietStart.collectAsState()
@@ -34,6 +37,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit) {
     val diag        by viewModel.diagnostic.collectAsState()
     val enLigne     by viewModel.isOnline.collectAsState()
     val etatMaj     by viewModel.maj.collectAsState()
+    val optionsConfidentialite by PrivacyConsentManager.optionsRequises.collectAsState()
     val c = MaterialTheme.sankaiColors
     val contexte = LocalContext.current
 
@@ -88,6 +92,54 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit) {
                 Spacer(Modifier.height(12.dp))
                 SettingToggle("Afficher labels navigation", showLabels) { viewModel.setShowNavLabels(it) }
                 SettingToggle("Mode économie batterie", battery) { viewModel.setBatterySaver(it) }
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    "Qualité du Jardin",
+                    color = c.textPrimary,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf(
+                        "low" to "Faible",
+                        "normal" to "Normale",
+                        "high" to "Élevée"
+                    ).forEach { (id, label) ->
+                        val selected = graphicsQuality == id
+                        Box(
+                            Modifier.weight(1f)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (selected) c.accent.copy(0.15f) else c.surface3)
+                                .border(
+                                    1.dp,
+                                    if (selected) c.accent else c.border,
+                                    RoundedCornerShape(10.dp)
+                                )
+                                .clickable { viewModel.setGraphicsQuality(id) }
+                                .padding(vertical = 9.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                label,
+                                color = if (selected) c.accent else c.textSecondary,
+                                fontSize = 11.sp,
+                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+                if (battery) {
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "L'économie batterie utilise temporairement la qualité faible.",
+                        color = c.textSecondary,
+                        fontSize = 11.sp
+                    )
+                }
             }
 
             SectionTitle("Notifications")
@@ -168,6 +220,29 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit) {
                         "Ces liens sont les seules parties de l'app qui ont besoin " +
                         "d'internet. Tout le reste fonctionne hors ligne.",
                         color = c.textSecondary, fontSize = 11.sp
+                    )
+                }
+            }
+
+            if (optionsConfidentialite) {
+                SectionTitle("Confidentialité")
+                SettingsCard {
+                    Text(
+                        "Gérer le choix de confidentialité utilisé uniquement " +
+                            "pour les publicités récompensées facultatives.",
+                        color = c.textSecondary,
+                        fontSize = 12.sp
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    SankaiButton(
+                        "Options de confidentialité",
+                        onClick = {
+                            (contexte as? Activity)?.let { activity ->
+                                PrivacyConsentManager.afficherOptions(activity)
+                            }
+                        },
+                        secondary = true,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }

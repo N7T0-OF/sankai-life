@@ -35,6 +35,9 @@ interface GardenDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun sauverParcelles(parcelles: List<GardenPlotEntity>)
 
+    @Query("DELETE FROM garden_plot")
+    suspend fun effacerParcelles()
+
     @Query("UPDATE garden_plot SET etat = :etat WHERE id = :id")
     suspend fun majEtatParcelle(id: Int, etat: String)
 
@@ -61,11 +64,20 @@ interface GardenDao {
     @Query("SELECT * FROM garden_crop WHERE recoltee = 0")
     suspend fun culturesEnCours(): List<GardenCropEntity>
 
+    @Query("SELECT * FROM garden_crop ORDER BY id ASC")
+    suspend fun toutesCultures(): List<GardenCropEntity>
+
     @Query("SELECT * FROM garden_crop WHERE plotId = :plotId AND recoltee = 0 LIMIT 1")
     suspend fun cultureSurParcelle(plotId: Int): GardenCropEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insererCulture(crop: GardenCropEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun sauverCultures(cultures: List<GardenCropEntity>)
+
+    @Query("DELETE FROM garden_crop")
+    suspend fun effacerCultures()
 
     @Update
     suspend fun majCulture(crop: GardenCropEntity)
@@ -95,6 +107,9 @@ interface GardenDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun poserCaisse(caisse: GardenCrateEntity): Long
 
+    @Query("DELETE FROM garden_crate")
+    suspend fun effacerCaisses()
+
     @Query("DELETE FROM garden_crate WHERE id IN (:ids)")
     suspend fun retirerCaisses(ids: List<Long>)
 
@@ -104,8 +119,14 @@ interface GardenDao {
     @Query("SELECT * FROM garden_inventory WHERE cle = :cle LIMIT 1")
     suspend fun ligneInventaire(cle: String): GardenInventoryEntity?
 
+    @Query("SELECT * FROM garden_inventory ORDER BY cle ASC")
+    suspend fun inventaire(): List<GardenInventoryEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun sauverInventaire(ligne: GardenInventoryEntity)
+
+    @Query("DELETE FROM garden_inventory")
+    suspend fun effacerInventaire()
 
     /**
      * Retire du stock uniquement si la quantité demandée est disponible.
@@ -131,10 +152,19 @@ interface GardenDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun embaucher(mimo: GardenMimoEntity): Long
 
+    @Query("DELETE FROM garden_mimo")
+    suspend fun effacerMimos()
+
     // --- Défi souvenir ----------------------------------------------------
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun enregistrerNotification(defi: MemoChallengeEntity): Long
+
+    @Query("SELECT * FROM memo_challenge ORDER BY id ASC")
+    suspend fun defisSouvenir(): List<MemoChallengeEntity>
+
+    @Query("DELETE FROM memo_challenge")
+    suspend fun effacerDefisSouvenir()
 
     /** Dernière notification non encore transformée en défi réclamé. */
     @Query("""

@@ -83,6 +83,7 @@ jobs:
   publier:
     name: Publier la Release
     if: startsWith(github.ref, 'refs/tags/v')
+    needs: apk
     runs-on: ubuntu-latest
 
     steps:
@@ -109,10 +110,9 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
-          if [ -z "$KEYSTORE_BASE64" ]; then
-            echo "signee=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::Aucun secret de signature : l'APK sera signé avec une clé de debug jetable."
-            exit 0
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ]; then
+            echo "::error::Secrets de signature incomplets : publication annulée."
+            exit 1
           fi
           mkdir -p cles
           echo "$KEYSTORE_BASE64" | base64 -d > cles/sankai-release.jks
@@ -129,9 +129,9 @@ jobs:
           ADMOB_APP_ID: ${{ secrets.ADMOB_APP_ID }}
           ADMOB_REWARDED_UNIT_ID: ${{ secrets.ADMOB_REWARDED_UNIT_ID }}
         run: |
-          if [ -z "$ADMOB_APP_ID" ]; then
-            echo "::notice::Secrets AdMob absents — identifiants de TEST utilisés."
-            exit 0
+          if [ -z "$ADMOB_APP_ID" ] || [ -z "$ADMOB_REWARDED_UNIT_ID" ]; then
+            echo "::error::Identifiants AdMob de production incomplets : publication annulée."
+            exit 1
           fi
           {
             echo "ADMOB_APP_ID=$ADMOB_APP_ID"
@@ -141,8 +141,6 @@ jobs:
       - name: Rendre gradlew exécutable
         run: chmod +x SankaiLife/gradlew
 
-      # assembleRelease fonctionne dans les deux cas : sans keystore, le
-      # build.gradle.kts retombe sur la clé de debug. L'APK reste installable.
       - name: Compiler l'APK de release
         working-directory: SankaiLife
         run: ./gradlew assembleRelease --no-daemon --stacktrace
@@ -237,16 +235,6 @@ jobs:
               echo ""
               echo "APK signé avec la clé de production. Les mises à jour s'installeront"
               echo "par-dessus les versions précédentes."
-            else
-              echo "## ⚠️ Signature de test"
-              echo ""
-              echo "Cet APK est signé avec une clé jetable générée par GitHub. Il"
-              echo "s'installe et fonctionne normalement, mais **chaque version aura une"
-              echo "signature différente** : il faudra désinstaller l'ancienne avant"
-              echo "d'installer la suivante."
-              echo ""
-              echo "Pour des versions signées durablement, ajoute les secrets décrits dans"
-              echo "\`exemple/guides/GITHUB-RECUPERER-APK.md\`."
             fi
           } > notes.md
           cat notes.md

@@ -44,22 +44,26 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
         /** null tant que rien n'est validé, puis le verdict. */
         val correction: Boolean? = null,
         /** Montrée seulement après une erreur. */
-        val reponseAttendue: String? = null
+        val reponseAttendue: String? = null,
+        /** Verrou anti-double appui pendant l'écriture en base. */
+        val reponseEnCours: Boolean = false
     ) {
         val carteCourante: FlashcardEngine.Carte? get() = cartes.getOrNull(index)
         val total: Int get() = cartes.size
         val progression: Float get() = if (total == 0) 0f else index.toFloat() / total
-        val enAttenteDeValidation: Boolean get() = correction == null
+        val enAttenteDeValidation: Boolean get() = correction == null && !reponseEnCours
     }
 
     private val _etat = MutableStateFlow(EtatSession())
     val etat: StateFlow<EtatSession> = _etat.asStateFlow()
 
     private var profileId: Long = -1L
+    private val cartesReintroduites = mutableSetOf<Long>()
 
     fun demarrer(profileId: Long) {
         if (this.profileId == profileId && !_etat.value.chargement) return
         this.profileId = profileId
+        cartesReintroduites.clear()
 
         viewModelScope.launch {
             val profil = memoDao.getProfile(profileId)
@@ -139,31 +143,52 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
     fun repondre(jugement: FlashcardEngine.Jugement) {
         val etat = _etat.value
         val carte = etat.carteCourante ?: return
+        if (etat.reponseEnCours || etat.terminee) return
         val reussi = jugement.reussi
+        _etat.value = etat.copy(reponseEnCours = true)
 
         viewModelScope.launch {
-            val nouvelleBoite = FlashcardEngine.boiteSuivante(carte.box, jugement)
-            memoDao.majEtatCarte(
-                id = carte.id,
-                box = nouvelleBoite,
-                prochaine = FlashcardEngine.prochaineRevision(nouvelleBoite, jugement),
-                reussite = if (reussi) 1 else 0
-            )
-            userRepo.addXp(FlashcardEngine.XP_PAR_CARTE)
-
-            val suivant = etat.index + 1
-            if (suivant >= etat.cartes.size) {
-                terminerSession(etat.reussies + if (reussi) 1 else 0, etat.ratees + if (reussi) 0 else 1)
-            } else {
-                _etat.value = etat.copy(
-                    index = suivant,
-                    versoVisible = false,
-                    correction = null,
-                    reponseAttendue = null,
-                    exercice = etat.cartes[suivant].let { exercicePour(it) },
-                    reussies = etat.reussies + if (reussi) 1 else 0,
-                    ratees = etat.ratees + if (reussi) 0 else 1
+            runCatching {
+                val nouvelleBoite = FlashcardEngine.boiteSuivante(carte.box, jugement)
+                memoDao.majEtatCarte(
+                    id = carte.id,
+                    box = nouvelleBoite,
+                    prochaine = FlashcardEngine.prochaineRevision(nouvelleBoite, jugement),
+                    reussite = if (reussi) 1 else 0
                 )
+                userRepo.addXp(FlashcardEngine.XP_PAR_CARTE)
+
+                // Une carte ratée revient une fois en fin de session. Une seule
+                // reprise empêche de fabriquer une session infinie (et de l'XP
+                // infinie) en échouant volontairement.
+                val cartes = if (
+                    jugement == FlashcardEngine.Jugement.A_REVOIR &&
+                    cartesReintroduites.add(carte.id)
+                ) {
+                    etat.cartes + carte.copy(box = nouvelleBoite)
+                } else etat.cartes
+
+                val suivant = etat.index + 1
+                if (suivant >= cartes.size) {
+                    terminerSession(
+                        etat.reussies + if (reussi) 1 else 0,
+                        etat.ratees + if (reussi) 0 else 1
+                    )
+                } else {
+                    _etat.value = etat.copy(
+                        cartes = cartes,
+                        index = suivant,
+                        versoVisible = false,
+                        correction = null,
+                        reponseAttendue = null,
+                        reponseEnCours = false,
+                        exercice = cartes[suivant].let { exercicePour(it) },
+                        reussies = etat.reussies + if (reussi) 1 else 0,
+                        ratees = etat.ratees + if (reussi) 0 else 1
+                    )
+                }
+            }.onFailure {
+                _etat.value = _etat.value.copy(reponseEnCours = false)
             }
         }
     }
@@ -193,6 +218,7 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
             terminee = true,
             reussies = reussies,
             ratees = ratees,
+            reponseEnCours = false,
             messageFin = "+${FlashcardEngine.XP_SESSION_TERMINEE} XP • " +
                          "+${FlashcardEngine.PIECES_SESSION_TERMINEE} 🪙$mentionEau"
         )

@@ -1,6 +1,7 @@
 package com.sankailife.core.notifications
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -76,6 +77,9 @@ object SankaiNotifications {
         )
     }
 
+    // La permission est vérifiée juste au-dessus par peutNotifier(). Lint ne
+    // suit pas ce garde centralisé jusqu'à l'appel de NotificationManagerCompat.
+    @SuppressLint("MissingPermission")
     private fun afficher(
         context: Context,
         canalId: String,
