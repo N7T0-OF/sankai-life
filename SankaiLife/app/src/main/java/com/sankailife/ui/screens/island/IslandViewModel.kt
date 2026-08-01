@@ -10,6 +10,7 @@ import com.sankailife.core.data.repository.UserRepository
 import com.sankailife.core.island.data.IslandRepository
 import com.sankailife.core.island.data.IslandBuildingEntity
 import com.sankailife.core.island.data.IslandSlotEntity
+import com.sankailife.core.island.data.IslandStockEntity
 import com.sankailife.core.island.domain.IslandBuildingEngine
 import com.sankailife.core.island.domain.IslandGenerator
 import com.sankailife.core.island.domain.IslandSlotEngine
@@ -64,6 +65,19 @@ class IslandViewModel(application: Application) : AndroidViewModel(application) 
     /** Bâtiments posés, pour le rendu et pour la bulle. */
     val batiments: StateFlow<List<IslandBuildingEntity>> = depot.observerBatiments()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Récoltes entreposées. */
+    val stock: StateFlow<List<IslandStockEntity>> = depot.observerStock()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Le panneau de stock est-il ouvert ? */
+    private val _stockOuvert = MutableStateFlow(false)
+    val stockOuvert: StateFlow<Boolean> = _stockOuvert.asStateFlow()
+
+    fun ouvrirStock() { _stockOuvert.value = true }
+    fun fermerStock() { _stockOuvert.value = false }
+
+    fun vendre(graineId: String, quantite: Int) = geste { depot.vendre(graineId, quantite) }
 
     /** Case ouverte dans la bulle, ou `null`. */
     private val _selection = MutableStateFlow<IslandGenerator.Case?>(null)

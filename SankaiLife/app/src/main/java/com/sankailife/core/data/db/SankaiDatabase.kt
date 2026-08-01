@@ -8,6 +8,7 @@ import com.sankailife.core.island.data.IslandBuildingEntity
 import com.sankailife.core.island.data.IslandDao
 import com.sankailife.core.island.data.IslandEntity
 import com.sankailife.core.island.data.IslandSlotEntity
+import com.sankailife.core.island.data.IslandStockEntity
 import com.sankailife.core.data.db.dao.*
 import com.sankailife.core.data.db.entities.*
 import com.sankailife.core.garden.data.GardenCrateEntity
@@ -27,8 +28,9 @@ import com.sankailife.core.garden.data.MemoChallengeEntity
                 MemoChallengeEntity::class,
                 GardenCrateEntity::class, GardenInventoryEntity::class,
                 GardenMimoEntity::class,
-                IslandEntity::class, IslandSlotEntity::class, IslandBuildingEntity::class],
-    version = 17,
+                IslandEntity::class, IslandSlotEntity::class, IslandBuildingEntity::class,
+                IslandStockEntity::class],
+    version = 18,
     exportSchema = false
 )
 abstract class SankaiDatabase : RoomDatabase() {
@@ -387,12 +389,23 @@ abstract class SankaiDatabase : RoomDatabase() {
             }
         }
 
+        /** Stock de recoltes de l'ile. Creation seule. */
+        private val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `island_stock` (" +
+                        "`graineId` TEXT NOT NULL, `quantite` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`graineId`))"
+                )
+            }
+        }
+
         val MIGRATIONS = arrayOf(
             MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
             MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
             MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
             MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
-            MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17
+            MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18
         )
 
         fun getDatabase(context: Context): SankaiDatabase {

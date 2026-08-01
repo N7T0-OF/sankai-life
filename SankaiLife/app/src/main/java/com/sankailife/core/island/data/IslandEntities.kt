@@ -131,3 +131,15 @@ data class IslandBuildingEntity(
     /** Fin du chantier, 0 si le bâtiment est terminé. */
     val chantierFinMillis: Long = 0L
 )
+
+/**
+ * Une récolte entreposée.
+ *
+ * Une ligne par espèce, pas par unité : cent tournesols sont un nombre, pas
+ * cent lignes.
+ */
+@Entity(tableName = "island_stock")
+data class IslandStockEntity(
+    @PrimaryKey val graineId: String = "",
+    val quantite: Int = 0
+)

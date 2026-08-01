@@ -123,6 +123,38 @@ interface IslandDao {
     // Utilisées ensemble, et uniquement pour régénérer une île à la demande
     // explicite du joueur. Jamais appelées par une migration.
 
+    // --- Stock -------------------------------------------------------------
+
+    @Query("SELECT * FROM island_stock WHERE quantite > 0 ORDER BY graineId ASC")
+    fun observerStock(): Flow<List<IslandStockEntity>>
+
+    @Query("SELECT IFNULL(SUM(quantite), 0) FROM island_stock")
+    suspend fun totalStock(): Int
+
+    @Query("SELECT * FROM island_stock WHERE graineId = :graineId LIMIT 1")
+    suspend fun stock(graineId: String): IslandStockEntity?
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun creerStockSiAbsent(stock: IslandStockEntity): Long
+
+    @Query("UPDATE island_stock SET quantite = quantite + :ajout WHERE graineId = :graineId")
+    suspend fun ajouterAuStock(graineId: String, ajout: Int)
+
+    /**
+     * Retire du stock, jamais plus qu'il n'y en a.
+     *
+     * La condition vit dans le `WHERE` : deux ventes concurrentes ne peuvent
+     * pas vider deux fois le même lot et créditer deux fois.
+     */
+    @Query(
+        "UPDATE island_stock SET quantite = quantite - :retrait " +
+            "WHERE graineId = :graineId AND quantite >= :retrait AND :retrait > 0"
+    )
+    suspend fun retirerDuStock(graineId: String, retrait: Int): Int
+
+    @Query("DELETE FROM island_stock")
+    suspend fun effacerStock()
+
     @Query("DELETE FROM island_slot")
     suspend fun effacerParcelles()
 

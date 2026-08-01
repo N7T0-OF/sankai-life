@@ -9,6 +9,7 @@ import com.sankailife.core.garden.domain.SoilType
 import com.sankailife.core.island.domain.IslandCodec
 import com.sankailife.core.island.domain.IslandBuildingEngine
 import com.sankailife.core.island.domain.IslandCultureEngine
+import com.sankailife.core.island.domain.IslandStockEngine
 import com.sankailife.core.island.domain.IslandGenerator
 import com.sankailife.core.island.domain.IslandSlotEngine
 import com.sankailife.core.island.domain.IslandTileType
@@ -316,9 +317,55 @@ class IslandRepository(
         if (dao.recolterSiPrete(parcelle.cle) == 0) {
             return@agir Geste.Refuse("Cette culture n'est pas encore prête.")
         }
-        userRepo.addCoins(graine.rendementPieces)
-        Geste.Fait("+${graine.rendementPieces} 🪙 — ${graine.nom} récoltée.")
+
+        val batiments = dao.batiments().map { it.type }.toSet()
+        val depot = IslandStockEngine.ranger(
+            graine = graine,
+            quantite = 1,
+            stockActuel = dao.totalStock(),
+            capacite = IslandStockEngine.capacite(
+                aDepot = IslandBuildingEngine.Type.DEPOT.id in batiments
+            ),
+            aBoutique = IslandBuildingEngine.Type.BOUTIQUE.id in batiments
+        )
+
+        if (depot.entrepose > 0) {
+            dao.creerStockSiAbsent(IslandStockEntity(graine.id, 0))
+            dao.ajouterAuStock(graine.id, depot.entrepose)
+        }
+        // Le surplus est vendu sur place plutot que perdu : une recolte
+        // detruite punirait quelqu'un qui a seme, arrose et attendu.
+        if (depot.pieces > 0) userRepo.addCoins(depot.pieces)
+
+        Geste.Fait(IslandStockEngine.resumeRecolte(graine, depot))
     }
+
+    /**
+     * Vend une partie du stock.
+     *
+     * Le retrait vient d'abord et porte sa propre condition de quantite : c'est
+     * lui qui empeche deux ventes concurrentes de vider deux fois le meme lot
+     * et de crediter deux fois.
+     */
+    suspend fun vendre(graineId: String, quantite: Int): Geste = withContext(Dispatchers.IO) {
+        db.withTransaction {
+            val graine = ALL_SEEDS.firstOrNull { it.id == graineId }
+                ?: return@withTransaction Geste.Refuse("Recolte inconnue.")
+            if (quantite <= 0) return@withTransaction Geste.Refuse("Rien a vendre.")
+
+            if (dao.retirerDuStock(graineId, quantite) == 0) {
+                return@withTransaction Geste.Refuse("Tu n'en as pas autant en stock.")
+            }
+
+            val aBoutique = dao.batiments()
+                .any { it.type == IslandBuildingEngine.Type.BOUTIQUE.id }
+            val gain = IslandStockEngine.valeurTotale(graine, quantite, aBoutique)
+            userRepo.addCoins(gain)
+            Geste.Fait("+$gain 🪙 — $quantite ${graine.nom} vendue(s).")
+        }
+    }
+
+    fun observerStock() = dao.observerStock()
 
     /**
      * Cadre commun aux gestes agricoles.

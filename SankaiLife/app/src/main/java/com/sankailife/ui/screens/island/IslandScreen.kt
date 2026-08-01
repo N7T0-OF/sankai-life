@@ -78,6 +78,8 @@ fun IslandScreen(
     val recentrage by viewModel.recentrage.collectAsState()
     val selection by viewModel.selection.collectAsState()
     val batiments by viewModel.batiments.collectAsState()
+    val stock by viewModel.stock.collectAsState()
+    val stockOuvert by viewModel.stockOuvert.collectAsState()
     val couleurs = MaterialTheme.sankaiColors
     val snackbar = remember { SnackbarHostState() }
 
@@ -159,8 +161,13 @@ fun IslandScreen(
                     color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold
                 )
             }
-            IconButton(onClick = { viewModel.recentrer() }) {
-                Icon(Icons.Filled.MyLocation, "Recentrer", tint = Color.White)
+            Row {
+                IconButton(onClick = { viewModel.ouvrirStock() }) {
+                    Text("📦", fontSize = 20.sp)
+                }
+                IconButton(onClick = { viewModel.recentrer() }) {
+                    Icon(Icons.Filled.MyLocation, "Recentrer", tint = Color.White)
+                }
             }
         }
 
@@ -186,6 +193,15 @@ fun IslandScreen(
                     onBatir = { type -> viewModel.batir(type, case.x, case.y) }
                 )
             }
+        }
+
+        if (stockOuvert) {
+            PanneauStock(
+                stock = stock,
+                batiments = batiments,
+                onFermer = viewModel::fermerStock,
+                onVendre = viewModel::vendre
+            )
         }
 
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(16.dp))
