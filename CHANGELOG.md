@@ -1,5 +1,40 @@
 # Changelog Sankai Life
 
+## 1.45.0 - 1er aout 2026
+
+**Nouveau : l'Ile generative, en construction.**
+
+Reglages -> En construction -> Voir mon ile.
+
+C'est un chantier, pas encore un mode de jeu, et c'est pour cela qu'elle est
+rangee la. Le Jardin reste le mode de jeu et n'a pas change.
+
+- chaque profil recoit une ile unique, tiree d'une graine : cote irreguliere,
+  plage, rivieres, bois, rochers, ponton et ferme de depart ;
+- au premier lancement, trois iles sont proposees au choix, avec apercu et
+  chiffres. Le choix est definitif, mais on peut demander trois autres
+  propositions avant de trancher ;
+- on achete ses parcelles ou l'on veut, dans la limite de son niveau ;
+- cycle complet : degager, preparer, semer, arroser, recolter ;
+- les recoltes vont au stock et se vendent. Une Boutique ameliore le prix de
+  35 %, un Depot triple la capacite. Vendre reste possible sans eux ;
+- **arroser coute de l'eau, et l'eau se gagne en revisant.** C'est la meme
+  reserve que le Jardin : c'est l'eau du joueur, pas celle d'un lieu ;
+- les Mimos deja embauches travaillent aussi sur l'ile pendant l'absence, et
+  consomment l'eau comme le joueur ;
+- mini-carte pour se reperer et se deplacer.
+
+Ce qui manque encore, et se voit : l'eau, le sable, le bois et le rocher sont
+des aplats de couleur faute d'illustrations. Les chemins, les ponts et le
+catalogue de la Boutique n'existent pas.
+
+**Corrections du Jardin**
+
+- le zoom ne tremble plus et la vue ne saute plus en fin de geste ;
+- les ombres de nuages sont visibles, et l'orage assombrit enfin plus qu'un
+  ciel simplement nuageux ;
+- le nouvel Arbre Sankai remplace l'ancien dessin genere.
+
 ## 1.44.0 - 1er aout 2026
 
 - **Refonte UI/UX** du Hub, des Arenes, du Jardin, de la Boutique et des Memos
