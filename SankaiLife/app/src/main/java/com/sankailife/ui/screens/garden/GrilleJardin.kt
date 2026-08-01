@@ -49,7 +49,11 @@ import androidx.compose.ui.res.painterResource
 import com.sankailife.ui.theme.AccentCyan
 import com.sankailife.ui.theme.AccentGold
 import com.sankailife.ui.theme.sankaiColors
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.foundation.Canvas
+import kotlin.math.cos
 import kotlin.math.roundToInt
+import kotlin.math.sin
 
 /**
  * Le terrain, en plan cartésien.
@@ -293,11 +297,19 @@ fun GrilleJardin(
             .size(with(densite) { tailleCase.toDp() })
 
         // Le brouillard d'abord : il doit passer sous les parcelles.
-        brouillard.forEach { cle ->
-            CaseBrouillard(
-                modifier = placement(ExpansionEngine.xDe(cle), ExpansionEngine.yDe(cle))
-            )
-        }
+        //
+        // Il est dessiné d'un seul tenant, en nappes qui débordent largement
+        // des cases. Une image par case redonnait au brouillard la forme d'un
+        // damier, et le joueur devinait le découpage du terrain qu'il est
+        // justement censé ignorer.
+        NappeBrouillard(
+            cases = brouillard,
+            minX = minX,
+            minY = minY,
+            pas = pas,
+            camera = camera,
+            modifier = Modifier.matchParentSize()
+        )
 
         parcelles.forEach { parcelle ->
             CaseParcelle(
@@ -416,20 +428,58 @@ private fun MimoDansLeJardin(
 }
 
 /**
- * Une case inexplorée.
+ * Le brouillard de l'inexploré.
  *
- * Elle n'existe pas en base et ne réagit à rien : c'est une silhouette qui
- * indique qu'il y a quelque chose plus loin, sans dire quoi.
+ * Dessiné en nappes de cercles flous qui débordent des cases et se recouvrent :
+ * la limite du terrain devient irrégulière et on ne devine plus le découpage.
+ * L'ancienne version posait une image carrée par case, ce qui dessinait
+ * exactement la grille qu'elle devait masquer.
+ *
+ * Aucun modificateur de saisie : les gestes passent au travers.
  */
 @Composable
-private fun CaseBrouillard(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(13.dp))
-            .background(Color(0xFF0A1610).copy(alpha = 0.85f)),
-        contentAlignment = Alignment.Center
-    ) {
-        IconeArt(ArtJardin.brouillard, taille = 34.dp, modifier = Modifier.alpha(0.4f))
+private fun NappeBrouillard(
+    cases: List<Int>,
+    minX: Int,
+    minY: Int,
+    pas: Float,
+    camera: Offset,
+    modifier: Modifier = Modifier
+) {
+    if (cases.isEmpty()) return
+
+    // Une lente respiration, pour que la nappe ne soit pas figée. Les décalages
+    // sont dérivés de la position de la case : deux nappes voisines ne
+    // bougent donc pas ensemble.
+    val transition = rememberInfiniteTransition(label = "brouillard")
+    val souffle by transition.animateFloat(
+        initialValue = 0f, targetValue = (2 * Math.PI).toFloat(),
+        animationSpec = infiniteRepeatable(tween(9000, easing = LinearEasing)),
+        label = "souffleBrouillard"
+    )
+
+    Canvas(modifier) {
+        cases.forEach { cle ->
+            val cx = camera.x + (ExpansionEngine.xDe(cle) - minX) * pas + pas / 2f
+            val cy = camera.y + (ExpansionEngine.yDe(cle) - minY) * pas + pas / 2f
+            val graine = (cle * 2654435761u.toInt())
+
+            // Quatre bulles par case, décalées et de tailles différentes.
+            // C'est leur recouvrement d'une case à l'autre qui efface la grille.
+            for (i in 0 until 4) {
+                val angle = souffle + (graine + i * 977) % 628 / 100f
+                val rayon = pas * (0.42f + ((graine / (i + 3)) % 24) / 100f)
+                val amplitude = pas * 0.10f
+                drawCircle(
+                    color = Color(0xFF0A1610).copy(alpha = 0.30f),
+                    radius = rayon,
+                    center = Offset(
+                        cx + cos(angle) * amplitude + ((graine / (i + 5)) % 30 - 15) * pas / 100f,
+                        cy + sin(angle) * amplitude + ((graine / (i + 7)) % 30 - 15) * pas / 100f
+                    )
+                )
+            }
+        }
     }
 }
 

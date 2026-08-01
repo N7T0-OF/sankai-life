@@ -778,9 +778,10 @@ private fun Ressource(
             .padding(horizontal = 7.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconeArt(art, taille = 16.dp)
-        Spacer(Modifier.width(3.dp))
-        Text(valeur, color = couleur, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        // Même règle qu'ailleurs : l'icône prime sur le chiffre.
+        IconeArt(art, taille = 22.dp)
+        Spacer(Modifier.width(4.dp))
+        Text(valeur, color = couleur, fontSize = 12.sp, fontWeight = FontWeight.Bold)
     }
 }
 

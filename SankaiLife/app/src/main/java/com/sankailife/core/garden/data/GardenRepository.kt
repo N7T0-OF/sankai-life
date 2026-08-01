@@ -422,11 +422,24 @@ class GardenRepository(
 
     // --- Actions du joueur ------------------------------------------------
 
-    /** Retire les pierres d'une parcelle encombrée. */
+    /**
+     * Prépare une parcelle : retire les pierres, ou laboure après une récolte.
+     *
+     * Le labour est gratuit, le défrichage se paie. C'est la même action côté
+     * joueur mais pas le même effort : dégager des rochers d'un terrain vierge
+     * n'a rien à voir avec retourner une terre qu'on vient de récolter, et
+     * faire payer chaque cycle de culture transformerait l'agriculture en
+     * impôt.
+     */
     suspend fun nettoyer(plotId: Int): Boolean {
         val parcelle = dao.parcelle(plotId) ?: return false
         if (parcelle.etat != PlotState.UNCLEARED.name) return false
-        if (!userRepo.spendCoins(COUT_NETTOYAGE)) return false
+
+        // Une parcelle déjà cultivée une fois n'a plus de rochers : ce qu'on
+        // laboure, c'est sa propre récolte précédente.
+        val dejaCultivee = dao.aDejaEteCultivee(plotId) > 0
+        if (!dejaCultivee && !userRepo.spendCoins(COUT_NETTOYAGE)) return false
+
         dao.majEtatParcelle(plotId, PlotState.EMPTY.name)
         return true
     }
@@ -575,7 +588,10 @@ class GardenRepository(
         )
 
         dao.marquerRecoltee(culture.id)
-        dao.majEtatParcelle(plotId, PlotState.EMPTY.name)
+        // La terre sort usée d'une récolte : elle doit être labourée avant
+        // d'accueillir une nouvelle graine. Sans cette étape, la houe n'aurait
+        // aucun usage et le cycle se réduirait à semer-récolter en boucle.
+        dao.majEtatParcelle(plotId, PlotState.UNCLEARED.name)
         dao.poserCaisse(
             GardenCrateEntity(
                 seedId = graine.id,

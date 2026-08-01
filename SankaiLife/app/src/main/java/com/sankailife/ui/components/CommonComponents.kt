@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.sankailife.core.haptics.LocalHaptics
+import com.sankailife.ui.art.ArtJardin
+import com.sankailife.ui.art.IconeArt
 import com.sankailife.ui.theme.*
 
 @Composable
@@ -53,16 +55,21 @@ fun ResourceBar(level: Int, xp: Int, xpNext: Int, coins: Int, gems: Int) {
                 modifier = Modifier.padding(top = 2.dp))
         }
         Spacer(Modifier.width(12.dp))
-        // Coins
+
+        // Les icônes sont plus grandes que leur texte, et non l'inverse.
+        //
+        // La pièce était un rond de couleur de 10 dp à côté d'un chiffre de
+        // 13 sp : on ne voyait pas le dessin. C'est l'illustration qui doit
+        // porter la reconnaissance, le chiffre ne fait que préciser.
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(10.dp).clip(CircleShape).background(CoinColor))
+            IconeArt(ArtJardin.piece, taille = 24.dp)
             Spacer(Modifier.width(4.dp))
-            Text(formatNumber(coins), color = c.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            Text(formatNumber(coins), color = c.textPrimary, fontSize = 13.sp,
+                fontWeight = FontWeight.Bold)
         }
         Spacer(Modifier.width(10.dp))
-        // Gems
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Filled.Diamond, null, tint = GemColor, modifier = Modifier.size(12.dp))
+            Icon(Icons.Filled.Diamond, null, tint = GemColor, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(4.dp))
             Text("$gems", color = c.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
         }

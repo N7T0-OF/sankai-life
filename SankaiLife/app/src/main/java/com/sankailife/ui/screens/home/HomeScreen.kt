@@ -11,6 +11,7 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -65,51 +66,68 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
             // Resource bar
             ResourceBar(user.level, user.xp, user.xpNext, user.coins, user.gems)
 
-            // L'accueil ne défile pas en usage normal : tout tient dans la
-            // hauteur disponible. Le défilement reste possible en secours,
-            // sans quoi une très grande taille de police rendrait le bas de
-            // l'écran inatteignable — c'est un problème d'accessibilité, pas
-            // un cas marginal.
+            // L'accueil ne défile plus.
+            //
+            // Le diorama du jardin en a été retiré : il faisait dépasser le
+            // contenu, et l'accueil n'a pas à raconter le jardin — le bouton
+            // qui y mène suffit. Restent l'arène, l'entrée du jeu et les
+            // coffres.
+            //
+            // Le défilement est retiré, pas seulement inutilisé : une colonne
+            // défilante impose une hauteur infinie à ses enfants, dans laquelle
+            // `weight` n'a aucun sens et fait planter la mise en page. C'est
+            // l'un ou l'autre, et ici c'est l'arène qui doit absorber la place.
+            //
+            // Conséquence à surveiller : à très grande taille de police, le
+            // contenu ne peut plus déborder — il comprime l'arène. Elle est
+            // faite pour ça, mais c'est un compromis, pas un choix gratuit.
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .verticalScroll(rememberScrollState())
                     .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
                 // Header
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically) {
-                    Column {
+                    Column(Modifier.weight(1f)) {
                         Text("Bonjour, ${user.pseudo} 👋", color = c.textPrimary,
                             fontSize = 24.sp, fontWeight = FontWeight.Bold)
                         Text("Reste focus et progresse !", color = c.textSecondary, fontSize = 13.sp)
                     }
                     StreakBadge(user.streakDays)
+                    Spacer(Modifier.width(8.dp))
+                    // Accès direct aux paramètres. Ils vivaient derrière le
+                    // profil, ce qui obligeait à passer par un écran qui n'a
+                    // rien à voir pour couper une notification.
+                    Box(
+                        Modifier.size(38.dp)
+                            .clip(CircleShape)
+                            .background(c.surface2)
+                            .border(1.dp, c.border, CircleShape)
+                            .clickable { onNavigate(Screen.Settings.route) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Filled.Settings,
+                            contentDescription = "Paramètres",
+                            tint = c.textSecondary,
+                            modifier = Modifier.size(19.dp)
+                        )
+                    }
                 }
 
                 Spacer(Modifier.height(14.dp))
 
-                // Zone B — l'arène occupe l'espace disponible restant, ce qui
-                // fait d'elle l'élément visuel principal sans hauteur figée.
-                CarteResumeArene(
-                    niveau = user.level,
-                    nombreAReclamer = arenesAReclamer,
-                    onVoirParcours = { onNavigate(Screen.Arenas.route) }
-                )
-
-                Spacer(Modifier.height(12.dp))
-
-                // Zone C — aperçu du jardin.
-                //
-                // Il a remplacé le raccourci « Mémo actif ». L'accueil n'est
-                // pas une liste de raccourcis : le Mémo reste accessible depuis
-                // Mode Vie, les notifications et la navigation du bas, où on le
-                // cherche vraiment. Le diorama n'est pas interactif — un seul
-                // appui, qui ouvre le jardin.
-                DioramaJardin(
-                    niveau = user.level,
-                    onEntrer = { onNavigate(Screen.Garden.route) }
-                )
+                // L'arène prend tout l'espace restant : c'est elle l'élément
+                // visuel principal, et lui donner le poids libéré par le
+                // diorama évite un grand vide sous le bouton.
+                Box(Modifier.weight(1f)) {
+                    CarteResumeArene(
+                        niveau = user.level,
+                        nombreAReclamer = arenesAReclamer,
+                        onVoirParcours = { onNavigate(Screen.Arenas.route) }
+                    )
+                }
 
                 Spacer(Modifier.height(12.dp))
 
@@ -319,6 +337,22 @@ fun BarreCoffres(
     }
 }
 
+/**
+ * Nom lisible d'une rareté.
+ *
+ * Le type stocké est en anglais et en majuscules parce qu'il vient de la base ;
+ * l'afficher tel quel exposerait une convention interne au joueur.
+ */
+private fun libelleRarete(type: String): String = when (type.uppercase()) {
+    "DAILY" -> "Quotidien"
+    "RARE" -> "Rare"
+    "EPIC" -> "Épique"
+    "LEGENDARY" -> "Légendaire"
+    "WEEKLY" -> "Hebdo"
+    "ARENA" -> "Arène"
+    else -> "Commun"
+}
+
 @Composable
 fun ChestSlotUI(chest: ChestEntity?, onOpen: () -> Unit, timer: String, modifier: Modifier = Modifier) {
     val c = MaterialTheme.sankaiColors
@@ -341,7 +375,7 @@ fun ChestSlotUI(chest: ChestEntity?, onOpen: () -> Unit, timer: String, modifier
     )
 
     Box(
-        modifier = modifier.height(100.dp).clip(RoundedCornerShape(12.dp))
+        modifier = modifier.height(112.dp).clip(RoundedCornerShape(12.dp))
             .background(
                 if (chest != null) chestColor.copy(alpha = if (isReady) 0.22f else 0.15f)
                 else c.surface2
@@ -357,15 +391,28 @@ fun ChestSlotUI(chest: ChestEntity?, onOpen: () -> Unit, timer: String, modifier
         if (chest == null) {
             Text("—", color = c.textDisabled, fontSize = 20.sp)
         } else {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(6.dp)) {
-                IconeArt(ArtJardin.coffre(chest.type), taille = 34.dp)
+            // Minuterie au-dessus, coffre au centre, rareté en dessous.
+            //
+            // Rien n'est superposé au dessin, et c'est lui le plus grand des
+            // trois : un coffre doit se reconnaître d'un coup d'œil, le texte
+            // n'est là que pour préciser.
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    if (isReady) "PRÊT" else timer,
+                    color = if (isReady) chestColor else c.textSecondary,
+                    fontSize = 10.sp,
+                    fontWeight = if (isReady) FontWeight.Bold else FontWeight.Normal
+                )
                 Spacer(Modifier.height(2.dp))
-                if (isReady) {
-                    Text("OUVRIR", color = chestColor, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                } else {
-                    Text(timer, color = c.textSecondary, fontSize = 10.sp)
-                }
-                Text(chest.type, color = chestColor, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                IconeArt(ArtJardin.coffre(chest.type), taille = 52.dp)
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    libelleRarete(chest.type),
+                    color = chestColor, fontSize = 9.sp, fontWeight = FontWeight.Bold
+                )
             }
         }
     }

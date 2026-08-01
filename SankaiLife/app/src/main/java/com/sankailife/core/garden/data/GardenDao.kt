@@ -44,6 +44,15 @@ interface GardenDao {
     @Query("UPDATE garden_plot SET humidite = :humidite, dernierCalculHumidite = :quand WHERE id = :id")
     suspend fun majHumidite(id: Int, humidite: Float, quand: Long)
 
+    /**
+     * Cette parcelle a-t-elle déjà porté une culture ?
+     *
+     * Sert à distinguer le défrichage — un terrain vierge plein de rochers,
+     * qui se paie — du labour d'après récolte, qui est gratuit.
+     */
+    @Query("SELECT COUNT(*) FROM garden_crop WHERE plotId = :plotId")
+    suspend fun aDejaEteCultivee(plotId: Int): Int
+
     // --- Cultures ---------------------------------------------------------
 
     @Query("SELECT * FROM garden_crop WHERE recoltee = 0")
