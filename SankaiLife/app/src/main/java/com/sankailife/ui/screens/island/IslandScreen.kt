@@ -26,6 +26,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -81,8 +82,28 @@ fun IslandScreen(
     val stock by viewModel.stock.collectAsState()
     val stockOuvert by viewModel.stockOuvert.collectAsState()
     val eau by viewModel.eau.collectAsState()
+    val destination by viewModel.destination.collectAsState()
+    val miniCarteOuverte by viewModel.miniCarte.collectAsState()
+    var vueVisible by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
     val couleurs = MaterialTheme.sankaiColors
     val snackbar = remember { SnackbarHostState() }
+
+    // Rattrapage au retour de l'arrière-plan.
+    //
+    // Le faire seulement à la création de l'écran ne suffit pas : la
+    // ViewModel survit à une mise en arrière-plan, et le joueur qui revient
+    // deux heures plus tard verrait ses cultures figées là où il les a
+    // laissées. C'est précisément le moment où l'avancée doit se voir.
+    val cycleDeVie = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(cycleDeVie) {
+        val observateur = androidx.lifecycle.LifecycleEventObserver { _, evenement ->
+            if (evenement == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                viewModel.rafraichir()
+            }
+        }
+        cycleDeVie.addObserver(observateur)
+        onDispose { cycleDeVie.removeObserver(observateur) }
+    }
 
     LaunchedEffect(message) {
         if (message.isNotBlank()) {
@@ -134,6 +155,8 @@ fun IslandScreen(
                 batiments = batiments,
                 zoom = zoom,
                 demandeRecentrage = recentrage,
+                destination = destination,
+                onVueChangee = { vueVisible = it },
                 niveau = utilisateur.level,
                 pieces = utilisateur.coins,
                 onZoom = viewModel::definirZoom,
@@ -163,6 +186,9 @@ fun IslandScreen(
                 )
             }
             Row {
+                IconButton(onClick = { viewModel.basculerMiniCarte() }) {
+                    Text("🗺️", fontSize = 20.sp)
+                }
                 IconButton(onClick = { viewModel.ouvrirStock() }) {
                     Text("📦", fontSize = 20.sp)
                 }
@@ -196,6 +222,18 @@ fun IslandScreen(
             }
         }
 
+        val ileAffichee = etat.ile
+        if (miniCarteOuverte && ileAffichee != null) {
+            MiniCarte(
+                ile = ileAffichee,
+                parcelles = parcelles.keys,
+                batiments = batiments,
+                vue = vueVisible,
+                onAller = viewModel::allerVers,
+                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
+            )
+        }
+
         if (stockOuvert) {
             PanneauStock(
                 stock = stock,
@@ -216,6 +254,8 @@ private fun CarteIle(
     batiments: List<com.sankailife.core.island.data.IslandBuildingEntity>,
     zoom: Float,
     demandeRecentrage: Long,
+    destination: IslandViewModel.Destination?,
+    onVueChangee: (androidx.compose.ui.geometry.Rect) -> Unit,
     niveau: Int,
     pieces: Int,
     onZoom: (Float) -> Unit,
@@ -247,6 +287,32 @@ private fun CarteIle(
     fun borner(c: Offset): Offset =
         CameraJardinEngine.borner(CameraJardinEngine.Point(c.x, c.y), cadrePour(zoomCourant.value))
             .let { Offset(it.x, it.y) }
+
+    // Déplacement demandé depuis la mini-carte : la case visée est amenée au
+    // centre de l'écran, puis bornée comme n'importe quel déplacement.
+    LaunchedEffect(destination?.jeton) {
+        val d = destination ?: return@LaunchedEffect
+        if (!initialisee || tailleVue.x <= 0) return@LaunchedEffect
+        camera = borner(
+            Offset(
+                tailleVue.x / 2f - (d.x + 0.5f) * pas,
+                tailleVue.y / 2f - (d.y + 0.5f) * pas
+            )
+        )
+    }
+
+    // Ce que la caméra montre, en cases. Sert au cadre de la mini-carte.
+    LaunchedEffect(camera, pas, tailleVue) {
+        if (pas <= 0f || tailleVue.x <= 0) return@LaunchedEffect
+        onVueChangee(
+            androidx.compose.ui.geometry.Rect(
+                left = (-camera.x) / pas,
+                top = (-camera.y) / pas,
+                right = (-camera.x + tailleVue.x) / pas,
+                bottom = (-camera.y + tailleVue.y) / pas
+            )
+        )
+    }
 
     LaunchedEffect(demandeRecentrage) {
         if (initialisee && tailleVue.x > 0) {

@@ -152,6 +152,28 @@ class IslandViewModel(application: Application) : AndroidViewModel(application) 
     private val _recentrage = MutableStateFlow(0L)
     val recentrage: StateFlow<Long> = _recentrage.asStateFlow()
 
+    /**
+     * Case vers laquelle amener la caméra, demandée depuis la mini-carte.
+     *
+     * Portée par un jeton daté plutôt que par la seule case : redemander la
+     * même destination doit fonctionner, or deux valeurs identiques ne
+     * déclenchent rien dans un flux.
+     */
+    data class Destination(val x: Int, val y: Int, val jeton: Long)
+
+    private val _destination = MutableStateFlow<Destination?>(null)
+    val destination: StateFlow<Destination?> = _destination.asStateFlow()
+
+    fun allerVers(x: Int, y: Int) {
+        _destination.value = Destination(x, y, System.currentTimeMillis())
+    }
+
+    /** La mini-carte est-elle dépliée ? */
+    private val _miniCarte = MutableStateFlow(false)
+    val miniCarte: StateFlow<Boolean> = _miniCarte.asStateFlow()
+
+    fun basculerMiniCarte() { _miniCarte.value = !_miniCarte.value }
+
     init {
         charger()
         rafraichir()
