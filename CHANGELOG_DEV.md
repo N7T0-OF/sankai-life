@@ -1,6 +1,6 @@
 # Changelog développeur
 
-## Non publié — 1er août 2026
+## 1.38.0 — 1er août 2026
 
 ### Intégrité
 
@@ -52,5 +52,5 @@
 - 239 tests unitaires dans 24 suites, réussis en debug et en release
   (478 exécutions, aucun échec, erreur ou test ignoré) ;
 - `lintDebug` et `lintRelease` réussis avec 0 erreur ;
-- `assembleDebug` et `assembleRelease` réussis ;
+- `assembleDebug`, `assembleRelease` et `bundleRelease` réussis ;
 - signatures APK v2 vérifiées, dont la release avec le certificat Sankai Life.

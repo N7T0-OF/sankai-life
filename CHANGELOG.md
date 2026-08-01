@@ -1,6 +1,6 @@
 # Changelog Sankai Life
 
-## Prochaine version
+## 1.38.0 — 1er août 2026
 
 - Nouvel accueil plus lisible : Arène au centre, coffres toujours accessibles
   et mise en page adaptée aux petits écrans.

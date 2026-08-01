@@ -44,7 +44,7 @@ Chaîne Gradle finale exécutée le 1er août 2026 :
   suites par variante ; 0 échec, 0 erreur, 0 ignoré ;
 - `lintDebug` et `lintRelease` : réussis ; chacun rapporte 0 erreur,
   77 avertissements et 3 informations ;
-- `assembleDebug` et `assembleRelease` : réussis.
+- `assembleDebug`, `assembleRelease` et `bundleRelease` : réussis.
 
 Rapports principaux :
 
@@ -57,14 +57,15 @@ Artefacts :
 
 | Variante | Fichier | Taille | SHA-256 |
 |---|---|---:|---|
-| debug | `SankaiLife/app/build/outputs/apk/debug/app-debug.apk` | 29 414 108 octets (28,051 Mio) | `1A52B42B0640D7C7844D09725B833E28EEE9767F10684CB17B6FB3396CA2941F` |
-| release | `SankaiLife/app/build/outputs/apk/release/app-release.apk` | 4 761 814 octets (4,541 Mio) | `48ED1DF70B7E5E6A254D9BD30FD635C9562DD449D662688DCB2B012B6E7D6649` |
+| debug APK | `SankaiLife/app/build/outputs/apk/debug/app-debug.apk` | 24 320 228 octets (23,194 Mio) | `59019C8ABDC3E933FFBEEDC47A5B02EC15C1A88543A40C7BA65A890694C97E0E` |
+| release APK | `SankaiLife/app/build/outputs/apk/release/app-release.apk` | 4 761 814 octets (4,541 Mio) | `517307A8229FF3D501675E895B000367F565A7639E2F2EDC2BFAD2005B1430AC` |
+| release AAB | `SankaiLife/app/build/outputs/bundle/release/app-release.aab` | 8 874 174 octets (8,463 Mio) | `72D90A70E23DFB49498042138CF20003022C5A48D7E0BD17106AA124F1083495` |
 
-Le debug porte `com.sankailife.debug`, version `1.37.0-debug` / code 39. La
-release porte `com.sankailife`, version `1.37.0` / code 39. `apksigner verify`
-confirme une signature APK v2 pour les deux ; la release a un signataire
-`CN=Sankai Life, OU=Sankai, O=Sankai, L=Paris, ST=IDF, C=FR` avec une clé RSA
-4096 bits. L'empreinte SHA-256 de son certificat est
+Le debug porte `com.sankailife.debug`, version `1.38.0-debug` / code 40. La
+release porte `com.sankailife`, version `1.38.0` / code 40. `apksigner verify`
+confirme une signature APK v2 pour les deux et `jarsigner` valide l'AAB ; la
+release a un signataire `CN=Sankai Life, OU=Sankai, O=Sankai, L=Paris, ST=IDF,
+C=FR` avec une clé RSA 4096 bits. L'empreinte SHA-256 de son certificat est
 `C28787646866678B2672582D62AB659FB8615FF364233CDE2F1952CC53C0D602`.
 Deux profils baseline `.dm` sont aussi présents pour API 28–30 et API 31+.
 

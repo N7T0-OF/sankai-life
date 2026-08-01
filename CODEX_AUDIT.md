@@ -146,7 +146,7 @@ signature APK v2 a été vérifiée avec `apksigner`.
 ### Vérification automatisée réussie
 
 La chaîne locale du 1er août 2026 a terminé sans échec : `test`, `lintDebug`,
-`lintRelease`, `assembleDebug` et `assembleRelease`.
+`lintRelease`, `assembleDebug`, `assembleRelease` et `bundleRelease`.
 
 | Vérification | Résultat exact |
 |---|---|
@@ -154,8 +154,9 @@ La chaîne locale du 1er août 2026 a terminé sans échec : `test`, `lintDebug`
 | Tests unitaires release | 239 tests dans 24 suites ; 0 échec, 0 erreur, 0 ignoré |
 | Lint debug | 0 erreur, 77 avertissements, 3 informations |
 | Lint release | 0 erreur, 77 avertissements, 3 informations |
-| Assemblage debug | réussi ; APK `1.37.0-debug` (`versionCode` 39) |
-| Assemblage release | réussi ; APK `1.37.0` (`versionCode` 39), signature APK v2 vérifiée |
+| Assemblage debug | réussi ; APK `1.38.0-debug` (`versionCode` 40) |
+| Assemblage release | réussi ; APK `1.38.0` (`versionCode` 40), signature APK v2 vérifiée |
+| Bundle release | réussi ; AAB `1.38.0` (`versionCode` 40), signature JAR vérifiée |
 
 Les 77 avertissements lint sont identiques sur les deux variantes : 44
 ressources inutilisées, 15 dépendances plus récentes disponibles, 5 formes
