@@ -222,6 +222,7 @@ private fun CarteIle(
     modifier: Modifier = Modifier
 ) {
     val densite = LocalDensity.current
+    val textures = rememberTexturesIle()
     var camera by remember { mutableStateOf(Offset.Zero) }
     var initialisee by remember { mutableStateOf(false) }
     var tailleVue by remember { mutableStateOf(IntOffset.Zero) }
@@ -318,7 +319,8 @@ private fun CarteIle(
         Canvas(Modifier.fillMaxSize()) {
             dessinerIle(
                 ile = ile, camera = camera, pas = pas,
-                parcelles = parcelles.keys, batiments = batiments
+                parcelles = parcelles.keys, batiments = batiments,
+                parcellesDetail = parcelles, textures = textures
             )
         }
     }

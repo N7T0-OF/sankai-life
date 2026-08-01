@@ -1,11 +1,19 @@
 package com.sankailife.ui.screens.island
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.imageResource
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
+import com.sankailife.R
 import com.sankailife.core.island.domain.IslandGenerator
+import com.sankailife.core.island.domain.IslandTileType
 import kotlin.math.floor
 
 /**
@@ -17,12 +25,56 @@ import kotlin.math.floor
  * celle qu'on obtient en la choisissant — exactement ce qu'un assistant de
  * choix ne doit jamais faire.
  */
+/**
+ * Textures du terrain, chargées une fois.
+ *
+ * Seules celles qui existent réellement sont ici. L'eau, le sable, le bois et
+ * le rocher restent des aplats : inventer une texture pour eux en recolorant
+ * l'herbe donnerait un résultat pire que la couleur franche, et le dire vaut
+ * mieux que de le maquiller.
+ */
+@Immutable
+data class TexturesIle(
+    val herbe: ImageBitmap,
+    val solVide: ImageBitmap,
+    val solPrepare: ImageBitmap,
+    val solArrose: ImageBitmap
+)
+
+@Composable
+fun rememberTexturesIle(): TexturesIle = TexturesIle(
+    herbe = ImageBitmap.imageResource(R.drawable.plot_grass),
+    solVide = ImageBitmap.imageResource(R.drawable.island_soil_empty),
+    solPrepare = ImageBitmap.imageResource(R.drawable.island_soil_tilled),
+    solArrose = ImageBitmap.imageResource(R.drawable.island_soil_watered)
+)
+
+/** Sol à poser sur une parcelle, selon son état. */
+private fun solPour(
+    textures: TexturesIle,
+    parcelle: com.sankailife.core.island.data.IslandSlotEntity
+): ImageBitmap = when {
+    parcelle.graineId.isNotBlank() -> textures.solArrose
+    parcelle.etat == "PREPARED" -> textures.solPrepare
+    else -> textures.solVide
+}
+
+/**
+ * De combien le sol d'une parcelle déborde de sa case.
+ *
+ * Réglé en comparant les deux rendus côte à côte : en dessous, les jointures
+ * restent visibles ; au-delà, les parcelles mangent leurs voisines.
+ */
+private const val DEBORDEMENT_SOL = 1.34f
+
 fun DrawScope.dessinerIle(
     ile: IslandGenerator.Ile,
     camera: Offset,
     pas: Float,
     parcelles: Set<Int> = emptySet(),
     batiments: List<com.sankailife.core.island.data.IslandBuildingEntity> = emptyList(),
+    parcellesDetail: Map<Int, com.sankailife.core.island.data.IslandSlotEntity> = emptyMap(),
+    textures: TexturesIle? = null,
     marquerPonton: Boolean = true
 ) {
     if (pas <= 0f) return
@@ -40,13 +92,27 @@ fun DrawScope.dessinerIle(
     // ligne claire entre les colonnes lointaines.
     val taille = Size(pas + 1f, pas + 1f)
 
+    val entier = IntSize(pas.toInt() + 1, pas.toInt() + 1)
     for (y in premierY..dernierY) {
         for (x in premierX..dernierX) {
-            drawRect(
-                color = PaletteIle.couleurCase(ile.type(x, y), x, y),
-                topLeft = Offset(camera.x + x * pas, camera.y + y * pas),
-                size = taille
-            )
+            val type = ile.type(x, y)
+            // L'herbe a une vraie texture ; le reste reste un aplat, faute
+            // d'illustration correspondante.
+            if (textures != null && type == IslandTileType.GRASS && pas >= 6f) {
+                drawImage(
+                    image = textures.herbe,
+                    dstOffset = IntOffset(
+                        (camera.x + x * pas).toInt(), (camera.y + y * pas).toInt()
+                    ),
+                    dstSize = entier
+                )
+            } else {
+                drawRect(
+                    color = PaletteIle.couleurCase(type, x, y),
+                    topLeft = Offset(camera.x + x * pas, camera.y + y * pas),
+                    size = taille
+                )
+            }
         }
     }
 
@@ -66,18 +132,45 @@ fun DrawScope.dessinerIle(
         }
     }
 
-    // Parcelles achetées : un liseré, rien de plus. Un halo permanent sur
-    // chaque case rendrait la carte illisible.
-    if (parcelles.isNotEmpty() && pas >= 8f) {
+    // Parcelles achetées.
+    //
+    // Le sol est posé PAR-DESSUS le terrain, avec ses bords irréguliers et ses
+    // coins transparents : c'est ce qui fait qu'une parcelle se fond dans
+    // l'herbe au lieu d'y être collée en carré. C'était le défaut le plus
+    // visible de l'ancien Jardin.
+    if (parcelles.isNotEmpty() && pas >= 6f) {
         for (y in premierY..dernierY) {
             for (x in premierX..dernierX) {
-                if (!parcelles.contains(y * ile.largeur + x)) continue
-                drawRect(
-                    color = Color.White.copy(alpha = 0.6f),
-                    topLeft = Offset(camera.x + x * pas + 1f, camera.y + y * pas + 1f),
-                    size = Size(pas - 2f, pas - 2f),
-                    style = Stroke(width = 2f)
-                )
+                val cle = y * ile.largeur + x
+                if (cle !in parcelles) continue
+                val parcelle = parcellesDetail[cle]
+                if (textures != null && parcelle != null) {
+                    // Le sol déborde de sa case, et c'est tout l'intérêt.
+                    //
+                    // Dessiné à la taille exacte, chaque parcelle garde ses
+                    // bords irréguliers et laisse voir l'herbe entre elles :
+                    // seize parcelles voisines font seize blocs séparés au lieu
+                    // d'un champ. En débordant, les bords se recouvrent, le
+                    // champ devient continu, et seule sa bordure extérieure
+                    // reste découpée.
+                    val cote = (pas * DEBORDEMENT_SOL).toInt() + 1
+                    val marge = (cote - pas.toInt()) / 2
+                    drawImage(
+                        image = solPour(textures, parcelle),
+                        dstOffset = IntOffset(
+                            (camera.x + x * pas).toInt() - marge,
+                            (camera.y + y * pas).toInt() - marge
+                        ),
+                        dstSize = IntSize(cote, cote)
+                    )
+                } else {
+                    drawRect(
+                        color = Color.White.copy(alpha = 0.6f),
+                        topLeft = Offset(camera.x + x * pas + 1f, camera.y + y * pas + 1f),
+                        size = Size(pas - 2f, pas - 2f),
+                        style = Stroke(width = 2f)
+                    )
+                }
             }
         }
     }
