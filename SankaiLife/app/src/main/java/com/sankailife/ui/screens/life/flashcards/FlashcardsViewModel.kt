@@ -125,16 +125,28 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     /** Enregistre la réponse et passe à la carte suivante. */
-    fun repondre(reussi: Boolean) {
+    fun repondre(reussi: Boolean) = repondre(
+        if (reussi) FlashcardEngine.Jugement.CORRECT else FlashcardEngine.Jugement.A_REVOIR
+    )
+
+    /**
+     * Enregistre un jugement nuancé et passe à la carte suivante.
+     *
+     * Le glissement de l'écran arrive ici. Il modifie réellement la boîte et la
+     * date de prochaine révision : une gestuelle qui ne ferait que jouer une
+     * animation donnerait l'illusion d'un réglage sans en avoir l'effet.
+     */
+    fun repondre(jugement: FlashcardEngine.Jugement) {
         val etat = _etat.value
         val carte = etat.carteCourante ?: return
+        val reussi = jugement.reussi
 
         viewModelScope.launch {
-            val nouvelleBoite = FlashcardEngine.boiteSuivante(carte.box, reussi)
+            val nouvelleBoite = FlashcardEngine.boiteSuivante(carte.box, jugement)
             memoDao.majEtatCarte(
                 id = carte.id,
                 box = nouvelleBoite,
-                prochaine = FlashcardEngine.prochaineRevision(nouvelleBoite),
+                prochaine = FlashcardEngine.prochaineRevision(nouvelleBoite, jugement),
                 reussite = if (reussi) 1 else 0
             )
             userRepo.addXp(FlashcardEngine.XP_PAR_CARTE)

@@ -8,6 +8,7 @@ import com.sankailife.SankaiApplication
 import com.sankailife.core.data.db.entities.MemoLineEntity
 import com.sankailife.core.data.db.entities.MemoProfileEntity
 import com.sankailife.core.domain.engine.MemoEngine
+import com.sankailife.core.domain.engine.PartageMemoEngine
 import com.sankailife.core.notifications.MemoAlarmScheduler
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -161,6 +162,19 @@ class MemoViewModel(application: Application) : AndroidViewModel(application) {
             dao.insertLine(MemoLineEntity(profileId = pid, text = text, orderIndex = idx++))
         }
         _currentLines.value = dao.getLinesOnce(pid)
+    }
+
+    /**
+     * Texte partageable d'un module.
+     *
+     * Passe par [PartageMemoEngine], qui garantit qu'aucune donnée personnelle
+     * ne sort : pas d'identifiants, pas d'historique de réponses, pas de boîtes
+     * de révision. Uniquement le contenu.
+     */
+    suspend fun texteAPartager(profileId: Long): String {
+        val profil = dao.getProfile(profileId)
+        val lignes = dao.getLinesOnce(profileId).map { it.text }
+        return PartageMemoEngine.exporter(profil?.name.orEmpty(), lignes)
     }
 
     fun toggleProfile(profileId: Long, active: Boolean) = viewModelScope.launch {

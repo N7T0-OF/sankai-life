@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sankailife.core.domain.engine.ExerciceEngine
 import com.sankailife.core.domain.engine.FlashcardEngine
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.rememberScrollState
@@ -121,10 +122,19 @@ fun FlashcardsScreen(
                             mutableStateOf(listOf<String>())
                         }
 
+                        // Le glissement n'est proposé que sur la carte mémoire,
+                        // la seule que la machine ne sait pas corriger. Sur un
+                        // QCM ou une saisie, laisser glisser reviendrait à
+                        // proposer de contredire une correction objective.
+                        CarteGlissable(
+                            actif = exercice is ExerciceEngine.Exercice.Memoire &&
+                                etat.correction == null,
+                            onJuger = { viewModel.repondre(it) },
+                            modifier = Modifier.fillMaxWidth().weight(1f)
+                        ) {
                         Box(
                             Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
+                                .fillMaxSize()
                                 .clip(RoundedCornerShape(20.dp))
                                 .background(c.surface2)
                                 .border(
@@ -249,12 +259,17 @@ fun FlashcardsScreen(
                                 }
                             }
                         }
+                        }
 
                         Spacer(Modifier.height(14.dp))
 
                         when {
                             // Exercice corrigé : on avance, la boîte suit le
                             // verdict de la machine et non l'avis du joueur.
+                            // Une carte corrigée par la machine n'a plus besoin
+                            // d'être jugée : le verdict est tombé. Le geste
+                            // n'est proposé que sur la carte mémoire, la seule
+                            // que personne ne peut corriger à ta place.
                             etat.correction != null -> {
                                 val juste = etat.correction == true
                                 Text(
@@ -290,17 +305,30 @@ fun FlashcardsScreen(
                             )
 
                             exercice is ExerciceEngine.Exercice.Memoire -> {
-                                // Rien à corriger : on garde l'auto-évaluation,
-                                // faute de mieux pour une carte d'une seule face.
-                                Row(
-                                    Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    BoutonReponse("À revoir", DangerRed, Modifier.weight(1f)) {
-                                        haptics.error(); viewModel.repondre(false)
-                                    }
-                                    BoutonReponse("Je savais", SuccessGreen, Modifier.weight(1f)) {
-                                        haptics.success(); viewModel.repondre(true)
+                                // Rien à corriger : c'est à l'utilisateur de se
+                                // juger. Le glissement porte une nuance que deux
+                                // boutons ne peuvent pas exprimer — entre
+                                // « péniblement » et « les yeux fermés », il y a
+                                // deux intervalles très différents.
+                                //
+                                // Les boutons restent là : un système qui
+                                // n'obéirait qu'au geste exclurait qui ne peut
+                                // pas glisser précisément.
+                                Column {
+                                    AideGestes()
+                                    Spacer(Modifier.height(10.dp))
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        BoutonReponse("À revoir", DangerRed, Modifier.weight(1f)) {
+                                            haptics.error()
+                                            viewModel.repondre(FlashcardEngine.Jugement.A_REVOIR)
+                                        }
+                                        BoutonReponse("Je savais", SuccessGreen, Modifier.weight(1f)) {
+                                            haptics.success()
+                                            viewModel.repondre(FlashcardEngine.Jugement.CORRECT)
+                                        }
                                     }
                                 }
                             }

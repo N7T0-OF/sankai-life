@@ -15,12 +15,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.Intent
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
 import com.sankailife.ui.components.SankaiButton
 import com.sankailife.ui.components.SectionTitle
 import com.sankailife.ui.theme.*
 
 @Composable
 fun MemoScreen(viewModel: MemoViewModel, onBack: () -> Unit, onEdit: (Long) -> Unit) {
+    val contexte = LocalContext.current
+    val portee = rememberCoroutineScope()
     val profiles by viewModel.profiles.collectAsState()
     val c = MaterialTheme.sankaiColors
 
@@ -80,7 +85,20 @@ fun MemoScreen(viewModel: MemoViewModel, onBack: () -> Unit, onEdit: (Long) -> U
                         profile = profile,
                         onEdit = { onEdit(profile.id) },
                         onToggle = { viewModel.toggleProfile(profile.id, !profile.isActive) },
-                        onDelete = { viewModel.deleteProfile(profile.id) }
+                        onDelete = { viewModel.deleteProfile(profile.id) },
+                        onPartager = {
+                            portee.launch {
+                                val texte = viewModel.texteAPartager(profile.id)
+                                val envoi = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_SUBJECT, profile.name)
+                                    putExtra(Intent.EXTRA_TEXT, texte)
+                                }
+                                contexte.startActivity(
+                                    Intent.createChooser(envoi, "Partager ${profile.name}")
+                                )
+                            }
+                        }
                     )
                     Spacer(Modifier.height(8.dp))
                 }
@@ -98,7 +116,8 @@ fun MemoScreen(viewModel: MemoViewModel, onBack: () -> Unit, onEdit: (Long) -> U
 @Composable
 fun MemoProfileListCard(
     profile: com.sankailife.core.data.db.entities.MemoProfileEntity,
-    onEdit: () -> Unit, onToggle: () -> Unit, onDelete: () -> Unit
+    onEdit: () -> Unit, onToggle: () -> Unit, onDelete: () -> Unit,
+    onPartager: () -> Unit
 ) {
     val c = MaterialTheme.sankaiColors
     var showDelete by remember { mutableStateOf(false) }
@@ -138,6 +157,13 @@ fun MemoProfileListCard(
                 SankaiButton(if (profile.isActive) "Désactiver" else "Activer", onClick = onToggle,
                     small = true, modifier = Modifier.weight(1f),
                     secondary = profile.isActive)
+                // Partage : ouvre la feuille Android, qui laisse choisir entre
+                // copier, envoyer ou enregistrer. Reproduire ce choix dans
+                // l'application dupliquerait un menu que le système fait mieux.
+                IconButton(onClick = onPartager, modifier = Modifier.size(36.dp)) {
+                    Icon(Icons.Filled.Share, null, tint = c.textSecondary,
+                        modifier = Modifier.size(18.dp))
+                }
                 IconButton(onClick = { showDelete = true }, modifier = Modifier.size(36.dp)) {
                     Icon(Icons.Filled.Delete, null, tint = DangerRed, modifier = Modifier.size(18.dp))
                 }

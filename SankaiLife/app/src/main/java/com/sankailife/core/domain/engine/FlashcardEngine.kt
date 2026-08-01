@@ -71,12 +71,60 @@ object FlashcardEngine {
     }
 
     /**
+     * Jugement porté sur une carte, du plus dur au plus facile.
+     *
+     * Le glissement de l'écran s'y traduit directement. Ces quatre valeurs
+     * changent réellement l'intervalle, la boîte et la date de révision — un
+     * geste qui ne ferait que jouer une animation serait un mensonge poli.
+     */
+    enum class Jugement(val libelle: String) {
+        A_REVOIR("À revoir"),
+        DIFFICILE("Difficile"),
+        CORRECT("Correct"),
+        FACILE("Facile");
+
+        val reussi: Boolean get() = this != A_REVOIR
+    }
+
+    /**
      * Nouvelle boîte après une réponse.
      * Une erreur renvoie à zéro : c'est ce qui fait remonter rapidement les
      * cartes mal acquises au lieu de les diluer.
      */
     fun boiteSuivante(boiteActuelle: Int, reussi: Boolean): Int =
         if (reussi) (boiteActuelle + 1).coerceAtMost(NOMBRE_BOITES - 1) else 0
+
+    /**
+     * Nouvelle boîte selon le jugement porté.
+     *
+     * « Difficile » ne renvoie pas à zéro mais recule d'un cran : une carte
+     * qu'on retrouve péniblement n'est pas une carte oubliée, et la renvoyer au
+     * début effacerait tout le travail déjà fait dessus.
+     *
+     * « Facile » saute une boîte : revoir dans trois jours ce qu'on connaît
+     * déjà est du temps pris aux cartes qui en ont besoin.
+     */
+    fun boiteSuivante(boiteActuelle: Int, jugement: Jugement): Int = when (jugement) {
+        Jugement.A_REVOIR -> 0
+        Jugement.DIFFICILE -> (boiteActuelle - 1).coerceAtLeast(0)
+        Jugement.CORRECT -> (boiteActuelle + 1).coerceAtMost(NOMBRE_BOITES - 1)
+        Jugement.FACILE -> (boiteActuelle + 2).coerceAtMost(NOMBRE_BOITES - 1)
+    }
+
+    /**
+     * Prochaine révision selon le jugement.
+     *
+     * « À revoir » revient dans la même session, pas dans dix minutes : c'est
+     * la seule façon de retravailler une carte tant qu'elle est fraîche.
+     */
+    fun prochaineRevision(
+        boite: Int,
+        jugement: Jugement,
+        maintenantMillis: Long = System.currentTimeMillis()
+    ): Long = when (jugement) {
+        Jugement.A_REVOIR -> maintenantMillis + TimeUnit.MINUTES.toMillis(1)
+        else -> prochaineRevision(boite, maintenantMillis)
+    }
 
     /** Instant de la prochaine révision pour une boîte donnée. */
     fun prochaineRevision(boite: Int, maintenantMillis: Long = System.currentTimeMillis()): Long {
