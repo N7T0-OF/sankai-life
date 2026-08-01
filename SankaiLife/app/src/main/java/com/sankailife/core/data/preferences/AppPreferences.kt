@@ -63,6 +63,17 @@ class AppPreferences(private val context: Context) {
     suspend fun setStreakReminder(v: Boolean) = context.dataStore.edit { it[Keys.STREAK_REMINDER] = v }
     suspend fun setFocusKeepScreen(v: Boolean) = context.dataStore.edit { it[Keys.FOCUS_KEEP_SCREEN] = v }
 
+    /**
+     * Le tutoriel a-t-il déjà été vu ?
+     *
+     * La valeur par défaut est `false` : une installation neuve le montre, une
+     * mise à jour ne le remontre pas puisque la préférence est déjà écrite.
+     * C'est ce qui évite de réexpliquer l'application à chaque version.
+     */
+    val onboardingDone: Flow<Boolean> = pref(Keys.ONBOARDING_DONE, false)
+    suspend fun setOnboardingDone(v: Boolean) =
+        context.dataStore.edit { it[Keys.ONBOARDING_DONE] = v }
+
     suspend fun setQuietEnabled(v: Boolean) = context.dataStore.edit { it[Keys.QUIET_ENABLED] = v }
     suspend fun setQuietStart(minutes: Int) =
         context.dataStore.edit { it[Keys.QUIET_START] = minutes.coerceIn(0, 24 * 60 - 1) }

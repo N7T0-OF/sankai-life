@@ -106,6 +106,21 @@ fun SauvegardeSection() {
             Spacer(Modifier.height(10.dp))
             Text(it, color = c.textSecondary, fontSize = 12.sp)
         }
+
+        Spacer(Modifier.height(16.dp))
+        // Le tutoriel se rejoue à la demande. Il ne réapparaît jamais tout
+        // seul après une mise à jour : réexpliquer l'application à quelqu'un
+        // qui l'utilise depuis des mois serait le prendre pour un débutant.
+        Text(
+            "Revoir le tutoriel",
+            color = c.accent,
+            fontSize = 13.sp,
+            modifier = Modifier
+                .clickable {
+                    portee.launch { app.preferences.setOnboardingDone(false) }
+                }
+                .padding(vertical = 6.dp)
+        )
     }
 
     // Aperçu avant restauration.

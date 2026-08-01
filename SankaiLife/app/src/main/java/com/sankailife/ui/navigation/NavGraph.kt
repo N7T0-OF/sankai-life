@@ -9,6 +9,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.*
 import com.sankailife.SankaiApplication
+import kotlinx.coroutines.launch
+import com.sankailife.ui.screens.onboarding.OnboardingScreen
 import com.sankailife.ui.screens.arenas.ArenasScreen
 import com.sankailife.ui.screens.arenas.ArenasViewModel
 import com.sankailife.ui.screens.challenges.ChallengesScreen
@@ -49,6 +51,18 @@ fun SankaiNavGraph() {
     val homeVm: HomeViewModel        = viewModel(factory = HomeViewModel.factory(app))
     val challengesVm: ChallengesViewModel = viewModel(factory = ChallengesViewModel.factory(app))
     val settingsVm: SettingsViewModel= viewModel(factory = SettingsViewModel.factory(app))
+
+    // Le tutoriel occupe l'écran entier avant tout le reste : le montrer par
+    // -dessus la navigation laisserait la barre du bas cliquable pendant qu'on
+    // explique ce qu'elle fait.
+    val tutorielVu by app.preferences.onboardingDone.collectAsState(initial = true)
+    if (!tutorielVu) {
+        val portee = rememberCoroutineScope()
+        OnboardingScreen(
+            onTermine = { portee.launch { app.preferences.setOnboardingDone(true) } }
+        )
+        return
+    }
 
     val showLabels by settingsVm.showNavLabels.collectAsState()
     val claimableCount by challengesVm.claimableCount.collectAsState()
