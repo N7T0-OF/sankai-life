@@ -8,7 +8,9 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.sankailife.SankaiApplication
 import com.sankailife.core.data.repository.UserRepository
 import com.sankailife.core.island.data.IslandRepository
+import com.sankailife.core.island.data.IslandBuildingEntity
 import com.sankailife.core.island.data.IslandSlotEntity
+import com.sankailife.core.island.domain.IslandBuildingEngine
 import com.sankailife.core.island.domain.IslandGenerator
 import com.sankailife.core.island.domain.IslandSlotEngine
 import com.sankailife.core.island.domain.IslandTileType
@@ -59,6 +61,10 @@ class IslandViewModel(application: Application) : AndroidViewModel(application) 
         .map { liste -> liste.associateBy { it.cle } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
+    /** Bâtiments posés, pour le rendu et pour la bulle. */
+    val batiments: StateFlow<List<IslandBuildingEntity>> = depot.observerBatiments()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     /** Case ouverte dans la bulle, ou `null`. */
     private val _selection = MutableStateFlow<IslandGenerator.Case?>(null)
     val selection: StateFlow<IslandGenerator.Case?> = _selection.asStateFlow()
@@ -95,6 +101,7 @@ class IslandViewModel(application: Application) : AndroidViewModel(application) 
     fun semer(x: Int, y: Int, graineId: String) = geste { depot.semer(x, y, graineId) }
     fun arroser(x: Int, y: Int) = geste { depot.arroser(x, y) }
     fun recolter(x: Int, y: Int) = geste { depot.recolter(x, y) }
+    fun batir(type: IslandBuildingEngine.Type, x: Int, y: Int) = geste { depot.batir(type, x, y) }
 
     val utilisateur = userRepo.userFlow
         .stateIn(

@@ -7,6 +7,7 @@ import com.sankailife.core.garden.domain.ALL_SEEDS
 import com.sankailife.core.garden.domain.CropGrowthEngine
 import com.sankailife.core.garden.domain.SoilType
 import com.sankailife.core.island.domain.IslandCodec
+import com.sankailife.core.island.domain.IslandBuildingEngine
 import com.sankailife.core.island.domain.IslandCultureEngine
 import com.sankailife.core.island.domain.IslandGenerator
 import com.sankailife.core.island.domain.IslandSlotEngine
@@ -343,16 +344,94 @@ class IslandRepository(
         }
     }
 
+    // ------------------------------------------------------------------
+    // Bâtiments
+    // ------------------------------------------------------------------
+
+    /**
+     * Pose un bâtiment.
+     *
+     * L'accessibilité est vérifiée en plus du verdict du moteur : c'est une
+     * propriété du voisinage, pas de l'emplacement. Sans elle, on peut bâtir
+     * une Boutique sur un îlot et ne plus jamais y entrer.
+     *
+     * Le débit passe avant l'écriture, sous condition de solde, et le bâtiment
+     * est inséré en `REPLACE` sur un type unique — deux appuis rapprochés ne
+     * peuvent donc pas produire deux Boutiques.
+     */
+    suspend fun batir(type: IslandBuildingEngine.Type, x: Int, y: Int): Geste =
+        withContext(Dispatchers.IO) {
+            db.withTransaction {
+                val ligne = dao.ile() ?: return@withTransaction Geste.Refuse("Aucune île.")
+                val ile = rehydrater(ligne)
+                    ?: return@withTransaction Geste.Refuse("L'île enregistrée est illisible.")
+                val utilisateur = db.userDao().getUserOnce()
+                    ?: return@withTransaction Geste.Refuse("Profil introuvable.")
+
+                val batiments = dao.batiments()
+                val parcelles = dao.parcelles().associateBy { it.cle }
+                val prises = batiments.flatMap { b ->
+                    IslandBuildingEngine.Type.parId(b.type)?.let {
+                        IslandBuildingEngine.casesOccupees(it, b.origineX, b.origineY)
+                    }.orEmpty()
+                }.toSet()
+
+                val verdict = IslandBuildingEngine.peutBatir(
+                    type = type, x = x, y = y,
+                    niveauJoueur = utilisateur.level,
+                    pieces = utilisateur.coins,
+                    dejaConstruit = batiments.any { it.type == type.id },
+                    terrainDe = { cx, cy ->
+                        if (cx !in 0 until ile.largeur || cy !in 0 until ile.hauteur) null
+                        else ile.type(cx, cy)
+                    },
+                    occupee = { cx, cy ->
+                        (cx to cy) in prises ||
+                            parcelles[cy * ile.largeur + cx]?.graineId?.isNotBlank() == true
+                    }
+                )
+                if (verdict is IslandBuildingEngine.Verdict.Non) {
+                    return@withTransaction Geste.Refuse(verdict.raison)
+                }
+
+                val accessible = IslandBuildingEngine.accessible(type, x, y) { cx, cy ->
+                    cx in 0 until ile.largeur && cy in 0 until ile.hauteur &&
+                        ile.type(cx, cy).franchissable
+                }
+                if (!accessible) {
+                    return@withTransaction Geste.Refuse(
+                        "${type.libelle} serait inaccessible : il faut un accès à pied."
+                    )
+                }
+
+                val prix = (verdict as IslandBuildingEngine.Verdict.Oui).prix
+                if (prix > 0 && !userRepo.spendCoins(prix)) {
+                    return@withTransaction Geste.Refuse("Il te manque des pièces.")
+                }
+
+                dao.poserBatiment(
+                    IslandBuildingEntity(
+                        type = type.id, origineX = x, origineY = y,
+                        orientation = 0, niveau = 1, chantierFinMillis = 0L
+                    )
+                )
+                Geste.Fait("${type.emoji} ${type.libelle} construite.")
+            }
+        }
+
     /** Une case est-elle sous l'emprise d'un bâtiment ? */
     private fun occupe(batiment: IslandBuildingEntity, x: Int, y: Int): Boolean {
-        // Emprise 2×2 par défaut, la seule utilisée pour l'instant. Elle sera
-        // lue depuis le type de bâtiment quand d'autres tailles existeront.
-        return x in batiment.origineX..batiment.origineX + 1 &&
-            y in batiment.origineY..batiment.origineY + 1
+        // L'emprise se déduit du type, jamais de valeurs écrites en dur ici :
+        // le jour où un bâtiment change de taille, il n'y a qu'un endroit à
+        // corriger.
+        val type = IslandBuildingEngine.Type.parId(batiment.type) ?: return false
+        return (x to y) in IslandBuildingEngine
+            .casesOccupees(type, batiment.origineX, batiment.origineY).toSet()
     }
 
     fun observerIle() = dao.observerIle()
     fun observerParcelles() = dao.observerParcelles()
+    fun observerBatiments() = dao.observerBatiments()
     fun compterParcelles() = dao.compterParcelles()
 
     /**

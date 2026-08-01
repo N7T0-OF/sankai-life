@@ -77,6 +77,7 @@ fun IslandScreen(
     val message by viewModel.message.collectAsState()
     val recentrage by viewModel.recentrage.collectAsState()
     val selection by viewModel.selection.collectAsState()
+    val batiments by viewModel.batiments.collectAsState()
     val couleurs = MaterialTheme.sankaiColors
     val snackbar = remember { SnackbarHostState() }
 
@@ -127,6 +128,7 @@ fun IslandScreen(
             etat.ile != null -> CarteIle(
                 ile = etat.ile!!,
                 parcelles = parcelles,
+                batiments = batiments,
                 zoom = zoom,
                 demandeRecentrage = recentrage,
                 niveau = utilisateur.level,
@@ -172,6 +174,7 @@ fun IslandScreen(
                     type = ileCourante.type(case.x, case.y),
                     parcelle = parcelles[case.y * ileCourante.largeur + case.x],
                     parcellesPossedees = parcelles.size,
+                    batiments = batiments,
                     niveau = utilisateur.level,
                     onFermer = viewModel::fermerSelection,
                     onAcheter = { viewModel.acheter(case.x, case.y) },
@@ -179,7 +182,8 @@ fun IslandScreen(
                     onPreparer = { viewModel.preparer(case.x, case.y) },
                     onSemer = { graine -> viewModel.semer(case.x, case.y, graine) },
                     onArroser = { viewModel.arroser(case.x, case.y) },
-                    onRecolter = { viewModel.recolter(case.x, case.y) }
+                    onRecolter = { viewModel.recolter(case.x, case.y) },
+                    onBatir = { type -> viewModel.batir(type, case.x, case.y) }
                 )
             }
         }
@@ -192,6 +196,7 @@ fun IslandScreen(
 private fun CarteIle(
     ile: IslandGenerator.Ile,
     parcelles: Map<Int, com.sankailife.core.island.data.IslandSlotEntity>,
+    batiments: List<com.sankailife.core.island.data.IslandBuildingEntity>,
     zoom: Float,
     demandeRecentrage: Long,
     niveau: Int,
@@ -295,7 +300,10 @@ private fun CarteIle(
             }
     ) {
         Canvas(Modifier.fillMaxSize()) {
-            dessinerIle(ile = ile, camera = camera, pas = pas, parcelles = parcelles.keys)
+            dessinerIle(
+                ile = ile, camera = camera, pas = pas,
+                parcelles = parcelles.keys, batiments = batiments
+            )
         }
     }
 }

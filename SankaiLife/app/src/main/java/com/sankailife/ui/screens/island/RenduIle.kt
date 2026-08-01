@@ -22,6 +22,7 @@ fun DrawScope.dessinerIle(
     camera: Offset,
     pas: Float,
     parcelles: Set<Int> = emptySet(),
+    batiments: List<com.sankailife.core.island.data.IslandBuildingEntity> = emptyList(),
     marquerPonton: Boolean = true
 ) {
     if (pas <= 0f) return
@@ -79,6 +80,30 @@ fun DrawScope.dessinerIle(
                 )
             }
         }
+    }
+
+    // Les bâtiments, dessinés sur toute leur emprise et non case par case :
+    // un bâtiment 2 × 2 est un objet, pas quatre carrés voisins.
+    batiments.forEach { batiment ->
+        val type = com.sankailife.core.island.domain.IslandBuildingEngine.Type
+            .parId(batiment.type) ?: return@forEach
+        drawRect(
+            color = Color(0xFF8D6E45),
+            topLeft = Offset(
+                camera.x + batiment.origineX * pas,
+                camera.y + batiment.origineY * pas
+            ),
+            size = Size(type.largeur * pas, type.hauteur * pas)
+        )
+        drawRect(
+            color = Color(0xFF5C452B),
+            topLeft = Offset(
+                camera.x + batiment.origineX * pas,
+                camera.y + batiment.origineY * pas
+            ),
+            size = Size(type.largeur * pas, type.hauteur * pas),
+            style = Stroke(width = (pas * 0.08f).coerceIn(1f, 4f))
+        )
     }
 
     // Le ponton : seul repère dessiné par-dessus. C'est le point d'arrivée, il

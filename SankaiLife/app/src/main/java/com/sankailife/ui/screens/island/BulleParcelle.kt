@@ -23,6 +23,7 @@ import com.sankailife.core.garden.domain.CropGrowthEngine
 import com.sankailife.core.garden.domain.PlotState
 import com.sankailife.core.garden.domain.SoilType
 import com.sankailife.core.island.data.IslandSlotEntity
+import com.sankailife.core.island.domain.IslandBuildingEngine
 import com.sankailife.core.island.domain.IslandCultureEngine
 import com.sankailife.core.island.domain.IslandCultureEngine.Action
 import com.sankailife.core.island.domain.IslandSlotEngine
@@ -43,6 +44,7 @@ fun BulleParcelle(
     type: IslandTileType,
     parcelle: IslandSlotEntity?,
     parcellesPossedees: Int,
+    batiments: List<com.sankailife.core.island.data.IslandBuildingEntity>,
     niveau: Int,
     onFermer: () -> Unit,
     onAcheter: () -> Unit,
@@ -50,7 +52,8 @@ fun BulleParcelle(
     onPreparer: () -> Unit,
     onSemer: (String) -> Unit,
     onArroser: () -> Unit,
-    onRecolter: () -> Unit
+    onRecolter: () -> Unit,
+    onBatir: (IslandBuildingEngine.Type) -> Unit
 ) {
     val c = MaterialTheme.sankaiColors
 
@@ -97,6 +100,26 @@ fun BulleParcelle(
                     onArroser = onArroser,
                     onRecolter = onRecolter
                 )
+            }
+
+            // Construction : proposée sur toute case constructible, qu'elle
+            // soit achetée ou non. Un bâtiment ne se cultive pas, donc il n'y
+            // a aucune raison d'exiger d'avoir acheté la parcelle d'abord.
+            val constructibles = IslandBuildingEngine.Type.entries
+                .filter { t -> batiments.none { it.type == t.id } }
+            if (type.constructible && constructibles.isNotEmpty()) {
+                Spacer(Modifier.height(16.dp))
+                Text("Construire", color = c.textSecondary, fontSize = 12.sp)
+                Spacer(Modifier.height(6.dp))
+                constructibles.forEach { t ->
+                    SankaiButton(
+                        "${t.emoji} ${t.libelle} · ${t.prix}🪙 · ${t.largeur}×${t.hauteur}",
+                        onClick = { onBatir(t) },
+                        secondary = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(6.dp))
+                }
             }
         }
     }
