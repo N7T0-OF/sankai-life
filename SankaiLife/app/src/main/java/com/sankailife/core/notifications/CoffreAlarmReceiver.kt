@@ -1,6 +1,7 @@
 package com.sankailife.core.notifications
 
 import android.app.AlarmManager
+import com.sankailife.R
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -45,8 +46,8 @@ class CoffreAlarmReceiver : BroadcastReceiver() {
 
                 SankaiNotifications.afficherRecompense(
                     context = context,
-                    titre = "Ton coffre est prêt",
-                    texte = "Ouvre Sankai Life pour récupérer ta récompense.",
+                    titre = context.getString(R.string.notif_chest_title),
+                    texte = context.getString(R.string.notif_chest_text),
                     notificationId = ID_BASE + coffreId.toInt()
                 )
             } finally {
@@ -131,8 +132,8 @@ class CoffreAlarmReceiver : BroadcastReceiver() {
                     // identique au lieu de l'empiler.
                     SankaiNotifications.afficherRecompense(
                         context = context,
-                        titre = "Ton coffre est prêt",
-                        texte = "Ouvre Sankai Life pour récupérer ta récompense.",
+                        titre = context.getString(R.string.notif_chest_title),
+                        texte = context.getString(R.string.notif_chest_text),
                         notificationId = ID_BASE + coffre.id.toInt()
                     )
                 }

@@ -74,6 +74,9 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
 
             // Thème
+            SectionTitle("Langue")
+            SettingsCard { LangueSection() }
+
             SectionTitle("Apparence")
             SettingsCard {
                 Text("Thème UI", color = c.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)

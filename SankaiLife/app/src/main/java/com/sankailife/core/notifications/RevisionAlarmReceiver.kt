@@ -1,6 +1,7 @@
 package com.sankailife.core.notifications
 
 import android.app.AlarmManager
+import com.sankailife.R
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -52,9 +53,9 @@ class RevisionAlarmReceiver : BroadcastReceiver() {
 
                 SankaiNotifications.afficherRappel(
                     context = context,
-                    titre = "C'est l'heure de réviser",
-                    texte = if (dues == 1) "1 carte t'attend."
-                    else "$dues cartes t'attendent.",
+                    titre = context.getString(R.string.notif_review_title),
+                    texte = if (dues == 1) context.getString(R.string.notif_review_one)
+                    else context.getString(R.string.notif_review_many, dues),
                     notificationId = ID
                 )
             } finally {

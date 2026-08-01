@@ -1,6 +1,8 @@
 package com.sankailife.ui.screens.life.flashcards
 
 import androidx.compose.animation.AnimatedVisibility
+import com.sankailife.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -321,11 +323,11 @@ fun FlashcardsScreen(
                                         Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                                     ) {
-                                        BoutonReponse("À revoir", DangerRed, Modifier.weight(1f)) {
+                                        BoutonReponse(stringResource(R.string.cards_judge_again), DangerRed, Modifier.weight(1f)) {
                                             haptics.error()
                                             viewModel.repondre(FlashcardEngine.Jugement.A_REVOIR)
                                         }
-                                        BoutonReponse("Je savais", SuccessGreen, Modifier.weight(1f)) {
+                                        BoutonReponse(stringResource(R.string.cards_knew_it), SuccessGreen, Modifier.weight(1f)) {
                                             haptics.success()
                                             viewModel.repondre(FlashcardEngine.Jugement.CORRECT)
                                         }

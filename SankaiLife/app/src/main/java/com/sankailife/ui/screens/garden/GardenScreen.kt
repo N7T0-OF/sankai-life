@@ -1,6 +1,8 @@
 package com.sankailife.ui.screens.garden
 
 import androidx.compose.animation.AnimatedVisibility
+import com.sankailife.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -252,7 +254,7 @@ fun GardenScreen(
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("🌿", fontSize = 40.sp)
                 Spacer(Modifier.height(12.dp))
-                Text("Préparation du jardin…", color = c.textSecondary, fontSize = 13.sp)
+                Text(stringResource(R.string.garden_preparing), color = c.textSecondary, fontSize = 13.sp)
             }
         }
         return
@@ -267,7 +269,7 @@ fun GardenScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Quitter le jardin", tint = c.textPrimary)
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.garden_leave), tint = c.textPrimary)
                 }
                 Column(Modifier.weight(1f)) {
                     Text(

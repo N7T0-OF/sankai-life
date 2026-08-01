@@ -1,6 +1,8 @@
 package com.sankailife.ui.screens.garden
 
 import androidx.compose.animation.AnimatedVisibility
+import com.sankailife.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -296,7 +298,7 @@ fun FeuilleSac(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("🎒", fontSize = 22.sp)
                 Spacer(Modifier.width(10.dp))
-                Text("Ton sac", color = c.textPrimary, fontSize = 18.sp,
+                Text(stringResource(R.string.garden_bag), color = c.textPrimary, fontSize = 18.sp,
                     fontWeight = FontWeight.Bold)
             }
 

@@ -1,6 +1,8 @@
 package com.sankailife.ui.screens.home
 
 import androidx.compose.animation.core.RepeatMode
+import com.sankailife.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -157,7 +159,7 @@ private fun HomeHub(
             StreakCompact(streak)
             Spacer(Modifier.width(SankaiSpacing.Sm))
             SankaiFloatingButton(
-                contentDescription = "Paramètres",
+                contentDescription = stringResource(R.string.home_settings),
                 onClick = onSettings,
                 modifier = Modifier.size(48.dp)
             ) {
@@ -180,7 +182,7 @@ private fun HomeHub(
         )
         Spacer(Modifier.height(gap))
         SankaiButton(
-            text = "🌿  Entrer dans le jardin",
+            text = stringResource(R.string.home_enter_garden),
             onClick = onGarden,
             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
         )
@@ -408,15 +410,18 @@ fun BarreCoffres(
     }
 }
 
-private fun libelleRarete(type: String): String = when (type.uppercase()) {
-    "DAILY" -> "Quotidien"
-    "RARE" -> "Rare"
-    "EPIC" -> "Épique"
-    "LEGENDARY" -> "Légendaire"
-    "WEEKLY" -> "Hebdo"
-    "ARENA" -> "Arène"
-    else -> "Commun"
-}
+@Composable
+private fun libelleRarete(type: String): String = stringResource(
+    when (type.uppercase()) {
+        "DAILY" -> R.string.chest_daily
+        "RARE" -> R.string.chest_rare
+        "EPIC" -> R.string.chest_epic
+        "LEGENDARY" -> R.string.chest_legendary
+        "WEEKLY" -> R.string.chest_weekly
+        "ARENA" -> R.string.chest_arena
+        else -> R.string.chest_common
+    }
+)
 
 @Composable
 fun ChestSlotUI(
@@ -509,7 +514,7 @@ fun ChestSlotUI(
                 modifier = Modifier.padding(horizontal = SankaiSpacing.Xs, vertical = SankaiSpacing.Xs)
             ) {
                 Text(
-                    if (isReady) "PRÊT" else timer,
+                    if (isReady) stringResource(R.string.chest_ready) else timer,
                     color = if (isReady) chestColor else c.textSecondary,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = if (isReady) FontWeight.Bold else FontWeight.Normal,

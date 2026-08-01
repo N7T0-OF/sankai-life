@@ -1,6 +1,9 @@
 package com.sankailife.ui.navigation
 
 import androidx.compose.animation.animateColorAsState
+import com.sankailife.R
+import androidx.compose.ui.res.stringResource
+import androidx.annotation.StringRes
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
@@ -35,18 +38,18 @@ import com.sankailife.ui.theme.SankaiSpacing
 
 data class NavItem(
     val route: String,
-    val label: String,
+    @StringRes val label: Int,
     val iconSelected: ImageVector,
     val iconUnselected: ImageVector,
     val badgeCount: Int = 0
 )
 
 val bottomNavItems = listOf(
-    NavItem(Screen.Shop.route,       "Shop",    Icons.Filled.ShoppingCart, Icons.Outlined.ShoppingCart),
-    NavItem(Screen.Life.route,       "Vie",     Icons.Filled.Bolt,         Icons.Outlined.Bolt),
-    NavItem(Screen.Home.route,       "Accueil", Icons.Filled.Home,         Icons.Outlined.Home),
-    NavItem(Screen.Challenges.route, "Défis",   Icons.Filled.TrackChanges, Icons.Outlined.TrackChanges),
-    NavItem(Screen.Profile.route,    "Profil",  Icons.Filled.Person,       Icons.Outlined.Person)
+    NavItem(Screen.Shop.route,       R.string.nav_shop,       Icons.Filled.ShoppingCart, Icons.Outlined.ShoppingCart),
+    NavItem(Screen.Life.route,       R.string.nav_life,       Icons.Filled.Bolt,         Icons.Outlined.Bolt),
+    NavItem(Screen.Home.route,       R.string.nav_home,       Icons.Filled.Home,         Icons.Outlined.Home),
+    NavItem(Screen.Challenges.route, R.string.nav_challenges, Icons.Filled.TrackChanges, Icons.Outlined.TrackChanges),
+    NavItem(Screen.Profile.route,    R.string.nav_profile,    Icons.Filled.Person,       Icons.Outlined.Person)
 )
 
 /**
@@ -92,6 +95,7 @@ fun SankaiBottomNavBar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 bottomNavItems.forEach { item ->
+                    val libelle = stringResource(item.label)
                     val isSelected = currentRoute == item.route
 
                     // Le verrou de niveau, s'il y en a un pour cet onglet.
@@ -173,7 +177,7 @@ fun SankaiBottomNavBar(
                                         isSelected -> item.iconSelected
                                         else -> item.iconUnselected
                                     },
-                                    contentDescription = if (showLabels) null else item.label,
+                                    contentDescription = if (showLabels) null else libelle,
                                     tint = if (verrou != null) c.textDisabled else iconColor,
                                     modifier = Modifier.size(23.dp)
                                 )
@@ -181,7 +185,7 @@ fun SankaiBottomNavBar(
                             if (showLabels) {
                                 Spacer(Modifier.height(3.dp))
                                 Text(
-                                    item.label,
+                                    libelle,
                                     color = iconColor,
                                     fontSize = 10.sp,
                                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
