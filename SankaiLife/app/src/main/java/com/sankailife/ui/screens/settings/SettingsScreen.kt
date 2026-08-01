@@ -25,7 +25,11 @@ import com.sankailife.ui.components.SectionTitle
 import com.sankailife.ui.theme.*
 
 @Composable
-fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit) {
+fun SettingsScreen(
+    viewModel: SettingsViewModel,
+    onBack: () -> Unit,
+    onVoirIle: () -> Unit = {}
+) {
     val themeMode   by viewModel.themeMode.collectAsState()
     val showLabels  by viewModel.showNavLabels.collectAsState()
     val vibrations  by viewModel.vibrations.collectAsState()
@@ -74,6 +78,32 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit) {
         }
 
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
+
+            // Aperçu de l'île générative.
+            //
+            // Entrée volontairement rangée ici et étiquetée « en
+            // construction » : l'île n'a ni cultures ni bâtiments, et la
+            // présenter comme un mode de jeu ferait passer un chantier pour
+            // une fonctionnalité livrée.
+            SectionTitle("En construction")
+            SettingsCard {
+                Text(
+                    "Île générative",
+                    color = c.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Aperçu du nouveau terrain. On peut s'y déplacer, zoomer et " +
+                        "acheter des parcelles. Rien n'y pousse encore, et le " +
+                        "Jardin actuel reste le mode de jeu.",
+                    color = c.textSecondary, fontSize = 12.sp
+                )
+                Spacer(Modifier.height(10.dp))
+                SankaiButton(
+                    "Voir mon île", onClick = onVoirIle,
+                    secondary = true, modifier = Modifier.fillMaxWidth()
+                )
+            }
 
             // Thème
             SectionTitle("Langue")

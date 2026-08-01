@@ -18,6 +18,8 @@ import com.sankailife.ui.screens.customization.CustomizationScreen
 import com.sankailife.ui.screens.garden.GardenScreen
 import com.sankailife.ui.screens.garden.GardenViewModel
 import com.sankailife.ui.screens.customization.CustomizationViewModel
+import com.sankailife.ui.screens.island.IslandScreen
+import com.sankailife.ui.screens.island.IslandViewModel
 import com.sankailife.ui.screens.profile.AllStatsScreen
 import com.sankailife.ui.screens.challenges.ChallengesViewModel
 import com.sankailife.ui.screens.home.HomeScreen
@@ -83,8 +85,8 @@ fun SankaiNavGraph() {
         Screen.Objectives.route, Screen.Flashcards.route, Screen.Arenas.route,
         Screen.Customization.route, Screen.AllStats.route,
         // Le jardin masque la navigation de l'app : c'est un mode isolé, pas
-        // un onglet de plus.
-        Screen.Garden.route
+        // un onglet de plus. L'île suivra la même règle.
+        Screen.Garden.route, Screen.Island.route
     )
     val showBottom = currentRoute !in noBottomBarRoutes
 
@@ -112,7 +114,9 @@ fun SankaiNavGraph() {
         NavHost(
             navController = navController,
             startDestination = Screen.Home.route,
-            modifier = if (currentRoute == Screen.Garden.route) {
+            modifier = if (currentRoute == Screen.Garden.route ||
+                currentRoute == Screen.Island.route
+            ) {
                 Modifier
             } else {
                 Modifier.padding(padding)
@@ -124,6 +128,10 @@ fun SankaiNavGraph() {
             composable(Screen.Life.route) {
                 val vm: LifeViewModel = viewModel(factory = LifeViewModel.factory(app))
                 LifeScreen(viewModel = vm, onNavigate = { navController.navigate(it) })
+            }
+            composable(Screen.Island.route) {
+                val vm: IslandViewModel = viewModel(factory = IslandViewModel.factory(app))
+                IslandScreen(viewModel = vm, onBack = { navController.popBackStack() })
             }
             composable(Screen.Focus.route) {
                 val vm: FocusViewModel = viewModel(factory = FocusViewModel.factory(app))
@@ -192,7 +200,11 @@ fun SankaiNavGraph() {
                 ProfileScreen(viewModel = vm, onNavigate = { navController.navigate(it) })
             }
             composable(Screen.Settings.route) {
-                SettingsScreen(viewModel = settingsVm, onBack = { navController.popBackStack() })
+                SettingsScreen(
+                    viewModel = settingsVm,
+                    onBack = { navController.popBackStack() },
+                    onVoirIle = { navController.navigate(Screen.Island.route) }
+                )
             }
         }
     }
