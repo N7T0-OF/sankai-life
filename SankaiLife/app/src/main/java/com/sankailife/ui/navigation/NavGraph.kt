@@ -130,6 +130,7 @@ fun SankaiNavGraph() {
                 MemoScreen(viewModel = vm,
                     onBack = { navController.popBackStack() },
                     onEdit = { id -> navController.navigate(Screen.MemoEditor.createRoute(id)) },
+                    onReviser = { id -> navController.navigate(Screen.Flashcards.createRoute(id)) },
                     onReviserErreurs = {
                         navController.navigate(
                             Screen.Flashcards.createRoute(FlashcardsViewModel.PROFIL_ERREURS)

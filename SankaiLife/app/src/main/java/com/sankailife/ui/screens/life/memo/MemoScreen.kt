@@ -28,12 +28,14 @@ fun MemoScreen(
     viewModel: MemoViewModel,
     onBack: () -> Unit,
     onEdit: (Long) -> Unit,
+    onReviser: (Long) -> Unit = {},
     onReviserErreurs: () -> Unit = {}
 ) {
     val contexte = LocalContext.current
     val portee = rememberCoroutineScope()
     val profiles by viewModel.profiles.collectAsState()
     val message by viewModel.message.collectAsState()
+    val stats by viewModel.statsParModule.collectAsState()
     val c = MaterialTheme.sankaiColors
     val snackbar = remember { SnackbarHostState() }
 
@@ -96,7 +98,9 @@ fun MemoScreen(
                 items(profiles) { profile ->
                     MemoProfileListCard(
                         profile = profile,
+                        stats = stats[profile.id],
                         onEdit = { onEdit(profile.id) },
+                        onReviser = { onReviser(profile.id) },
                         onToggle = { viewModel.toggleProfile(profile.id, !profile.isActive) },
                         onDelete = { viewModel.deleteProfile(profile.id) },
                         onPartager = {
@@ -181,7 +185,9 @@ fun CarteMesErreurs(viewModel: MemoViewModel, onReviser: () -> Unit) {
 @Composable
 fun MemoProfileListCard(
     profile: com.sankailife.core.data.db.entities.MemoProfileEntity,
-    onEdit: () -> Unit, onToggle: () -> Unit, onDelete: () -> Unit,
+    stats: com.sankailife.core.data.db.dao.StatsModule?,
+    onEdit: () -> Unit, onReviser: () -> Unit,
+    onToggle: () -> Unit, onDelete: () -> Unit,
     onPartager: () -> Unit
 ) {
     val c = MaterialTheme.sankaiColors
@@ -209,12 +215,35 @@ fun MemoProfileListCard(
                     Text(profile.name.ifBlank { "Mémo" }, color = c.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     Text("${profile.frequencyPerDay}×/jour • ${"%02d".format(profile.scheduledHour)}:${"%02d".format(profile.scheduledMinute)}",
                         color = c.textSecondary, fontSize = 12.sp)
+                    // Le nombre de cartes dit d'un coup d'œil si un module vaut
+                    // la peine d'être ouvert. Sans lui, un module vide et un
+                    // module de deux cents phrases se ressemblent exactement.
+                    Text(
+                        when {
+                            stats == null || stats.total == 0 -> "Aucune phrase"
+                            stats.dues > 0 -> "${stats.total} phrases • ${stats.dues} à réviser"
+                            else -> "${stats.total} phrases • rien à réviser"
+                        },
+                        color = if ((stats?.dues ?: 0) > 0) AccentGold else c.textSecondary,
+                        fontSize = 12.sp
+                    )
                 }
                 if (profile.isActive) {
                     Box(Modifier.clip(RoundedCornerShape(8.dp)).background(SuccessGreen.copy(0.15f)).padding(horizontal = 8.dp, vertical = 3.dp)) {
                         Text("ACTIF", color = SuccessGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     }
                 }
+            }
+            // Réviser depuis ici : l'écran Mémo était jusqu'ici un écran de
+            // configuration d'où l'on ne pouvait rien lancer. Le bouton
+            // disparaît quand rien n'est dû, parce que la session s'ouvrirait
+            // alors sur « aucune carte à réviser » — un cul-de-sac. Le
+            // sous-titre au-dessus dit déjà pourquoi.
+            val dues = stats?.dues ?: 0
+            if (dues > 0) {
+                Spacer(Modifier.height(10.dp))
+                SankaiButton("Réviser ($dues)", onClick = onReviser,
+                    modifier = Modifier.fillMaxWidth())
             }
             Spacer(Modifier.height(10.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

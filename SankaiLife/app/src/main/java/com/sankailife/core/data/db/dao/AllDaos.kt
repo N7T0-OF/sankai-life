@@ -4,6 +4,13 @@ import androidx.room.*
 import com.sankailife.core.data.db.entities.*
 import kotlinx.coroutines.flow.Flow
 
+/** Projection : combien de cartes un module contient, combien sont dues. */
+data class StatsModule(
+    val profileId: Long,
+    val total: Int,
+    val dues: Int
+)
+
 @Dao
 interface UserDao {
     @Query("SELECT * FROM user WHERE id=1 LIMIT 1")
@@ -160,6 +167,22 @@ interface MemoDao {
         WHERE nextReviewAtMillis <= :maintenant
     """)
     fun compterToutesCartesDues(maintenant: Long): Flow<Int>
+
+    /**
+     * Compte des cartes de chaque module, en une seule lecture.
+     *
+     * Une requête par module ferait autant de flux Room que de lignes à
+     * l'écran, tous réveillés à chaque réponse pendant une révision. Le
+     * regroupement se fait ici, là où il ne coûte qu'un parcours.
+     */
+    @Query("""
+        SELECT profileId AS profileId,
+               COUNT(*) AS total,
+               SUM(CASE WHEN nextReviewAtMillis <= :maintenant THEN 1 ELSE 0 END) AS dues
+        FROM memo_line
+        GROUP BY profileId
+    """)
+    fun statsParModule(maintenant: Long): Flow<List<StatsModule>>
 
     /**
      * Cartes assez révisées pour qu'un taux d'échec veuille dire quelque chose.

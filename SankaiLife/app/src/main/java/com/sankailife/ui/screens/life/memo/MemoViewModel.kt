@@ -26,6 +26,19 @@ class MemoViewModel(application: Application) : AndroidViewModel(application) {
     val profiles: StateFlow<List<MemoProfileEntity>> =
         dao.getAllProfiles().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    /**
+     * Combien de cartes chaque module contient, et combien sont dues.
+     *
+     * L'instant de référence est fixé à l'ouverture de l'écran plutôt que
+     * réévalué en continu : une carte qui devient due à la seconde près ne
+     * justifie pas de relancer la requête, et un compteur qui bouge tout seul
+     * pendant qu'on lit la liste est plus déroutant qu'utile.
+     */
+    val statsParModule: StateFlow<Map<Long, com.sankailife.core.data.db.dao.StatsModule>> =
+        dao.statsParModule(System.currentTimeMillis())
+            .map { liste -> liste.associateBy { it.profileId } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
     private val _currentProfileId = MutableStateFlow(-1L)
     val currentProfileId: StateFlow<Long> = _currentProfileId
 
