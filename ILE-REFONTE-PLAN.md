@@ -23,7 +23,18 @@ l'île existante lors d'une mise à jour ». La règle est juste, mais elle ne
 couvre pas ce cas : il n'existe aucune île à préserver, seulement des jardins.
 Il faut donc choisir ce qu'on en fait.
 
-**Trois options, et je ne prendrai pas la décision à votre place.**
+> **DÉCISION PRISE le 1er août 2026 : table rase (option A).**
+>
+> Les jardins existants sont effacés ; chaque profil génère son île. Aucune
+> migration `garden_plot` → île ne sera écrite. Ce choix est celui de l'auteur
+> du projet, qui considère l'application encore en phase de test.
+>
+> Conséquence à assumer explicitement le jour de la sortie : **prévenir avant
+> la mise à jour**, pas après. Un joueur qui perd six parcelles cultivées sans
+> avertissement croit à une panne. L'export de profil existant doit être
+> proposé en amont.
+
+**Les trois options examinées.**
 
 | | Ce qui se passe | Coût | Ce que perd le joueur |
 |---|---|---|---|
