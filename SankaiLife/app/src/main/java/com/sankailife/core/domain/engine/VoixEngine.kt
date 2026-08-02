@@ -28,6 +28,34 @@ object VoixEngine {
      * française produit un son que personne ne reconnaîtrait, et un apprenant
      * débutant n'aurait aucun moyen de savoir que la prononciation est fausse.
      */
+    /**
+     * Locales a essayer, de la plus precise a la plus vague.
+     *
+     * **Le probleme : « pt » n'est pas une prononciation.** La plupart des
+     * moteurs Android resolvent le portugais generique en bresilien, qui est le
+     * plus repandu. Or le contenu livre avec l'application est du portugais
+     * europeen — « comboio », « autocarro », « pequeno-almoco » — et l'entendre
+     * avec l'accent bresilien apprend une prononciation qui ne correspond pas
+     * aux mots qu'on lit.
+     *
+     * Un module qui declare « pt-BR » obtient donc du bresilien, et c'est
+     * voulu : la regle ne devine que pour le code sans region.
+     *
+     * L'ordre vaut aussi pour les autres langues : « en » essaie l'anglais
+     * britannique avant l'americain seulement s'il est present, sinon la voix
+     * du telephone decide, ce qui reste le comportement le plus previsible.
+     */
+    fun candidats(codeLangue: String): List<Locale> {
+        val base = locale(codeLangue) ?: return emptyList()
+        if (base.country.isNotBlank()) return listOf(base)
+
+        val prefere = when (base.language.lowercase()) {
+            "pt" -> listOf(Locale("pt", "PT"), Locale("pt", "BR"))
+            else -> emptyList()
+        }
+        return prefere + base
+    }
+
     fun locale(codeLangue: String): Locale? {
         val code = codeLangue.trim()
         if (code.isBlank()) return null

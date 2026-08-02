@@ -322,6 +322,39 @@ class IslandViewModel(application: Application) : AndroidViewModel(application) 
         batir(v.type, v.x, v.y)
     }
 
+    /**
+     * Mimo touche sur la carte, ou `null`.
+     *
+     * Ils etaient dessines et muets : on voyait cinq silhouettes sans savoir
+     * laquelle faisait quoi, ni pourquoi l'une dormait. Le panneau d'equipe le
+     * disait, mais il fallait deja savoir qu'il existait et faire le lien entre
+     * une ligne de liste et une silhouette a l'ecran.
+     */
+    private val _mimoTouche =
+        MutableStateFlow<com.sankailife.core.island.domain.IslandMimoMondeEngine.Place?>(null)
+    val mimoTouche: StateFlow<
+        com.sankailife.core.island.domain.IslandMimoMondeEngine.Place?
+        > = _mimoTouche.asStateFlow()
+
+    fun fermerMimo() { _mimoTouche.value = null }
+
+    /**
+     * Toucher une case : un Mimo s'il y en a un, la case sinon.
+     *
+     * Le Mimo passe devant parce qu'il est **dessine** par-dessus : ouvrir la
+     * fiche du terrain alors qu'on visait clairement une silhouette donnerait
+     * l'impression que le toucher a rate.
+     */
+    fun toucher(x: Int, y: Int) {
+        val mimo = mimosPlaces.value.firstOrNull { it.x == x && it.y == y }
+        if (mimo != null) {
+            _mimoTouche.value = mimo
+            _selection.value = null
+        } else {
+            selectionner(x, y)
+        }
+    }
+
     /** Case ouverte dans la bulle, ou `null`. */
     private val _selection = MutableStateFlow<IslandGenerator.Case?>(null)
     val selection: StateFlow<IslandGenerator.Case?> = _selection.asStateFlow()

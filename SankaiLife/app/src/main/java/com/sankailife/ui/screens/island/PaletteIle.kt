@@ -54,6 +54,15 @@ object PaletteIle {
 
     fun couleurCase(type: IslandTileType, x: Int, y: Int): Color {
         val base = couleur(type)
+
+        // L'eau ne varie pas d'une case a l'autre.
+        //
+        // La variation eclaircissait certaines cases : sur une riviere ou de
+        // l'eau peu profonde, cela dessinait des carres pales parfaitement
+        // alignes sur la grille. Sur de la terre le bruit se lit comme du
+        // relief ; sur de l'eau, comme un damier.
+        if (type.estEau) return base
+
         val v = variation(x, y)
         return Color(
             red = (base.red + v).coerceIn(0f, 1f),

@@ -98,6 +98,7 @@ fun IslandScreen(
     val cultures by viewModel.cultures.collectAsState()
     val equipeOuverte by viewModel.equipeOuverte.collectAsState()
     val visee by viewModel.visee.collectAsState()
+    val mimoTouche by viewModel.mimoTouche.collectAsState()
 
     // Rendu météo construit ici, comme au Jardin : c'est un calcul pur qui ne
     // dépend que de l'heure et du jour, pas d'un état persistant.
@@ -198,7 +199,7 @@ fun IslandScreen(
                 // justement ce qu'on essaie de regarder.
                 onToucher = { x, y ->
                     if (visee != null) viewModel.deplacerVisee(x, y)
-                    else viewModel.selectionner(x, y)
+                    else viewModel.toucher(x, y)
                 },
                 apercu = visee?.let {
                     Triple(it.type, IntOffset(it.x, it.y), it.possible)
@@ -404,6 +405,10 @@ fun IslandScreen(
                     )
                 }
             }
+        }
+
+        mimoTouche?.let { mimo ->
+            FicheMimo(mimo = mimo, onFermer = viewModel::fermerMimo)
         }
 
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(16.dp))

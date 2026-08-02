@@ -1,5 +1,14 @@
 # Changelog Sankai Life
 
+## 1.74.0 - 2 aout 2026
+
+- **Le portugais se prononce a l'europeenne.** Les modules declarent desormais
+  pt-PT, et une voix du Portugal est cherchee avant celle du Bresil.
+- **Les carres pales sur les rivieres et l'eau peu profonde sont supprimes** :
+  la variation par case dessinait un damier sur l'eau.
+- **On peut toucher un Mimo** pour savoir qui il est et ce que sa position
+  signale.
+
 ## 1.73.0 - 2 aout 2026
 
 - **Apercu avant construction.** Choisir un batiment montre son emprise sur la

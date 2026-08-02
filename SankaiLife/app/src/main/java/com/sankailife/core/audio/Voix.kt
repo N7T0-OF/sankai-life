@@ -36,8 +36,16 @@ class Voix(
     fun dire(texte: String, codeLangue: String, vitesse: String = "normale"): Boolean {
         val tts = moteur ?: return false
         if (!pret) return false
-        val locale = VoixEngine.locale(codeLangue) ?: return false
         val aDire = VoixEngine.aPrononcer(texte) ?: return false
+
+        // On prend la premiere locale reellement installee, pas la premiere
+        // demandee : sans voix portugaise du Portugal, le bresilien vaut mieux
+        // que le silence, et il faut le dire au moteur explicitement — sinon il
+        // choisit seul et on ne sait plus ce qu'on entend.
+        val locale = VoixEngine.candidats(codeLangue).firstOrNull { candidat ->
+            val etat = runCatching { tts.isLanguageAvailable(candidat) }.getOrNull()
+            etat != null && etat >= TextToSpeech.LANG_AVAILABLE
+        } ?: return false
 
         // LANG_MISSING_DATA et LANG_NOT_SUPPORTED sont négatifs ; les codes de
         // succès ne le sont pas. Ignorer ce retour ferait lire du portugais
@@ -72,9 +80,10 @@ class Voix(
     fun disponiblePour(codeLangue: String): Boolean {
         val tts = moteur ?: return false
         if (!pret) return false
-        val locale = VoixEngine.locale(codeLangue) ?: return false
-        val etat = runCatching { tts.isLanguageAvailable(locale) }.getOrNull() ?: return false
-        return etat >= TextToSpeech.LANG_AVAILABLE
+        return VoixEngine.candidats(codeLangue).any { candidat ->
+            val etat = runCatching { tts.isLanguageAvailable(candidat) }.getOrNull()
+            etat != null && etat >= TextToSpeech.LANG_AVAILABLE
+        }
     }
 
     fun arreter() {
