@@ -39,6 +39,17 @@ object SessionPlanEngine {
         val besoinAudio: Boolean = false,
         val besoinMicro: Boolean = false,
         /**
+         * Mots minimum au verso.
+         *
+         * Un texte à trous a besoin d'au moins deux mots pour qu'il en reste un
+         * après en avoir caché un ; une phrase à reconstruire, d'au moins
+         * trois, sans quoi il n'y a rien à remettre dans l'ordre. Le déclarer
+         * ici plutôt que de laisser l'exercice se dégrader silencieusement :
+         * annoncer « 2 texte à trous » et afficher deux saisies serait un
+         * mensonge sur la session.
+         */
+        val motsVersoMin: Int = 0,
+        /**
          * L'apprenant juge lui-même sa réponse : il n'y a pas d'échec.
          *
          * La distinction sert à choisir sur quoi finir une session. Une
@@ -53,8 +64,10 @@ object SessionPlanEngine {
         MULTIPLE_CHOICE("QCM", production = false, secondes = 15),
         MATCHING("Association", production = false, secondes = 40),
         TYPING("Écriture", production = true, secondes = 25),
-        SENTENCE_ORDER("Phrase à reconstruire", production = true, secondes = 30),
-        FILL_IN_THE_BLANK("Texte à trous", production = true, secondes = 22),
+        SENTENCE_ORDER("Phrase à reconstruire", production = true, secondes = 30,
+            motsVersoMin = 3),
+        FILL_IN_THE_BLANK("Texte à trous", production = true, secondes = 22,
+            motsVersoMin = 2),
         DICTATION("Dictée", production = true, secondes = 30, besoinAudio = true),
         LISTENING("Écoute", production = false, secondes = 25, besoinAudio = true),
         PRONUNCIATION("Prononciation", production = true, secondes = 25,
@@ -75,8 +88,31 @@ object SessionPlanEngine {
     val DISPONIBLES: Set<Type> = setOf(
         Type.FLASHCARD,
         Type.MULTIPLE_CHOICE,
-        Type.TYPING
+        Type.TYPING,
+        Type.FILL_IN_THE_BLANK,
+        Type.SENTENCE_ORDER
     )
+
+    /**
+     * Correspondance avec les formes que sait construire [ExerciceEngine].
+     *
+     * C'est **la** définition de « disponible » : un type sans forme n'a rien
+     * qui sache l'afficher. Ma première version n'en déclarait que trois alors
+     * que cinq fonctionnaient depuis longtemps — le texte à trous et la phrase
+     * à reconstruire existaient, marchaient, et n'étaient jamais programmés.
+     * Sous-déclarer est moins grave que sur-promettre, mais c'est le même
+     * défaut : un écart entre ce qu'on annonce et ce qui est.
+     */
+    fun forme(type: Type): com.sankailife.core.domain.engine.ExerciceEngine.Forme? = when (type) {
+        Type.MULTIPLE_CHOICE ->
+            com.sankailife.core.domain.engine.ExerciceEngine.Forme.RECONNAISSANCE
+        Type.TYPING -> com.sankailife.core.domain.engine.ExerciceEngine.Forme.SAISIE
+        Type.FILL_IN_THE_BLANK ->
+            com.sankailife.core.domain.engine.ExerciceEngine.Forme.TEXTE_A_TROUS
+        Type.SENTENCE_ORDER -> com.sankailife.core.domain.engine.ExerciceEngine.Forme.ORDRE
+        Type.FLASHCARD -> com.sankailife.core.domain.engine.ExerciceEngine.Forme.MEMOIRE
+        else -> null
+    }
 
     /** Une carte candidate, avec ce qui décide de sa place dans la session. */
     data class Carte(
@@ -84,6 +120,8 @@ object SessionPlanEngine {
         val aVerso: Boolean,
         /** Boîte de Leitner : plus elle est basse, plus la carte est fragile. */
         val boite: Int = 0,
+        /** Mots au verso : décide des exercices que la carte peut porter. */
+        val motsVerso: Int = 0,
         /** Ratée récemment. Ces cartes passent devant tout le reste. */
         val enErreur: Boolean = false,
         /** Dont la date de révision est passée. */
@@ -192,13 +230,16 @@ object SessionPlanEngine {
 
         if (exercices.isEmpty()) return Plan(moduleId, uniteId, emptyList(), 0)
 
-        val versoDe = cartes.filter { it.aVerso }.map { it.id }.toSet()
-        val aVerso = { id: Long -> id in versoDe }
+        val parId = cartes.associateBy { it.id }
+        val supporte = { id: Long, type: Type ->
+            val c = parId[id]
+            c != null && (!type.besoinVerso || c.aVerso) && c.motsVerso >= type.motsVersoMin
+        }
         return Plan(
             moduleId = moduleId,
             uniteId = uniteId,
             exercices = finir(
-                garantirRappelActif(exercices, utilisables, aVerso), utilisables, aVerso
+                garantirRappelActif(exercices, utilisables, supporte), utilisables, supporte
             ),
             minutesEstimees = ((secondes + 59) / 60).coerceAtLeast(1)
         )
@@ -218,7 +259,9 @@ object SessionPlanEngine {
         preferProduction: Boolean,
         alea: Random
     ): Type? {
-        val possibles = utilisables.filter { !it.besoinVerso || carte.aVerso }
+        val possibles = utilisables.filter {
+            (!it.besoinVerso || carte.aVerso) && carte.motsVerso >= it.motsVersoMin
+        }
         if (possibles.isEmpty()) return null
 
         // Deux fois le même exercice d'affilée se remarque immédiatement et
@@ -261,7 +304,7 @@ object SessionPlanEngine {
     private fun garantirRappelActif(
         exercices: List<Exercice>,
         utilisables: Set<Type>,
-        aVerso: (Long) -> Boolean
+        supporte: (Long, Type) -> Boolean
     ): List<Exercice> {
         if (exercices.any { it.type.production }) return exercices
         val premier = exercices.first()
@@ -270,7 +313,7 @@ object SessionPlanEngine {
         val suivant = exercices.getOrNull(1)?.type
         val actif = utilisables
             .filter {
-                it.production && it != suivant && (!it.besoinVerso || aVerso(premier.carteId))
+                it.production && it != suivant && supporte(premier.carteId, it)
             }
             .minByOrNull { it.secondes } ?: return exercices
         // On convertit le premier plutôt que d'en ajouter un : la durée annoncée
@@ -295,7 +338,7 @@ object SessionPlanEngine {
     private fun finir(
         exercices: List<Exercice>,
         utilisables: Set<Type>,
-        aVerso: (Long) -> Boolean
+        supporte: (Long, Type) -> Boolean
     ): List<Exercice> {
         if (exercices.size < 2) return exercices
         val dernier = exercices.last()
@@ -306,7 +349,7 @@ object SessionPlanEngine {
         val doux = utilisables
             .filter {
                 (!it.production || it.autoEvalue) && it != avantDernier &&
-                    (!it.besoinVerso || aVerso(dernier.carteId))
+                    supporte(dernier.carteId, it)
             }
             .minByOrNull { it.secondes } ?: return exercices
         return exercices.dropLast(1) + Exercice(doux, dernier.carteId)

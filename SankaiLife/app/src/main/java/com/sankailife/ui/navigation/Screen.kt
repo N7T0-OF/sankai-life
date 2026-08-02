@@ -27,6 +27,16 @@ sealed class Screen(val route: String) {
     object Parcours    : Screen("parcours/{profileId}") {
         fun createRoute(profileId: Long) = "parcours/$profileId"
     }
+    /**
+     * Une session guidee sur une unite precise.
+     *
+     * Distincte de Flashcards, qui reste la revision libre : la premiere fait
+     * composer la session par le planificateur, la seconde prend simplement les
+     * cartes dues. Les confondre obligerait a deviner l'intention.
+     */
+    object Session     : Screen("session/{profileId}/{uniteId}") {
+        fun createRoute(profileId: Long, uniteId: String) = "session/$profileId/$uniteId"
+    }
     object Challenges  : Screen("challenges")
     object Shop        : Screen("shop")
     object Profile     : Screen("profile")

@@ -1,5 +1,18 @@
 # Changelog Sankai Life
 
+## 1.62.0 - 2 aout 2026
+
+- **Ouvrir une unite lance la session composee**, pas la revision generique :
+  le planificateur choisit les cartes, leur ordre et la forme de chaque
+  exercice.
+- **Le texte a trous et la phrase a reconstruire reviennent dans les
+  sessions.** Ils fonctionnaient depuis longtemps et n'etaient jamais
+  programmes.
+- Chaque faute est desormais datee et rattachee a son exercice, ce qui
+  permettra d'expliquer une revision au lieu de l'imposer.
+- La regularite de la semaine se remplit avec les sessions reellement
+  terminees.
+
 ## 1.61.0 - 2 aout 2026
 
 - **L'Academie remplace le Mode Vie.** Une seule action est mise en avant :

@@ -73,6 +73,21 @@ object ExerciceEngine {
         ) : Exercice
     }
 
+    /**
+     * Les formes disponibles, nommées.
+     *
+     * Sert à en **demander** une précise. Sans cela, deux moteurs décideraient
+     * de la même chose : celui-ci choisit la forme d'après la maîtrise, et le
+     * planificateur de session choisit la sienne d'après la variété. Deux
+     * autorités sur une même décision finissent toujours par se contredire —
+     * ici, l'écran annoncerait « texte à trous » et afficherait une saisie.
+     *
+     * La répartition des rôles est donc : le planificateur décide **quelle
+     * forme**, ce moteur décide **comment la construire** et refuse quand la
+     * carte ne s'y prête pas.
+     */
+    enum class Forme { RECONNAISSANCE, TEXTE_A_TROUS, ORDRE, SAISIE, MEMOIRE }
+
     /** Un exercice à choix a besoin de trois leurres crédibles. */
     private const val LEURRES = 3
 
@@ -83,9 +98,20 @@ object ExerciceEngine {
      * ailleurs rendrait la bonne réponse reconnaissable au simple sujet, et
      * l'exercice ne testerait plus rien.
      */
+    /**
+     * @param forme forme demandée. `null` — le comportement d'origine —
+     *   laisse la maîtrise décider : on reconnaît avant de produire, et la
+     *   difficulté monte toute seule avec la boîte Leitner.
+     *
+     *   Quand une forme est demandée mais que la carte ne s'y prête pas — pas
+     *   assez de leurres, verso trop court — on **redescend** vers une forme
+     *   possible plutôt que d'échouer. Perdre une carte parce que son exercice
+     *   idéal est impraticable serait le pire des deux.
+     */
     fun construire(
         carte: FlashcardEngine.Carte,
         autres: List<FlashcardEngine.Carte>,
+        forme: Forme? = null,
         aleatoire: Random = Random.Default
     ): Exercice {
         val verso = carte.verso
@@ -116,35 +142,57 @@ object ExerciceEngine {
             .shuffled(aleatoire)
             .take(LEURRES)
 
-        return when {
-            // Cartes fraîches : reconnaître, si les leurres suffisent.
-            carte.box <= 1 && leurres.size == LEURRES -> Exercice.Reconnaissance(
-                carte, "Choisis la bonne réponse", carte.recto,
-                options = (leurres + verso).shuffled(aleatoire),
-                attendu = verso
-            )
+        val mots = decouperEnMots(verso)
 
+        // Ce que la carte permet réellement, indépendamment de ce qu'on veut.
+        val reconnaissancePossible = leurres.size == LEURRES
+        val trousPossible = mots.size >= 2
+        val ordrePossible = mots.size >= 3
+
+        fun reconnaissance() = Exercice.Reconnaissance(
+            carte, "Choisis la bonne réponse", carte.recto,
+            options = (leurres + verso).shuffled(aleatoire),
+            attendu = verso
+        )
+
+        fun trous(): Exercice {
+            val index = aleatoire.nextInt(mots.size)
+            return Exercice.TexteATrous(
+                carte, "Complète le mot manquant",
+                avant = mots.take(index).joinToString(" "),
+                apres = mots.drop(index + 1).joinToString(" "),
+                attendu = mots[index]
+            )
+        }
+
+        fun ordre() = Exercice.Ordre(
+            carte, "Remets la réponse dans l'ordre", carte.recto,
+            morceaux = mots.shuffled(aleatoire), attendu = verso
+        )
+
+        val saisie = Exercice.Saisie(carte, "Écris la réponse", carte.recto, verso)
+
+        // Forme demandée : on l'honore si la carte le permet, sinon on
+        // redescend vers la saisie, qui ne demande rien de la carte.
+        if (forme != null) {
+            return when (forme) {
+                Forme.RECONNAISSANCE -> if (reconnaissancePossible) reconnaissance() else saisie
+                Forme.TEXTE_A_TROUS -> if (trousPossible) trous() else saisie
+                Forme.ORDRE -> if (ordrePossible) ordre() else saisie
+                Forme.SAISIE -> saisie
+                Forme.MEMOIRE -> Exercice.Memoire(carte, "Souviens-toi")
+            }
+        }
+
+        // Sans demande, la maîtrise décide : on reconnaît avant de produire.
+        return when {
+            carte.box <= 1 && reconnaissancePossible -> reconnaissance()
             // Palier intermédiaire : compléter, ce qui demande de produire
             // sans avoir à tout restituer.
-            carte.box == 2 && decouperEnMots(verso).size >= 2 -> {
-                val mots = decouperEnMots(verso)
-                val index = aleatoire.nextInt(mots.size)
-                Exercice.TexteATrous(
-                    carte, "Complète le mot manquant",
-                    avant = mots.take(index).joinToString(" "),
-                    apres = mots.drop(index + 1).joinToString(" "),
-                    attendu = mots[index]
-                )
-            }
-
-            carte.box == 3 && decouperEnMots(verso).size >= 3 -> Exercice.Ordre(
-                carte, "Remets la réponse dans l'ordre", carte.recto,
-                morceaux = decouperEnMots(verso).shuffled(aleatoire),
-                attendu = verso
-            )
-
+            carte.box == 2 && trousPossible -> trous()
+            carte.box == 3 && ordrePossible -> ordre()
             // Carte acquise, ou leurres insuffisants : écrire la réponse.
-            else -> Exercice.Saisie(carte, "Écris la réponse", carte.recto, verso)
+            else -> saisie
         }
     }
 

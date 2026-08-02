@@ -28,7 +28,7 @@ class ExerciceEngineTest {
     @Test
     fun `une carte fraiche donne un QCM`() {
         val c = carte(1, "Capitale du Japon", "Tokyo", 0)
-        val ex = ExerciceEngine.construire(c, reservoir, aleatoire)
+        val ex = ExerciceEngine.construire(c, reservoir, aleatoire = aleatoire)
 
         assertTrue(ex is ExerciceEngine.Exercice.Reconnaissance)
         ex as ExerciceEngine.Exercice.Reconnaissance
@@ -41,7 +41,7 @@ class ExerciceEngineTest {
         // La progression reconnaissance → production est le cœur du système :
         // savoir choisir n'est pas savoir restituer.
         val c = carte(1, "Capitale du Japon", "Tokyo", 4)
-        val ex = ExerciceEngine.construire(c, reservoir, aleatoire)
+        val ex = ExerciceEngine.construire(c, reservoir, aleatoire = aleatoire)
         assertTrue(ex is ExerciceEngine.Exercice.Saisie)
     }
 
@@ -49,14 +49,14 @@ class ExerciceEngineTest {
     fun `sans leurres suffisants on bascule sur la saisie`() {
         // Un QCM à deux options se devine à pile ou face : mieux vaut écrire.
         val c = carte(1, "Capitale du Japon", "Tokyo", 0)
-        val ex = ExerciceEngine.construire(c, reservoir.take(1), aleatoire)
+        val ex = ExerciceEngine.construire(c, reservoir.take(1), aleatoire = aleatoire)
         assertTrue(ex is ExerciceEngine.Exercice.Saisie)
     }
 
     @Test
     fun `une carte d'une seule face devient un remise en ordre`() {
         val c = carte(1, "Continue meme si c'est lent", null, 0)
-        val ex = ExerciceEngine.construire(c, reservoir, aleatoire)
+        val ex = ExerciceEngine.construire(c, reservoir, aleatoire = aleatoire)
 
         assertTrue(ex is ExerciceEngine.Exercice.Ordre)
         ex as ExerciceEngine.Exercice.Ordre
@@ -66,14 +66,14 @@ class ExerciceEngineTest {
     @Test
     fun `une carte d'une seule face trop courte reste une carte memoire`() {
         val c = carte(1, "Respire", null, 0)
-        val ex = ExerciceEngine.construire(c, reservoir, aleatoire)
+        val ex = ExerciceEngine.construire(c, reservoir, aleatoire = aleatoire)
         assertTrue(ex is ExerciceEngine.Exercice.Memoire)
     }
 
     @Test
     fun `le texte a trous retire un seul mot de la reponse`() {
         val c = carte(1, "Phrase", "le chat dort sur le tapis", 2)
-        val ex = ExerciceEngine.construire(c, reservoir, aleatoire)
+        val ex = ExerciceEngine.construire(c, reservoir, aleatoire = aleatoire)
 
         assertTrue(ex is ExerciceEngine.Exercice.TexteATrous)
         ex as ExerciceEngine.Exercice.TexteATrous
@@ -88,7 +88,7 @@ class ExerciceEngineTest {
         // deux fois rendrait le QCM insoluble.
         val doublons = reservoir + carte(9, "Autre question", "Tokyo", 0)
         val c = carte(1, "Capitale du Japon", "Tokyo", 0)
-        val ex = ExerciceEngine.construire(c, doublons, aleatoire)
+        val ex = ExerciceEngine.construire(c, doublons, aleatoire = aleatoire)
 
         ex as ExerciceEngine.Exercice.Reconnaissance
         assertEquals(1, ex.options.count { it == "Tokyo" })
@@ -110,7 +110,7 @@ class ExerciceEngineTest {
         val exercice = ExerciceEngine.construire(
             carte,
             memeModule + autreModule,
-            aleatoire
+            aleatoire = aleatoire
         )
 
         // Deux leurres du bon module ne suffisent pas : le moteur préfère une
@@ -121,7 +121,7 @@ class ExerciceEngineTest {
     @Test
     fun `la correction accepte une faute de frappe en saisie`() {
         val c = carte(1, "Capitale du Portugal", "Lisbonne", 4)
-        val ex = ExerciceEngine.construire(c, reservoir, aleatoire)
+        val ex = ExerciceEngine.construire(c, reservoir, aleatoire = aleatoire)
         assertEquals(true, ExerciceEngine.corriger(ex, "Lisbone"))
         assertEquals(false, ExerciceEngine.corriger(ex, "Madrid"))
     }
@@ -129,7 +129,7 @@ class ExerciceEngineTest {
     @Test
     fun `la remise en ordre se corrige sur la phrase reconstituee`() {
         val c = carte(1, "Le chat dort sur le tapis", null, 0)
-        val ex = ExerciceEngine.construire(c, reservoir, aleatoire)
+        val ex = ExerciceEngine.construire(c, reservoir, aleatoire = aleatoire)
         assertEquals(true, ExerciceEngine.corriger(ex, "le chat dort sur le tapis"))
         assertEquals(false, ExerciceEngine.corriger(ex, "le tapis dort sur le chat"))
     }
@@ -139,7 +139,7 @@ class ExerciceEngineTest {
         // null et false doivent rester distincts : compter une carte non
         // corrigeable comme une erreur la renverrait injustement en boîte 0.
         val c = carte(1, "Respire", null, 0)
-        val ex = ExerciceEngine.construire(c, reservoir, aleatoire)
+        val ex = ExerciceEngine.construire(c, reservoir, aleatoire = aleatoire)
         assertNull(ExerciceEngine.corriger(ex, "peu importe"))
         assertNull(ExerciceEngine.reponseAttendue(ex))
     }
@@ -150,7 +150,7 @@ class ExerciceEngineTest {
         // session bloquée. Le test balaie tout l'intervalle.
         for (box in 0 until FlashcardEngine.NOMBRE_BOITES) {
             val c = carte(1, "Capitale du Japon", "Tokyo", box)
-            ExerciceEngine.construire(c, reservoir, aleatoire)
+            ExerciceEngine.construire(c, reservoir, aleatoire = aleatoire)
         }
     }
 }

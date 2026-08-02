@@ -46,7 +46,14 @@ import com.sankailife.ui.theme.sankaiColors
 fun FlashcardsScreen(
     profileId: Long,
     viewModel: FlashcardsViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    /**
+     * Unite du parcours, quand la session est guidee.
+     *
+     * Vide pour une revision libre : c'est alors la liste des cartes dues qui
+     * fait la session, comme avant.
+     */
+    uniteId: String = ""
 ) {
     val etat by viewModel.etat.collectAsState()
     val c = MaterialTheme.sankaiColors
@@ -54,7 +61,9 @@ fun FlashcardsScreen(
     // Voix du système, libérée automatiquement à la sortie de l'écran.
     val voix = rememberVoix()
 
-    LaunchedEffect(profileId) { viewModel.demarrer(profileId) }
+    LaunchedEffect(profileId, uniteId) {
+        viewModel.demarrer(profileId, uniteId.ifBlank { null })
+    }
 
     val progression by animateFloatAsState(etat.progression, label = "progression")
 

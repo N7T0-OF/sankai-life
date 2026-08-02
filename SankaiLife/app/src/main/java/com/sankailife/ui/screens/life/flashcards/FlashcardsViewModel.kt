@@ -10,6 +10,7 @@ import com.sankailife.core.data.repository.UserRepository
 import com.sankailife.core.domain.engine.ExerciceEngine
 import com.sankailife.core.domain.engine.ErreursEngine
 import com.sankailife.core.domain.engine.FlashcardEngine
+import com.sankailife.core.learning.domain.SessionPlanEngine.Type as TypeSession
 import com.sankailife.core.garden.data.GardenRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -59,12 +60,38 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
     val etat: StateFlow<EtatSession> = _etat.asStateFlow()
 
     private var profileId: Long = -1L
+    private var uniteId: String? = null
     private val cartesReintroduites = mutableSetOf<Long>()
 
-    fun demarrer(profileId: Long) {
-        if (this.profileId == profileId && !_etat.value.chargement) return
+    private val learningRepo =
+        com.sankailife.core.learning.data.LearningRepository(app.database)
+
+    /**
+     * Formes demandees par le plan de session, une par exercice.
+     *
+     * `null` laisse la maitrise decider, comme avant : c'est le comportement
+     * d'une revision libre, ou celui d'une carte reintroduite apres un echec.
+     */
+    private var formes: List<com.sankailife.core.domain.engine.ExerciceEngine.Forme?> =
+        emptyList()
+
+    /**
+     * Demarre une session.
+     *
+     * @param uniteId unite du parcours a travailler. Quand elle est fournie,
+     *   c'est le planificateur qui choisit les cartes **et** la forme de chaque
+     *   exercice ; sinon on retombe sur la revision libre, inchangee.
+     */
+    fun demarrer(profileId: Long, uniteId: String? = null) {
+        if (this.profileId == profileId && this.uniteId == uniteId &&
+            !_etat.value.chargement
+        ) return
         this.profileId = profileId
+        this.uniteId = uniteId
         cartesReintroduites.clear()
+        formes = emptyList()
+        typesJoues.clear()
+        sessionId = 0L
 
         viewModelScope.launch {
             val modeErreurs = profileId == PROFIL_ERREURS
@@ -111,7 +138,7 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
                 )
             }
 
-            val cartes = lignes.map(::carte)
+            var cartes = lignes.map(::carte)
             // Les leurres viennent de tout le module, pas seulement des cartes
             // dues : une session courte n'offrirait pas assez de propositions
             // crédibles, et l'exercice se dégraderait en saisie systématique.
@@ -126,6 +153,28 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
                 memoDao.getLinesOnce(profileId).map(::carte)
             }
 
+            // Session guidee : le plan decide de l'ordre, des repetitions et de
+            // la forme de chaque exercice. Il travaille sur toutes les cartes de
+            // l'unite, pas seulement celles qui sont dues — une unite qu'on
+            // ouvre doit se travailler, meme si rien n'est encore echu.
+            var uniteEnCours: Pair<Long, String>? = null
+            if (uniteId != null && !modeErreurs) {
+                val module = learningRepo.moduleDuProfil(profileId, creer = true)
+                val plan = module?.let { learningRepo.preparerSession(it, uniteId) }
+                if (plan != null && !plan.vide) {
+                    val toutes = memoDao.getLinesOnce(profileId).map(::carte)
+                        .associateBy { it.id }
+                    val suite = plan.exercices.mapNotNull { ex ->
+                        toutes[ex.carteId]?.let { it to ex.type }
+                    }
+                    cartes = suite.map { it.first }
+                    formes = suite.map {
+                        com.sankailife.core.learning.domain.SessionPlanEngine.forme(it.second)
+                    }
+                    uniteEnCours = module.id to uniteId
+                }
+            }
+
             _etat.value = EtatSession(
                 chargement = false,
                 nomModule = if (modeErreurs) "Mes erreurs"
@@ -137,18 +186,45 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
                     modeErreurs -> "Aucune carte ne te résiste pour l'instant"
                     else -> "Aucune carte à réviser pour l'instant"
                 },
-                exercice = cartes.firstOrNull()?.let { exercicePour(it) }
+                exercice = cartes.firstOrNull()?.let { exercicePour(it, 0) }
             )
+            uniteEnCours?.let { (moduleId, unite) ->
+                sessionId = learningRepo.ouvrirSession(moduleId, unite)
+            }
         }
     }
 
     /** Toutes les cartes du module, pour tirer des leurres crédibles. */
     private var reservoirLeurres: List<FlashcardEngine.Carte> = emptyList()
 
-    private fun exercicePour(carte: FlashcardEngine.Carte): ExerciceEngine.Exercice =
+    /** Identifiant de la session enregistree, 0 quand il n'y en a pas. */
+    private var sessionId: Long = 0L
+
+    /** Derniere reponse saisie, conservee pour decrire une faute. */
+    private var derniereReponse: String = ""
+
+    /** Types reellement joues, dans l'ordre. Sert a varier la session suivante. */
+    private val typesJoues = mutableListOf<TypeSession>()
+
+    /** Type de session correspondant a l'exercice affiche. */
+    private fun typeJoue(
+        exercice: ExerciceEngine.Exercice?
+    ): TypeSession = when (exercice) {
+        is ExerciceEngine.Exercice.Reconnaissance -> TypeSession.MULTIPLE_CHOICE
+        is ExerciceEngine.Exercice.Saisie -> TypeSession.TYPING
+        is ExerciceEngine.Exercice.TexteATrous -> TypeSession.FILL_IN_THE_BLANK
+        is ExerciceEngine.Exercice.Ordre -> TypeSession.SENTENCE_ORDER
+        else -> TypeSession.FLASHCARD
+    }
+
+    private fun exercicePour(
+        carte: FlashcardEngine.Carte,
+        index: Int
+    ): ExerciceEngine.Exercice =
         ExerciceEngine.construire(
             carte = carte,
-            autres = reservoirLeurres.filter { it.id != carte.id }
+            autres = reservoirLeurres.filter { it.id != carte.id },
+            forme = formes.getOrNull(index)
         )
 
     /**
@@ -164,6 +240,7 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
         if (etat.correction != null) return
 
         val juste = ExerciceEngine.corriger(exercice, reponse) ?: return
+        derniereReponse = reponse
         _etat.value = etat.copy(
             correction = juste,
             versoVisible = true,
@@ -206,6 +283,27 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
                 val recompense = recompenseSession()
                 if (recompense.xpParCarte > 0) userRepo.addXp(recompense.xpParCarte)
 
+                // Trace datee de la faute. Les boites de Leitner disent qu'une
+                // carte resiste ; elles ne disent ni quand ni sur quel exercice.
+                // C'est cette difference qui permettra d'expliquer une revision
+                // au lieu de l'imposer.
+                //
+                // La colonne moduleId recoit l'identifiant du profil Memo : un
+                // module enveloppe exactement un profil, et le profil existe
+                // toujours alors que le module peut ne pas encore avoir ete cree.
+                val formeJouee = etat.exercice
+                typesJoues += typeJoue(formeJouee)
+                if (reussi) {
+                    learningRepo.oublierErreurs(carte.id)
+                } else if (formeJouee !is ExerciceEngine.Exercice.Memoire) {
+                    learningRepo.noterErreur(
+                        moduleId = carte.moduleId,
+                        carteId = carte.id,
+                        type = typeJoue(formeJouee),
+                        reponseDonnee = derniereReponse
+                    )
+                }
+
                 // Une carte ratée revient une fois en fin de session. Une seule
                 // reprise empêche de fabriquer une session infinie (et de l'XP
                 // infinie) en échouant volontairement.
@@ -213,6 +311,10 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
                     jugement == FlashcardEngine.Jugement.A_REVOIR &&
                     cartesReintroduites.add(carte.id)
                 ) {
+                    // La carte reintroduite n'herite pas d'une forme imposee :
+                    // la reproposer sous le meme exercice qu'on vient de rater
+                    // ferait rejouer l'echec a l'identique.
+                    formes = formes + listOf(null)
                     etat.cartes + carte.copy(box = nouvelleBoite)
                 } else etat.cartes
 
@@ -230,7 +332,7 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
                         correction = null,
                         reponseAttendue = null,
                         reponseEnCours = false,
-                        exercice = cartes[suivant].let { exercicePour(it) },
+                        exercice = cartes[suivant].let { exercicePour(it, suivant) },
                         reussies = etat.reussies + if (reussi) 1 else 0,
                         ratees = etat.ratees + if (reussi) 0 else 1
                     )
@@ -242,6 +344,24 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     private suspend fun terminerSession(reussies: Int, ratees: Int) {
+        // Cloture de la session enregistree, quand il y en a une.
+        //
+        // C'est elle qui alimente deux choses visibles : la regularite de la
+        // semaine sur l'accueil, et la variete des sessions suivantes — sans
+        // savoir ce qui vient d'etre joue, le planificateur reproposerait les
+        // memes exercices demain.
+        if (sessionId > 0L) {
+            runCatching {
+                learningRepo.cloturerSession(
+                    id = sessionId,
+                    faits = reussies + ratees,
+                    reussis = reussies,
+                    types = typesJoues.toList()
+                )
+            }
+            sessionId = 0L
+        }
+
         val recompense = recompenseSession()
         if (recompense.xpFin > 0) userRepo.addXp(recompense.xpFin)
         if (recompense.piecesFin > 0) userRepo.addCoins(recompense.piecesFin)

@@ -12,9 +12,12 @@ class SessionPlanEngineTest {
     private fun cartes(
         n: Int,
         aVerso: Boolean = true,
-        boite: Int = 1
+        boite: Int = 1,
+        motsVerso: Int = 4
     ) = (0 until n).map {
-        SessionPlanEngine.Carte(id = it.toLong(), aVerso = aVerso, boite = boite)
+        SessionPlanEngine.Carte(
+            id = it.toLong(), aVerso = aVerso, boite = boite, motsVerso = motsVerso
+        )
     }
 
     private fun composer(
@@ -152,6 +155,40 @@ class SessionPlanEngineTest {
         plan.exercices.groupingBy { it.carteId }.eachCount().forEach { (id, n) ->
             assertTrue("Carte $id vue $n fois", n <= SessionPlanEngine.PASSAGES_PAR_CARTE)
         }
+    }
+
+    @Test
+    fun `chaque type disponible sait se construire`() {
+        // « Disponible » ne veut rien dire sans une forme qui sache l'afficher.
+        SessionPlanEngine.DISPONIBLES.forEach { type ->
+            assertTrue(
+                "$type est propose mais aucune forme ne sait le construire",
+                SessionPlanEngine.forme(type) != null
+            )
+        }
+    }
+
+    @Test
+    fun `aucun type constructible n'est oublie`() {
+        // L'erreur inverse, et je l'ai faite : le texte a trous et la phrase a
+        // reconstruire fonctionnaient depuis longtemps et n'etaient jamais
+        // programmes, parce que DISPONIBLES n'en declarait que trois.
+        Type.entries.filter { SessionPlanEngine.forme(it) != null }.forEach { type ->
+            assertTrue(
+                "$type sait se construire mais n'est jamais propose",
+                type in SessionPlanEngine.DISPONIBLES
+            )
+        }
+    }
+
+    @Test
+    fun `une carte trop courte ne recoit pas un exercice qui exige des mots`() {
+        // Sinon la session annonce « 2 texte a trous » et affiche deux saisies.
+        val plan = composer(cartes(10, motsVerso = 1), minutes = 6)
+        assertTrue(
+            "Un exercice exige plus de mots que la carte n'en a",
+            plan.exercices.all { it.type.motsVersoMin <= 1 }
+        )
     }
 
     // --- Priorites ------------------------------------------------------------

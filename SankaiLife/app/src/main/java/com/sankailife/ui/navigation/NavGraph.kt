@@ -90,7 +90,7 @@ fun SankaiNavGraph() {
         // Le jardin masque la navigation de l'app : c'est un mode isolé, pas
         // un onglet de plus. L'île suivra la même règle.
         Screen.Garden.route, Screen.Island.route,
-        Screen.Parcours.route
+        Screen.Parcours.route, Screen.Session.route
     )
     val showBottom = currentRoute !in noBottomBarRoutes
 
@@ -151,12 +151,8 @@ fun SankaiNavGraph() {
                     profileId = profileId,
                     viewModel = vm,
                     onBack = { navController.popBackStack() },
-                    // Une unite ouvre pour l'instant la session de flashcards
-                    // existante : les exercices varies arrivent a l'etape
-                    // suivante, et une unite qui ne s'ouvrirait sur rien serait
-                    // pire que celle qui s'ouvre sur ce qui marche deja.
-                    onOuvrirUnite = {
-                        navController.navigate(Screen.Flashcards.createRoute(profileId))
+                    onOuvrirUnite = { uniteId ->
+                        navController.navigate(Screen.Session.createRoute(profileId, uniteId))
                     }
                 )
             }
@@ -184,6 +180,19 @@ fun SankaiNavGraph() {
                 val profileId = backEntry.arguments?.getString("profileId")?.toLongOrNull() ?: -1L
                 val vm: MemoViewModel = viewModel(factory = MemoViewModel.factory(app))
                 MemoEditorScreen(profileId = profileId, viewModel = vm, onBack = { navController.popBackStack() })
+            }
+            // Session guidee : memes ecrans que la revision libre, mais les
+            // cartes et la forme de chaque exercice viennent du planificateur.
+            composable(Screen.Session.route) { backEntry ->
+                val profileId = backEntry.arguments?.getString("profileId")?.toLongOrNull() ?: -1L
+                val uniteId = backEntry.arguments?.getString("uniteId").orEmpty()
+                val vm: FlashcardsViewModel = viewModel(factory = FlashcardsViewModel.factory(app))
+                FlashcardsScreen(
+                    profileId = profileId,
+                    uniteId = uniteId,
+                    viewModel = vm,
+                    onBack = { navController.popBackStack() }
+                )
             }
             composable(Screen.Flashcards.route) { backEntry ->
                 val profileId = backEntry.arguments?.getString("profileId")?.toLongOrNull() ?: -1L

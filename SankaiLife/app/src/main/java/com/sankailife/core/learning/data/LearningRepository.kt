@@ -136,6 +136,12 @@ class LearningRepository(
             SessionPlanEngine.Carte(
                 id = ligne.id,
                 aVerso = verso != null,
+                // Compté ici et non deviné plus tard : c'est ce qui décide
+                // qu'une carte peut porter un texte à trous ou une phrase à
+                // reconstruire, donc ce que la session peut honnêtement
+                // annoncer.
+                motsVerso = verso?.trim()?.split(Regex("\\s+"))
+                    ?.count { it.isNotBlank() } ?: 0,
                 boite = ligne.box,
                 enErreur = id in enErreur,
                 due = ligne.nextReviewAtMillis <= maintenant
