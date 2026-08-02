@@ -92,6 +92,11 @@ fun IslandScreen(
     val ambiance by viewModel.ambiance.collectAsState()
     val meteo by viewModel.meteo.collectAsState()
     val intensitePluie by viewModel.intensitePluie.collectAsState()
+    val mimos by viewModel.mimos.collectAsState()
+    val mimosPlaces by viewModel.mimosPlaces.collectAsState()
+    val arbres by viewModel.arbres.collectAsState()
+    val cultures by viewModel.cultures.collectAsState()
+    val equipeOuverte by viewModel.equipeOuverte.collectAsState()
 
     // Rendu météo construit ici, comme au Jardin : c'est un calcul pur qui ne
     // dépend que de l'heure et du jour, pas d'un état persistant.
@@ -183,6 +188,9 @@ fun IslandScreen(
                 onVueChangee = { vueVisible = it },
                 niveau = utilisateur.level,
                 pieces = utilisateur.coins,
+                arbres = arbres,
+                mimos = mimosPlaces,
+                cultures = cultures,
                 onZoom = viewModel::definirZoom,
                 onToucher = viewModel::selectionner,
                 modifier = Modifier.fillMaxSize()
@@ -246,6 +254,9 @@ fun IslandScreen(
                 IconButton(onClick = { viewModel.basculerMiniCarte() }) {
                     Text("🗺️", fontSize = 20.sp)
                 }
+                IconButton(onClick = { viewModel.ouvrirEquipe() }) {
+                    Text("🧑‍🌾", fontSize = 20.sp)
+                }
                 IconButton(onClick = { viewModel.ouvrirStock() }) {
                     Text("📦", fontSize = 20.sp)
                 }
@@ -304,6 +315,18 @@ fun IslandScreen(
             )
         }
 
+        if (equipeOuverte) {
+            PanneauEquipe(
+                mimos = mimos,
+                places = mimosPlaces,
+                batiments = batiments,
+                pieces = utilisateur.coins,
+                prixDe = viewModel::prixEmbauche,
+                onEmbaucher = viewModel::embaucher,
+                onFermer = viewModel::fermerEquipe
+            )
+        }
+
         if (stockOuvert) {
             PanneauStock(
                 stock = stock,
@@ -328,6 +351,9 @@ private fun CarteIle(
     onVueChangee: (androidx.compose.ui.geometry.Rect) -> Unit,
     niveau: Int,
     pieces: Int,
+    arbres: List<com.sankailife.core.island.domain.IslandForetEngine.Arbre>,
+    mimos: List<com.sankailife.core.island.domain.IslandMimoMondeEngine.Place>,
+    cultures: Map<Int, com.sankailife.core.garden.domain.CropGrowthEngine.Etat>,
     onZoom: (Float) -> Unit,
     onToucher: (Int, Int) -> Unit,
     modifier: Modifier = Modifier
@@ -335,16 +361,6 @@ private fun CarteIle(
     val densite = LocalDensity.current
     val textures = rememberTexturesIle()
 
-    // Découpage des bois en arbres : calculé une fois par île, jamais par
-    // frame. C'est du parcours de grille, pas du rendu.
-    val arbres = remember(ile.seed, ile.largeur) {
-        com.sankailife.core.island.domain.IslandForetEngine.decouper(
-            largeur = ile.largeur,
-            hauteur = ile.hauteur
-        ) { x, y ->
-            ile.type(x, y) == com.sankailife.core.island.domain.IslandTileType.FOREST
-        }
-    }
     var camera by remember { mutableStateOf(Offset.Zero) }
     var initialisee by remember { mutableStateOf(false) }
     var tailleVue by remember { mutableStateOf(IntOffset.Zero) }
@@ -509,7 +525,8 @@ private fun CarteIle(
             dessinerIle(
                 ile = ile, camera = camera, pas = pas,
                 parcelles = parcelles.keys, batiments = batiments,
-                parcellesDetail = parcelles, textures = textures, arbres = arbres
+                parcellesDetail = parcelles, textures = textures, arbres = arbres,
+                mimos = mimos, cultures = cultures
             )
         }
     }

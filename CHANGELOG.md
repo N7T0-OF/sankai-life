@@ -1,5 +1,18 @@
 # Changelog Sankai Life
 
+## 1.60.0 - 2 aout 2026
+
+- **Les plantes se voient enfin pousser sur l'Ile.** Semer puis arroser ne
+  changeait rien a l'ecran : la parcelle restait un rectangle de terre du semis
+  a la recolte. Toute la boucle du jeu n'avait aucun retour visible.
+- **On peut de nouveau embaucher des Mimos.** L'embauche n'existait plus que
+  sur l'ecran du Jardin, devenu inatteignable : plus personne ne pouvait
+  recruter le premier employe.
+- Les Mimos sont dessines sur l'ile, avec leur metier et ce qu'ils signalent.
+- Seuls l'Arroseur et le Recolteur sont proposes : ce sont les deux seuls
+  metiers que l'ile sait faire travailler, et vendre les autres serait vendre
+  un objet sans effet.
+
 ## 1.59.0 - 2 aout 2026
 
 - **L'ocean, l'eau peu profonde et la plage ont enfin une texture.** Elles sont

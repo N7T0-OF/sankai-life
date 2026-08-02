@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -79,6 +80,168 @@ class IslandViewModel(application: Application) : AndroidViewModel(application) 
     /** Récoltes entreposées. */
     val stock: StateFlow<List<IslandStockEntity>> = depot.observerStock()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    private val battement = kotlinx.coroutines.flow.flow {
+        while (true) {
+            emit(System.currentTimeMillis())
+            kotlinx.coroutines.delay(60_000L)
+        }
+    }
+
+    /**
+     * Où en est chaque culture, par clé de parcelle.
+     *
+     * Calculé ici plutôt que dans le `Canvas` : c'est une règle de jeu, pas du
+     * dessin, et deux affichages en dépendent — le sprite de la plante et le
+     * placement des Mimos. Deux calculs séparés finiraient par ne plus dire la
+     * même chose, et on verrait un Mimo réclamer de l'eau pour une plante
+     * affichée mûre.
+     *
+     * La fiche de parcelle, elle, garde son propre calcul : elle affiche un
+     * temps restant, qui doit être juste à la seconde où on l'ouvre.
+     *
+     * Rafraîchi à la minute : une plante ne change pas d'aspect plus vite, et
+     * recalculer par frame serait du travail jeté.
+     */
+    val cultures: StateFlow<Map<Int, com.sankailife.core.garden.domain.CropGrowthEngine.Etat>> =
+        kotlinx.coroutines.flow.combine(parcelles, battement) { cases, maintenant ->
+            cases.values.mapNotNull { p ->
+                val graine = com.sankailife.core.garden.domain.ALL_SEEDS
+                    .firstOrNull { it.id == p.graineId } ?: return@mapNotNull null
+                p.cle to com.sankailife.core.garden.domain.CropGrowthEngine.etat(
+                    seed = graine,
+                    sol = com.sankailife.core.garden.domain.SoilType.parId(p.solId),
+                    minutesCumulees = p.minutesCumulees,
+                    minutesDepuisArrosage = (maintenant - p.dernierArrosageMillis) / 60_000L
+                )
+            }.toMap()
+        }
+            .flowOn(Dispatchers.Default)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
+    // --- Mimos ---------------------------------------------------------------
+    //
+    // Les Mimos sont ceux du joueur, pas ceux d'un lieu : même table, même
+    // équipe, comme la réserve d'eau. Ils étaient devenus inaccessibles quand
+    // l'île a remplacé le Jardin — l'embauche n'existait que sur l'écran
+    // disparu, et le système entier était donc mort sans que rien ne le dise.
+
+    private val jardin = com.sankailife.core.garden.data.GardenRepository(app.database, userRepo)
+
+    /** L'équipe employée, dans l'ordre d'embauche. */
+    val mimos: StateFlow<List<com.sankailife.core.garden.data.GardenMimoEntity>> =
+        jardin.mimosFlow
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Le panneau d'équipe est-il ouvert ? */
+    private val _equipeOuverte = MutableStateFlow(false)
+    val equipeOuverte: StateFlow<Boolean> = _equipeOuverte.asStateFlow()
+
+    fun ouvrirEquipe() { _equipeOuverte.value = true }
+    fun fermerEquipe() { _equipeOuverte.value = false }
+
+    /** Prix du prochain Mimo de ce métier, qui monte avec le nombre employés. */
+    fun prixEmbauche(type: com.sankailife.core.garden.domain.MimoEngine.Type): Int =
+        jardin.coutEmbauche(type, mimos.value.count { it.type == type.name })
+
+    fun embaucher(type: com.sankailife.core.garden.domain.MimoEngine.Type) {
+        viewModelScope.launch {
+            _message.value = if (jardin.embaucherMimo(type)) {
+                "${type.emoji} ${type.libelle} embauché"
+            } else {
+                "Pas assez de pièces pour embaucher un ${type.libelle.lowercase()}"
+            }
+        }
+    }
+
+    /**
+     * Découpage des bois en arbres.
+     *
+     * Calculé une fois par île et mémorisé : c'est un parcours de 64 × 64 cases
+     * qui ne dépend que du terrain, et le refaire à chaque changement de
+     * parcelle serait du travail jeté.
+     */
+    private var arbresMemo:
+        Pair<Long, List<com.sankailife.core.island.domain.IslandForetEngine.Arbre>>? = null
+
+    private fun arbresDe(ile: IslandGenerator.Ile):
+        List<com.sankailife.core.island.domain.IslandForetEngine.Arbre> {
+        arbresMemo?.let { (seed, liste) -> if (seed == ile.seed) return liste }
+        val liste = com.sankailife.core.island.domain.IslandForetEngine.decouper(
+            largeur = ile.largeur, hauteur = ile.hauteur
+        ) { x, y -> ile.type(x, y) == IslandTileType.FOREST }
+        arbresMemo = ile.seed to liste
+        return liste
+    }
+
+    /** Les arbres à dessiner. */
+    val arbres: StateFlow<List<com.sankailife.core.island.domain.IslandForetEngine.Arbre>> =
+        etat.map { it.ile?.let(::arbresDe) ?: emptyList() }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    private var casesArbresMemo: Pair<Long, Set<Pair<Int, Int>>>? = null
+
+    private fun casesArbresDe(ile: IslandGenerator.Ile): Set<Pair<Int, Int>> {
+        casesArbresMemo?.let { (seed, cases) -> if (seed == ile.seed) return cases }
+        val cases = com.sankailife.core.island.domain.IslandForetEngine
+            .casesReservees(arbresDe(ile))
+        casesArbresMemo = ile.seed to cases
+        return cases
+    }
+
+    /**
+     * Où se tiennent les Mimos.
+     *
+     * Ici et non dans l'écran, parce que deux consommateurs en ont besoin : le
+     * dessin de l'île et le panneau d'équipe. Le calculer dans le `Canvas`
+     * obligerait le panneau à le refaire, et les deux finiraient par diverger —
+     * un Mimo affiché « arrose » dans la liste et posé ailleurs sur la carte.
+     */
+    val mimosPlaces: StateFlow<List<com.sankailife.core.island.domain.IslandMimoMondeEngine.Place>> =
+        kotlinx.coroutines.flow.combine(
+            etat, parcelles, batiments, mimos, cultures
+        ) { etatIle, cases, batis, equipe, pousses ->
+            val ile = etatIle.ile ?: return@combine emptyList()
+            if (equipe.isEmpty()) return@combine emptyList()
+
+            val casesArbres = casesArbresDe(ile)
+            val casesBaties = batis.flatMap { b ->
+                IslandBuildingEngine.Type.parId(b.type)
+                    ?.let { IslandBuildingEngine.casesOccupees(it, b.origineX, b.origineY) }
+                    ?: emptyList()
+            }.toSet()
+
+            com.sankailife.core.island.domain.IslandMimoMondeEngine.placer(
+                mimos = equipe.mapNotNull { m ->
+                    com.sankailife.core.garden.domain.MimoEngine.Type.parNom(m.type)?.let {
+                        com.sankailife.core.island.domain.IslandMimoMondeEngine
+                            .Mimo(id = m.id, nom = m.nom, type = it)
+                    }
+                },
+                parcelles = cases.values.map { p ->
+                    val croissance = pousses[p.cle]
+                    com.sankailife.core.island.domain.IslandMimoMondeEngine.Parcelle(
+                        x = p.x, y = p.y,
+                        aSoif = croissance?.besoinEau ?: false,
+                        prete = croissance?.prete ?: false
+                    )
+                },
+                // Les Mimos dorment quand l'île dort : même horloge que le ciel.
+                faitJour = com.sankailife.core.garden.domain.DayNightEngine.phase() !=
+                    com.sankailife.core.garden.domain.DayNightEngine.Phase.NUIT,
+                repli = ile.ponton?.let { it.x to it.y }
+            ) { x, y ->
+                val type = ile.type(x, y)
+                type.franchissable &&
+                    (x to y) !in casesArbres &&
+                    (x to y) !in casesBaties &&
+                    // Jamais sur une parcelle achetée : un Mimo planté sur une
+                    // culture cache exactement ce qu'on est venu regarder.
+                    (y * ile.largeur + x) !in cases
+            }
+        }
+            .flowOn(Dispatchers.Default)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /** Le panneau de stock est-il ouvert ? */
     private val _stockOuvert = MutableStateFlow(false)
@@ -152,12 +315,6 @@ class IslandViewModel(application: Application) : AndroidViewModel(application) 
      * Le battement est d'une minute : plus fin, l'écran recomposerait en
      * continu pour un ciel qui bouge à peine.
      */
-    private val battement = kotlinx.coroutines.flow.flow {
-        while (true) {
-            emit(System.currentTimeMillis())
-            kotlinx.coroutines.delay(60_000L)
-        }
-    }
 
     val ambiance: StateFlow<com.sankailife.core.garden.domain.LightingEngine.Ambiance> =
         battement.map { com.sankailife.core.garden.domain.LightingEngine.ambiance() }
