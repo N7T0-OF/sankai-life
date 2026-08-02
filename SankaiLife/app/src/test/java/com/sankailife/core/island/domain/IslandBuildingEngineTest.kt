@@ -207,6 +207,71 @@ class IslandBuildingEngineTest {
         assertEquals(2, Type.PORT.hauteur)
     }
 
+    // --- Chantier -------------------------------------------------------------
+
+    @Test
+    fun `un batiment en travaux ne rend pas service`() {
+        // C'est la seule chose qui rend les etapes autre chose qu'une
+        // decoration : un magasin en travaux ne vend pas.
+        val fin = 10_000_000L
+        assertFalse(IslandBuildingEngine.enService(fin, maintenant = fin - 1L))
+        assertTrue(IslandBuildingEngine.enService(fin, maintenant = fin))
+        assertTrue(IslandBuildingEngine.enService(fin, maintenant = fin + 5_000L))
+    }
+
+    @Test
+    fun `un batiment sans chantier est considere termine`() {
+        // C'est l'etat de ceux poses avant l'existence des chantiers : ils ne
+        // doivent pas se retrouver en travaux apres une mise a jour.
+        assertTrue(IslandBuildingEngine.enService(0L, maintenant = 1L))
+        assertEquals(1f, IslandBuildingEngine.avancement(0L, 60L, 1L), 0.0001f)
+        assertEquals(0L, IslandBuildingEngine.minutesRestantes(0L, 1L))
+    }
+
+    @Test
+    fun `l'avancement va de zero a un`() {
+        val duree = 60L
+        val fin = duree * 60_000L
+        assertEquals(0f, IslandBuildingEngine.avancement(fin, duree, 0L), 0.01f)
+        assertEquals(0.5f, IslandBuildingEngine.avancement(fin, duree, fin / 2), 0.01f)
+        assertEquals(1f, IslandBuildingEngine.avancement(fin, duree, fin), 0.01f)
+        // Au-dela de la fin, on reste a 1 plutot que de depasser.
+        assertEquals(1f, IslandBuildingEngine.avancement(fin, duree, fin * 3), 0.0001f)
+    }
+
+    @Test
+    fun `les cinq etapes se suivent dans l'ordre`() {
+        val ordre = listOf(
+            IslandBuildingEngine.Etape.FONDATIONS,
+            IslandBuildingEngine.Etape.CHARPENTE,
+            IslandBuildingEngine.Etape.TOITURE,
+            IslandBuildingEngine.Etape.FINITIONS,
+            IslandBuildingEngine.Etape.OUVERT
+        )
+        val vues = listOf(0f, 0.3f, 0.6f, 0.8f, 1f).map { IslandBuildingEngine.etape(it) }
+        assertEquals(ordre, vues)
+    }
+
+    @Test
+    fun `le temps restant n'annonce jamais zero avant la fin`() {
+        // Afficher « 0 min » sur un chantier en cours ferait croire a un blocage.
+        val fin = 100_000L
+        assertTrue(IslandBuildingEngine.minutesRestantes(fin, fin - 1L) >= 1L)
+        assertEquals(0L, IslandBuildingEngine.minutesRestantes(fin, fin))
+    }
+
+    @Test
+    fun `un chantier dure d'autant plus que le batiment coute cher`() {
+        // Un batiment cher se merite deux fois : en pieces et en patience.
+        val tries = Type.entries.sortedBy { it.prix }
+        var precedent = 0L
+        tries.forEach {
+            assertTrue("${it.libelle} : chantier plus court qu'un moins cher",
+                it.chantierMinutes >= precedent)
+            precedent = it.chantierMinutes
+        }
+    }
+
     // --- Catalogue ------------------------------------------------------------
 
     @Test

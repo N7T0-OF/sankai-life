@@ -209,11 +209,18 @@ fun DrawScope.dessinerIle(
 
     // Les bâtiments, dessinés sur toute leur emprise et non case par case :
     // un bâtiment 2 × 2 est un objet, pas quatre carrés voisins.
+    val maintenant = System.currentTimeMillis()
     batiments.forEach { batiment ->
         val type = com.sankailife.core.island.domain.IslandBuildingEngine.Type
             .parId(batiment.type) ?: return@forEach
+
+        // Un chantier se distingue d'un bâtiment fini : sinon on croit avoir
+        // construit et on s'étonne que rien ne fonctionne.
+        val fini = com.sankailife.core.island.domain.IslandBuildingEngine
+            .enService(batiment.chantierFinMillis, maintenant)
+
         drawRect(
-            color = Color(0xFF8D6E45),
+            color = if (fini) Color(0xFF8D6E45) else Color(0xFF6B5B46),
             topLeft = Offset(
                 camera.x + batiment.origineX * pas,
                 camera.y + batiment.origineY * pas
@@ -229,6 +236,22 @@ fun DrawScope.dessinerIle(
             size = Size(type.largeur * pas, type.hauteur * pas),
             style = Stroke(width = (pas * 0.08f).coerceIn(1f, 4f))
         )
+
+        // Avancement, dessiné comme une bande qui monte : on voit d'un coup
+        // d'œil où en est le chantier sans ouvrir la fiche.
+        if (!fini) {
+            val avancement = com.sankailife.core.island.domain.IslandBuildingEngine
+                .avancement(batiment.chantierFinMillis, type.chantierMinutes, maintenant)
+            val hauteur = type.hauteur * pas * avancement
+            drawRect(
+                color = Color(0xFFFFD54F).copy(alpha = 0.45f),
+                topLeft = Offset(
+                    camera.x + batiment.origineX * pas,
+                    camera.y + (batiment.origineY + type.hauteur) * pas - hauteur
+                ),
+                size = Size(type.largeur * pas, hauteur)
+            )
+        }
     }
 
     // Les arbres, posés sur le terrain.

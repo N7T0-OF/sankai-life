@@ -1,5 +1,14 @@
 # Changelog Sankai Life
 
+## 1.52.0 - 2 aout 2026
+
+- **Les batiments se construisent au lieu d'apparaitre.** Cinq etapes visibles,
+  de trente a quatre-vingt-dix minutes selon le prix. Une bande doree montre
+  l'avancement sur la carte, la fiche annonce l'etape et le temps restant.
+- **Un batiment en travaux ne rend aucun service** : la Boutique n'ameliore pas
+  encore le prix, le Depot n'agrandit pas encore le stock. Sans cela les etapes
+  n'auraient ete qu'une animation.
+
 ## 1.51.0 - 2 aout 2026
 
 - **L'ancienne Boutique est de retour** : onglets Coffres / Jardin /

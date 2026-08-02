@@ -27,10 +27,19 @@ object IslandBuildingEngine {
         val prix: Int,
         val niveauRequis: Int,
         /** Doit être posé au bord de l'eau. */
-        val cotier: Boolean = false
+        val cotier: Boolean = false,
+        /**
+         * Durée du chantier, en minutes.
+         *
+         * Proportionnelle au prix : un bâtiment cher doit se mériter deux fois,
+         * en pièces et en patience. Volontairement courte à l'échelle d'un jeu
+         * qu'on ouvre quelques minutes par jour — attendre trois jours pour une
+         * Boutique ferait abandonner avant d'avoir vu à quoi elle sert.
+         */
+        val chantierMinutes: Long = 30L
     ) {
-        BOUTIQUE("boutique", "Boutique", "🏪", 2, 2, 500, 1),
-        DEPOT("depot", "Dépôt", "📦", 2, 2, 300, 2),
+        BOUTIQUE("boutique", "Boutique", "🏪", 2, 2, 500, 1, chantierMinutes = 45L),
+        DEPOT("depot", "Dépôt", "📦", 2, 2, 300, 2, chantierMinutes = 30L),
 
         /**
          * Le Port doit toucher l'eau. C'est la seule contrainte de terrain
@@ -38,10 +47,10 @@ object IslandBuildingEngine {
          * des terres n'aurait aucun sens même sur un emplacement par ailleurs
          * valide.
          */
-        PORT("port", "Port", "⚓", 3, 2, 900, 4, cotier = true),
+        PORT("port", "Port", "⚓", 3, 2, 900, 4, cotier = true, chantierMinutes = 90L),
 
         /** Fait travailler les Mimos davantage pendant une absence. */
-        ATELIER("atelier", "Atelier Mimo", "🛠️", 2, 2, 750, 6);
+        ATELIER("atelier", "Atelier Mimo", "🛠️", 2, 2, 750, 6, chantierMinutes = 75L);
 
         companion object {
             fun parId(id: String): Type? = entries.firstOrNull { it.id == id }
@@ -164,6 +173,66 @@ object IslandBuildingEngine {
             listOf(cx - 1 to cy, cx + 1 to cy, cx to cy - 1, cx to cy + 1)
                 .any { it !in emprise && franchissable(it.first, it.second) }
         }
+    }
+
+    // ------------------------------------------------------------------
+    // Chantier
+    // ------------------------------------------------------------------
+
+    /**
+     * Étapes visibles d'une construction.
+     *
+     * Cinq états plutôt qu'une barre de progression : voir des fondations puis
+     * une charpente dit ce qui se passe, alors qu'un pourcentage ne fait que
+     * mesurer une attente.
+     */
+    enum class Etape(val libelle: String) {
+        FONDATIONS("Fondations"),
+        CHARPENTE("Charpente"),
+        TOITURE("Toiture"),
+        FINITIONS("Finitions"),
+        OUVERT("Ouvert")
+    }
+
+    /**
+     * Avancement d'un chantier, de 0 à 1.
+     *
+     * `finMillis` valant 0 signifie « terminé » : c'est l'état des bâtiments
+     * posés avant l'existence des chantiers, qui ne doivent pas se retrouver en
+     * travaux après une mise à jour.
+     */
+    fun avancement(finMillis: Long, dureeMinutes: Long, maintenant: Long): Float {
+        if (finMillis <= 0L) return 1f
+        val dureeMs = dureeMinutes * 60_000L
+        if (dureeMs <= 0L) return 1f
+        val restant = finMillis - maintenant
+        if (restant <= 0L) return 1f
+        return (1f - restant.toFloat() / dureeMs).coerceIn(0f, 1f)
+    }
+
+    fun etape(avancement: Float): Etape = when {
+        avancement >= 1f -> Etape.OUVERT
+        avancement >= 0.75f -> Etape.FINITIONS
+        avancement >= 0.5f -> Etape.TOITURE
+        avancement >= 0.25f -> Etape.CHARPENTE
+        else -> Etape.FONDATIONS
+    }
+
+    /**
+     * Le bâtiment rend-il déjà service ?
+     *
+     * Non pendant le chantier, et c'est la seule chose qui rend les étapes
+     * autre chose qu'une décoration : un magasin en travaux ne vend pas.
+     */
+    fun enService(finMillis: Long, maintenant: Long): Boolean =
+        finMillis <= 0L || maintenant >= finMillis
+
+    /** Minutes restantes, arrondies au supérieur pour ne jamais annoncer zéro. */
+    fun minutesRestantes(finMillis: Long, maintenant: Long): Long {
+        if (finMillis <= 0L) return 0L
+        val restant = finMillis - maintenant
+        if (restant <= 0L) return 0L
+        return (restant + 59_999L) / 60_000L
     }
 
     private fun unOuUne(type: Type): String = when (type) {

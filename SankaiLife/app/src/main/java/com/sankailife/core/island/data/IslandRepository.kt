@@ -385,7 +385,7 @@ class IslandRepository(
 
             // L'Atelier releve le plafond d'actions : c'est sa seule fonction,
             // et elle doit passer jusqu'ici sous peine d'etre decorative.
-            val batis = dao.batiments().map { it.type }.toSet()
+            val batis = batimentsEnService(maintenant)
             val plan = IslandMimoEngine.planifier(
                 types, minutes, vues, eau,
                 plafond = IslandMimoEngine.plafond(
@@ -402,7 +402,7 @@ class IslandRepository(
                     ?: return@forEach
                 if (dao.recolterSiPrete(cle) == 0) return@forEach
 
-                val batiments = dao.batiments().map { it.type }.toSet()
+                val batiments = batimentsEnService(maintenant)
                 val range = IslandStockEngine.ranger(
                     graine = graine, quantite = 1,
                     stockActuel = dao.totalStock(),
@@ -448,7 +448,7 @@ class IslandRepository(
             return@agir Geste.Refuse("Cette culture n'est pas encore prête.")
         }
 
-        val batiments = dao.batiments().map { it.type }.toSet()
+        val batiments = batimentsEnService(System.currentTimeMillis())
         val depot = IslandStockEngine.ranger(
             graine = graine,
             quantite = 1,
@@ -487,7 +487,7 @@ class IslandRepository(
                 return@withTransaction Geste.Refuse("Tu n'en as pas autant en stock.")
             }
 
-            val types = dao.batiments().map { it.type }.toSet()
+            val types = batimentsEnService(System.currentTimeMillis())
             val gain = IslandStockEngine.valeurTotale(
                 graine, quantite,
                 aBoutique = IslandBuildingEngine.Type.BOUTIQUE.id in types,
@@ -609,16 +609,34 @@ class IslandRepository(
                 }
                 if (rendu > 0) userRepo.refundCoins(rendu)
 
+                val maintenant = System.currentTimeMillis()
                 dao.poserBatiment(
                     IslandBuildingEntity(
                         type = type.id, origineX = x, origineY = y,
-                        orientation = 0, niveau = 1, chantierFinMillis = 0L
+                        orientation = 0, niveau = 1,
+                        chantierFinMillis = maintenant + type.chantierMinutes * 60_000L
                     )
                 )
                 val mention = if (rendu > 0) " ${rendu} 🪙 de parcelles rendus." else ""
-                Geste.Fait("${type.emoji} ${type.libelle} construite.$mention")
+                Geste.Fait(
+                    "${type.emoji} Chantier ouvert — ${type.libelle} prête dans " +
+                        "${type.chantierMinutes} min.$mention"
+                )
             }
         }
+
+    /**
+     * Types de bâtiments **en service**.
+     *
+     * Un chantier en cours ne rend aucun service : sans ce filtre, poser une
+     * Boutique donnerait son bonus de prix immédiatement, et les étapes de
+     * construction ne seraient qu'une animation.
+     */
+    private suspend fun batimentsEnService(maintenant: Long): Set<String> =
+        dao.batiments()
+            .filter { IslandBuildingEngine.enService(it.chantierFinMillis, maintenant) }
+            .map { it.type }
+            .toSet()
 
     /** Une case est-elle sous l'emprise d'un bâtiment ? */
     private fun occupe(batiment: IslandBuildingEntity, x: Int, y: Int): Boolean {

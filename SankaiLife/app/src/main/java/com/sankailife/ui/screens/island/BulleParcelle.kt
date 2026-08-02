@@ -167,7 +167,28 @@ private fun ContenuBatiment(
 ) {
     val c = MaterialTheme.sankaiColors
 
+    val maintenant = System.currentTimeMillis()
+    val fin = batiment?.chantierFinMillis ?: 0L
+    val fini = IslandBuildingEngine.enService(fin, maintenant)
+
     Ligne("Taille", "${type.largeur} × ${type.hauteur} cases")
+
+    if (!fini) {
+        // Pendant les travaux, la fiche ne parle que des travaux. Annoncer un
+        // bonus qui ne s'applique pas encore ferait croire à une panne.
+        val avancement = IslandBuildingEngine.avancement(fin, type.chantierMinutes, maintenant)
+        val etape = IslandBuildingEngine.etape(avancement)
+        Ligne("Chantier", etape.libelle)
+        Ligne("Avancement", "${(avancement * 100).toInt()} %")
+        Ligne("Reste", "${IslandBuildingEngine.minutesRestantes(fin, maintenant)} min")
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "Le bâtiment ne rend service qu'une fois terminé.",
+            color = c.textSecondary, fontSize = 12.sp
+        )
+        return
+    }
+
     Ligne("Niveau", "${batiment?.niveau ?: 1}")
 
     Spacer(Modifier.height(8.dp))
