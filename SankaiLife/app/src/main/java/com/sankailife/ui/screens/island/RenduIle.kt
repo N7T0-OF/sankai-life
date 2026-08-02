@@ -270,6 +270,13 @@ fun DrawScope.dessinerIle(
         for (x in premierX..dernierX) {
             val type = ile.type(x, y)
             val fond = when {
+                // L'ocean n'est plus texture, et c'est un retrait assume.
+                //
+                // La texture d'eau se repetait sur toute la surface : a l'echelle
+                // d'un ecran entier, l'oeil retrouve immediatement le carreau et
+                // le motif attire l'attention loin de l'ile, qui est le sujet.
+                // Un aplat presque uni laisse la place au terrain.
+                autotuilage && type == IslandTileType.DEEP_WATER -> null
                 autotuilage -> textures!!.eauProfonde
                 textures == null || pas < 6f -> null
                 // Sans autotuilage, chaque case garde sa propre texture.
@@ -291,8 +298,17 @@ fun DrawScope.dessinerIle(
                 // Le rocher et la rivière restent des aplats : mes essais de
                 // texture pour eux donnaient un résultat pire que la couleur
                 // franche, et le dire vaut mieux que de le maquiller.
+                //
+                // L'océan, lui, est volontairement **uni** : la variation par
+                // case y dessinait un damier visible sur les grandes surfaces,
+                // exactement ce qu'on cherche à faire disparaître.
+                val couleur = if (type == IslandTileType.DEEP_WATER) {
+                    PaletteIle.couleur(type)
+                } else {
+                    PaletteIle.couleurCase(type, x, y)
+                }
                 drawRect(
-                    color = PaletteIle.couleurCase(type, x, y),
+                    color = couleur,
                     topLeft = Offset(camera.x + x * pas, camera.y + y * pas),
                     size = taille
                 )

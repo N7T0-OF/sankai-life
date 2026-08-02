@@ -1,5 +1,16 @@
 # Changelog Sankai Life
 
+## 1.70.0 - 2 aout 2026
+
+- **Chaque nouveau mot est lu automatiquement**, une seule fois. Reglable dans
+  Parametres : lecture auto, vitesse, repetitions.
+- **Le bouton d'ecoute est disponible avant de repondre**, plus seulement apres
+  la correction — avec une lecture lente.
+- **L'ocean n'a plus de texture repetee** : le motif se voyait sur toute la
+  surface et attirait l'oeil loin de l'ile.
+- Les palettes ne sont plus a deux endroits : elles vivent dans Profil,
+  Personnalisation.
+
 ## 1.69.0 - 2 aout 2026
 
 - **Tous les contenus sont livres avec l'application.** 1089 cartes, dont le

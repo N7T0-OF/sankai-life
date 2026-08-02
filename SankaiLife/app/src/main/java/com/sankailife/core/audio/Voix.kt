@@ -33,7 +33,7 @@ class Voix(
      *
      * @return true si la lecture a été lancée.
      */
-    fun dire(texte: String, codeLangue: String): Boolean {
+    fun dire(texte: String, codeLangue: String, vitesse: String = "normale"): Boolean {
         val tts = moteur ?: return false
         if (!pret) return false
         val locale = VoixEngine.locale(codeLangue) ?: return false
@@ -44,6 +44,19 @@ class Voix(
         // avec la voix par défaut du téléphone, sans que rien ne le signale.
         val etat = runCatching { tts.setLanguage(locale) }.getOrNull()
         if (etat == null || etat < TextToSpeech.LANG_AVAILABLE) return false
+
+        // Une voix lente aide reellement a distinguer les sons d'une langue
+        // qu'on ne connait pas encore ; en dessous de 0,6 elle devient trainante
+        // et cesse de ressembler a la langue parlee.
+        runCatching {
+            tts.setSpeechRate(
+                when (vitesse) {
+                    "lente" -> 0.65f
+                    "rapide" -> 1.25f
+                    else -> 1.0f
+                }
+            )
+        }
 
         return runCatching {
             tts.speak(aDire, TextToSpeech.QUEUE_FLUSH, null, aDire.hashCode().toString())

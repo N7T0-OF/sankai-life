@@ -50,6 +50,19 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "systeme")
 
+    val lectureAuto: StateFlow<Boolean> = prefs.lectureAuto
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    val vitesseVoix: StateFlow<String> = prefs.vitesseVoix
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "normale")
+
+    val repetitionsVoix: StateFlow<Int> = prefs.repetitionsVoix
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    fun setLectureAuto(actif: Boolean) = viewModelScope.launch { prefs.setLectureAuto(actif) }
+    fun setVitesseVoix(valeur: String) = viewModelScope.launch { prefs.setVitesseVoix(valeur) }
+    fun setRepetitionsVoix(n: Int) = viewModelScope.launch { prefs.setRepetitionsVoix(n) }
+
     fun setPalette(valeur: String) = viewModelScope.launch {
         prefs.setPalette(valeur)
         // L'ancien reglage reste synchronise : d'autres endroits le lisent

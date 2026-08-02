@@ -27,6 +27,14 @@ class AppPreferences(private val context: Context) {
         val FOCUS_KEEP_SCREEN= booleanPreferencesKey("focus_keep_screen")
         val ONBOARDING_DONE  = booleanPreferencesKey("onboarding_done")
 
+        // Audio d'apprentissage. La lecture automatique est active par defaut :
+        // entendre un mot etranger des qu'il apparait est la premiere chose qui
+        // manque a qui apprend une langue, et l'exiger d'un appui rend l'ecoute
+        // optionnelle alors qu'elle ne devrait pas l'etre.
+        val LECTURE_AUTO     = booleanPreferencesKey("lecture_auto")
+        val VITESSE_VOIX     = stringPreferencesKey("vitesse_voix")
+        val REPETITIONS_VOIX = intPreferencesKey("repetitions_voix")
+
         // Heures silencieuses, stockées en minutes depuis minuit : un seul
         // entier évite les incohérences entre un champ heure et un champ minute.
         val QUIET_ENABLED    = booleanPreferencesKey("quiet_enabled")
@@ -45,6 +53,15 @@ class AppPreferences(private val context: Context) {
      * garder intact.
      */
     val couleursSysteme: Flow<Boolean> = pref(Keys.COULEURS_SYSTEME, true)
+
+    /** Lire automatiquement chaque nouveau mot ou phrase. */
+    val lectureAuto: Flow<Boolean> = pref(Keys.LECTURE_AUTO, true)
+
+    /** « lente », « normale » ou « rapide ». */
+    val vitesseVoix: Flow<String> = pref(Keys.VITESSE_VOIX, "normale")
+
+    /** Relectures apres la premiere, de 0 a 2. */
+    val repetitionsVoix: Flow<Int> = pref(Keys.REPETITIONS_VOIX, 0)
 
     /**
      * Palette active : « sankai » ou « systeme ».
@@ -85,6 +102,15 @@ class AppPreferences(private val context: Context) {
         }.map { it[key] ?: default }
 
     suspend fun setThemeMode(mode: String) = context.dataStore.edit { it[Keys.THEME_MODE] = mode }
+
+    suspend fun setLectureAuto(actif: Boolean) =
+        context.dataStore.edit { it[Keys.LECTURE_AUTO] = actif }
+
+    suspend fun setVitesseVoix(valeur: String) =
+        context.dataStore.edit { it[Keys.VITESSE_VOIX] = valeur }
+
+    suspend fun setRepetitionsVoix(nombre: Int) =
+        context.dataStore.edit { it[Keys.REPETITIONS_VOIX] = nombre.coerceIn(0, 2) }
 
     suspend fun setCouleursSysteme(actif: Boolean) =
         context.dataStore.edit { it[Keys.COULEURS_SYSTEME] = actif }

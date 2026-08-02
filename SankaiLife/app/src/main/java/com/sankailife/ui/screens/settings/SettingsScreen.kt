@@ -45,6 +45,9 @@ fun SettingsScreen(
     val notifs      by viewModel.notifications.collectAsState()
     val battery     by viewModel.batterySaver.collectAsState()
     val graphicsQuality by viewModel.graphicsQuality.collectAsState()
+    val lectureAuto by viewModel.lectureAuto.collectAsState()
+    val vitesseVoix by viewModel.vitesseVoix.collectAsState()
+    val repetitions by viewModel.repetitionsVoix.collectAsState()
     val streak      by viewModel.streakReminder.collectAsState()
     val quietOn     by viewModel.quietEnabled.collectAsState()
     val quietStart  by viewModel.quietStart.collectAsState()
@@ -96,28 +99,60 @@ fun SettingsScreen(
             val palette by viewModel.palette.collectAsState()
             val dynamiqueDispo = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
-            // Deux thèmes, tous deux gratuits et visibles d'emblée. L'option
-            // indisponible reste affichée avec son motif : la masquer ferait
-            // croire qu'elle n'existe pas.
-            CarteTheme(
-                titre = "Sankai classique",
-                sousTitre = "Bleu nuit, accents violet et or",
-                badge = "Gratuit",
-                choisi = palette == "sankai",
-                actif = true,
-                onChoisir = { viewModel.setPalette("sankai") }
-            )
-            Spacer(Modifier.height(8.dp))
-            CarteTheme(
-                titre = "Couleurs du téléphone",
-                sousTitre = if (dynamiqueDispo) "S'adapte au thème Android"
-                    else "Demande Android 12 ou plus récent",
-                badge = "Gratuit",
-                choisi = palette == "systeme" && dynamiqueDispo,
-                actif = dynamiqueDispo,
-                onChoisir = { viewModel.setPalette("systeme") }
-            )
+            // Les palettes sont parties dans Profil, Personnalisation.
+            //
+            // Elles apparaissaient ici **et** dans la collection : deux endroits
+            // pour un meme reglage, donc deux endroits a tenir a jour et une
+            // hesitation a chaque fois. La collection les garde, parce que c'est
+            // la qu'on choisit de quoi l'application a l'air ; les parametres
+            // gardent ce qui reste un reglage : clair, sombre, animations.
 
+            // Audio d'apprentissage.
+            //
+            // Dans les parametres et non dans chaque module : c'est une
+            // preference de personne, pas de contenu. Quelqu'un qui revise dans
+            // le train coupe la lecture une fois, pas six.
+            SettingsCard {
+                Text("Audio d'apprentissage", color = c.textPrimary, fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Utilise la voix installée sur ton téléphone. Sans voix pour " +
+                        "une langue, l'écoute reste simplement indisponible.",
+                    color = c.textSecondary, fontSize = 11.sp
+                )
+                Spacer(Modifier.height(10.dp))
+                SettingToggle("Lire chaque nouveau mot", lectureAuto) {
+                    viewModel.setLectureAuto(it)
+                }
+                Spacer(Modifier.height(10.dp))
+                Text("Vitesse de lecture", color = c.textPrimary, fontSize = 13.sp)
+                Spacer(Modifier.height(6.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("lente" to "Lente", "normale" to "Normale", "rapide" to "Rapide")
+                        .forEach { (cle, libelle) ->
+                            ChoixAudio(
+                                libelle = libelle,
+                                choisi = vitesseVoix == cle,
+                                modifier = Modifier.weight(1f),
+                                onClick = { viewModel.setVitesseVoix(cle) }
+                            )
+                        }
+                }
+                Spacer(Modifier.height(10.dp))
+                Text("Répéter automatiquement", color = c.textPrimary, fontSize = 13.sp)
+                Spacer(Modifier.height(6.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(0 to "Jamais", 1 to "1 fois", 2 to "2 fois").forEach { (n, libelle) ->
+                        ChoixAudio(
+                            libelle = libelle,
+                            choisi = repetitions == n,
+                            modifier = Modifier.weight(1f),
+                            onClick = { viewModel.setRepetitionsVoix(n) }
+                        )
+                    }
+                }
+            }
 
             SettingsCard {
                 Text("Thème UI", color = c.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
@@ -142,7 +177,7 @@ fun SettingsScreen(
                 }
                 Spacer(Modifier.height(12.dp))
                 SankaiButton(
-                    "Gérer les thèmes",
+                    "Choisir un thème",
                     onClick = onGererThemes,
                     secondary = true,
                     modifier = Modifier.fillMaxWidth()
@@ -564,5 +599,35 @@ private fun CarteTheme(
         if (choisi) {
             Text("Équipé", color = c.accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
         }
+    }
+}
+
+/** Un choix parmi trois, dans les réglages audio. */
+@Composable
+private fun ChoixAudio(
+    libelle: String,
+    choisi: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val c = MaterialTheme.sankaiColors
+    Box(
+        modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (choisi) c.accent.copy(alpha = 0.15f) else c.surface3)
+            .border(
+                1.dp,
+                if (choisi) c.accent else c.border,
+                RoundedCornerShape(10.dp)
+            )
+            .clickable { onClick() }
+            .padding(vertical = 10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            libelle,
+            color = if (choisi) c.accent else c.textSecondary,
+            fontSize = 11.sp, fontWeight = FontWeight.Medium
+        )
     }
 }

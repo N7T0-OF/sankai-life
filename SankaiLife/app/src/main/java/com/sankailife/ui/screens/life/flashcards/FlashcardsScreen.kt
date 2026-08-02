@@ -22,6 +22,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import com.sankailife.SankaiApplication
 import com.sankailife.core.audio.rememberVoix
 import com.sankailife.core.domain.engine.ExerciceEngine
 import com.sankailife.core.domain.engine.FlashcardEngine
@@ -61,8 +63,43 @@ fun FlashcardsScreen(
     // Voix du système, libérée automatiquement à la sortie de l'écran.
     val voix = rememberVoix()
 
+    // Reglages d'ecoute, relus en continu : couper la lecture automatique doit
+    // prendre effet a la carte suivante, pas au prochain lancement.
+    val prefs = (LocalContext.current.applicationContext as SankaiApplication).preferences
+    val lectureAuto by prefs.lectureAuto.collectAsState(initial = true)
+    val vitesseVoix by prefs.vitesseVoix.collectAsState(initial = "normale")
+    val repetitions by prefs.repetitionsVoix.collectAsState(initial = 0)
+
     LaunchedEffect(profileId, uniteId) {
         viewModel.demarrer(profileId, uniteId.ifBlank { null })
+    }
+
+    /**
+     * Ce qu'on prononce : la question, jamais la reponse attendue.
+     *
+     * Lire le verso avant que l'apprenant reponde donnerait la solution. Le
+     * recto est le mot etranger dans le sens habituel des modules, donc
+     * l'entendre est exactement ce qui manque — et ne revele rien.
+     */
+    val aPrononcer = etat.carteCourante?.recto.orEmpty()
+    val langueCarte = etat.carteCourante?.langue.orEmpty()
+    val peutEcouter = remember(langueCarte, voix.pret) {
+        langueCarte.isNotBlank() && voix.disponiblePour(langueCarte)
+    }
+
+    // Lecture automatique du nouveau mot.
+    //
+    // La cle est l'index de la session, pas le texte : deux cartes identiques
+    // dans une meme session doivent etre lues chacune leur tour, et une simple
+    // recomposition ne doit rien relancer. C'est le defaut classique de ce
+    // genre d'effet — l'audio qui repart a chaque frappe au clavier.
+    LaunchedEffect(etat.index, lectureAuto, peutEcouter, aPrononcer) {
+        if (!lectureAuto || !peutEcouter || aPrononcer.isBlank()) return@LaunchedEffect
+        voix.dire(aPrononcer, langueCarte, vitesseVoix)
+        repeat(repetitions) {
+            kotlinx.coroutines.delay(1_400)
+            voix.dire(aPrononcer, langueCarte, vitesseVoix)
+        }
     }
 
     val progression by animateFloatAsState(etat.progression, label = "progression")
@@ -283,16 +320,30 @@ fun FlashcardsScreen(
                                 // Le bouton n'apparaît que si le téléphone a
                                 // vraiment une voix pour cette langue : un
                                 // bouton muet passerait pour une panne.
-                                val peutEcouter = remember(carte.langue, voix.pret) {
-                                    voix.disponiblePour(carte.langue)
-                                }
-                                if (etat.correction != null && peutEcouter) {
+                                // Disponible **avant** de repondre, et c'est le
+                                // correctif.
+                                //
+                                // Le bouton n'apparaissait qu'apres correction,
+                                // par crainte de donner la reponse. Mais on
+                                // prononce le recto — le mot etranger, c'est-a-dire
+                                // la question. L'entendre avant de repondre est
+                                // precisement ce qu'on vient chercher dans un
+                                // module de langue.
+                                if (peutEcouter) {
                                     Spacer(Modifier.height(14.dp))
-                                    TextButton(onClick = {
-                                        haptics.click()
-                                        voix.dire(carte.recto, carte.langue)
-                                    }) {
-                                        Text("🔊  Écouter", color = AccentCyan, fontSize = 13.sp)
+                                    Row {
+                                        TextButton(onClick = {
+                                            haptics.click()
+                                            voix.dire(carte.recto, carte.langue, vitesseVoix)
+                                        }) {
+                                            Text("🔊  Écouter", color = AccentCyan, fontSize = 13.sp)
+                                        }
+                                        TextButton(onClick = {
+                                            haptics.click()
+                                            voix.dire(carte.recto, carte.langue, "lente")
+                                        }) {
+                                            Text("🐢  Lentement", color = AccentCyan, fontSize = 13.sp)
+                                        }
                                     }
                                 }
 
