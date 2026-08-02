@@ -70,7 +70,9 @@ object PaletteIle {
         IslandTileType.BEACH -> "Plage"
         IslandTileType.GRASS -> "Plaine"
         IslandTileType.FERTILE_GRASS -> "Terre fertile"
-        IslandTileType.FOREST -> "Bois"
+        // « Arbre » et non « Bois » : depuis que les arbres sont dessines,
+        // la fiche doit nommer ce qu'on voit, pas le type de terrain.
+        IslandTileType.FOREST -> "Arbre"
         IslandTileType.ROCK -> "Rocher"
         IslandTileType.RIVER -> "Rivière"
         IslandTileType.POND -> "Étang"

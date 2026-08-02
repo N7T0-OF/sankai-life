@@ -1,5 +1,11 @@
 # Changelog Sankai Life
 
+## 1.48.0 - 2 aout 2026
+
+- Une case boisee s'appelle desormais « Arbre » et non « Bois » : depuis que
+  les arbres sont dessines, la fiche nomme ce qu'on voit plutot que le type de
+  terrain.
+
 ## 1.47.0 - 2 aout 2026
 
 - **Les arbres sont visibles sur l'ile.** Le bois n'est plus une case verte

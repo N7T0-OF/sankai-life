@@ -180,7 +180,7 @@ private fun CarteCandidate(
             )
             Spacer(Modifier.height(6.dp))
             Ligne("Cultivable", "${candidate.cultivables} cases")
-            Ligne("Bois", if (candidate.boise == 0) "aucun" else "${candidate.boise} cases")
+            Ligne("Arbres", if (candidate.boise == 0) "aucun" else "${candidate.boise} cases")
             Ligne(
                 "Rivière",
                 if (candidate.rivieres == 0) "aucune" else "${candidate.rivieres} cases"
