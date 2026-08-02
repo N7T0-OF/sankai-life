@@ -27,6 +27,7 @@ import com.sankailife.core.island.domain.IslandBuildingEngine
 import com.sankailife.core.island.domain.IslandCultureEngine
 import com.sankailife.core.island.domain.IslandCultureEngine.Action
 import com.sankailife.core.island.domain.IslandSlotEngine
+import com.sankailife.core.island.domain.IslandStockEngine
 import com.sankailife.core.island.domain.IslandTileType
 import com.sankailife.ui.components.SankaiButton
 import com.sankailife.ui.theme.sankaiColors
@@ -41,6 +42,8 @@ import com.sankailife.ui.theme.sankaiColors
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BulleParcelle(
+    x: Int,
+    y: Int,
     type: IslandTileType,
     parcelle: IslandSlotEntity?,
     parcellesPossedees: Int,
@@ -53,19 +56,42 @@ fun BulleParcelle(
     onSemer: (String) -> Unit,
     onArroser: () -> Unit,
     onRecolter: () -> Unit,
-    onBatir: (IslandBuildingEngine.Type) -> Unit
+    onBatir: (IslandBuildingEngine.Type) -> Unit,
+    onOuvrirStock: () -> Unit = {}
 ) {
     val c = MaterialTheme.sankaiColors
+
+    // Un bâtiment occupe-t-il cette case ?
+    //
+    // La fiche recevait jusqu'ici le seul type de terrain, et affichait donc
+    // l'herbe restée sous la Boutique : on pouvait bâtir, voir le bâtiment, et
+    // continuer d'ouvrir la fiche du sol. Ce qu'on touche doit primer sur ce
+    // qui se trouve dessous.
+    val batimentIci = batiments.firstOrNull { b ->
+        IslandBuildingEngine.Type.parId(b.type)?.let { t ->
+            (x to y) in IslandBuildingEngine.casesOccupees(t, b.origineX, b.origineY).toSet()
+        } == true
+    }
+    val typeBatiment = batimentIci?.let { IslandBuildingEngine.Type.parId(it.type) }
 
     ModalBottomSheet(onDismissRequest = onFermer, containerColor = c.surface1) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 22.dp).padding(bottom = 28.dp)) {
             Text(
-                PaletteIle.nom(type),
+                if (typeBatiment != null) "${typeBatiment.emoji} ${typeBatiment.libelle}"
+                else PaletteIle.nom(type),
                 color = c.textPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold
             )
             Spacer(Modifier.height(10.dp))
 
             when {
+                // Un bâtiment prime sur tout le reste : ni achat, ni culture,
+                // ni construction sur une case déjà bâtie.
+                typeBatiment != null -> ContenuBatiment(
+                    type = typeBatiment,
+                    batiment = batimentIci,
+                    onOuvrirStock = onOuvrirStock
+                )
+
                 // Case naturelle : on dit pourquoi elle ne s'achète pas plutôt
                 // que de laisser une fiche vide.
                 parcelle == null && !IslandSlotEngine.terrainAchetable(type) -> {
@@ -107,7 +133,7 @@ fun BulleParcelle(
             // a aucune raison d'exiger d'avoir acheté la parcelle d'abord.
             val constructibles = IslandBuildingEngine.Type.entries
                 .filter { t -> batiments.none { it.type == t.id } }
-            if (type.constructible && constructibles.isNotEmpty()) {
+            if (typeBatiment == null && type.constructible && constructibles.isNotEmpty()) {
                 Spacer(Modifier.height(16.dp))
                 Text("Construire", color = c.textSecondary, fontSize = 12.sp)
                 Spacer(Modifier.height(6.dp))
@@ -121,6 +147,55 @@ fun BulleParcelle(
                     Spacer(Modifier.height(6.dp))
                 }
             }
+        }
+    }
+}
+
+/**
+ * Fiche d'un bâtiment.
+ *
+ * La Boutique ouvre le stock : c'est elle qui améliore le prix de vente, donc
+ * c'est là qu'on vend. Le Dépôt montre ce qu'il permet d'entreposer. Aucun des
+ * deux n'ouvre un catalogue propre — les graines s'achètent depuis la parcelle
+ * — et le dire vaut mieux qu'un bouton qui ne mènerait nulle part.
+ */
+@Composable
+private fun ContenuBatiment(
+    type: IslandBuildingEngine.Type,
+    batiment: com.sankailife.core.island.data.IslandBuildingEntity?,
+    onOuvrirStock: () -> Unit
+) {
+    val c = MaterialTheme.sankaiColors
+
+    Ligne("Taille", "${type.largeur} × ${type.hauteur} cases")
+    Ligne("Niveau", "${batiment?.niveau ?: 1}")
+
+    Spacer(Modifier.height(8.dp))
+    when (type) {
+        IslandBuildingEngine.Type.BOUTIQUE -> {
+            Text(
+                "Tes récoltes se vendent ${(IslandStockEngine.BONUS_BOUTIQUE * 100).toInt()} % " +
+                    "plus cher tant que la Boutique est debout.",
+                color = c.textSecondary, fontSize = 12.sp
+            )
+            Spacer(Modifier.height(12.dp))
+            SankaiButton(
+                "Vendre mes récoltes", onClick = onOuvrirStock,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        IslandBuildingEngine.Type.DEPOT -> {
+            Text(
+                "Le Dépôt porte la capacité de stockage à " +
+                    "${IslandStockEngine.capacite(aDepot = true)} récoltes.",
+                color = c.textSecondary, fontSize = 12.sp
+            )
+            Spacer(Modifier.height(12.dp))
+            SankaiButton(
+                "Voir le stock", onClick = onOuvrirStock,
+                secondary = true, modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

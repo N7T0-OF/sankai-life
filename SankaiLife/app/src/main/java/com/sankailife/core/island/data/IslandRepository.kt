@@ -578,13 +578,34 @@ class IslandRepository(
                     return@withTransaction Geste.Refuse("Il te manque des pièces.")
                 }
 
+                // Les parcelles nues situées sous l'emprise sont reprises, et
+                // ce qui avait été payé pour elles est rendu.
+                //
+                // Les laisser en place produisait le défaut signalé : le sol
+                // acheté restait dessiné sous le bâtiment, et la case gardait
+                // son ancien état. Refuser de bâtir aurait été plus simple,
+                // mais forcerait à choisir l'emplacement avant d'avoir compris
+                // à quoi sert un bâtiment. Rembourser ne fait perdre à personne
+                // ce qu'il a payé — le champ `prixPaye` existe pour ça.
+                //
+                // Une parcelle cultivée, elle, a déjà bloqué la construction
+                // plus haut : on ne détruit jamais une culture en cours.
+                var rendu = 0
+                IslandBuildingEngine.casesOccupees(type, x, y).forEach { (cx, cy) ->
+                    val parcelle = parcelles[cy * ile.largeur + cx] ?: return@forEach
+                    rendu += parcelle.prixPaye
+                    dao.supprimerParcelle(parcelle)
+                }
+                if (rendu > 0) userRepo.refundCoins(rendu)
+
                 dao.poserBatiment(
                     IslandBuildingEntity(
                         type = type.id, origineX = x, origineY = y,
                         orientation = 0, niveau = 1, chantierFinMillis = 0L
                     )
                 )
-                Geste.Fait("${type.emoji} ${type.libelle} construite.")
+                val mention = if (rendu > 0) " ${rendu} 🪙 de parcelles rendus." else ""
+                Geste.Fait("${type.emoji} ${type.libelle} construite.$mention")
             }
         }
 

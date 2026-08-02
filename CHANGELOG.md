@@ -1,5 +1,13 @@
 # Changelog Sankai Life
 
+## 1.49.0 - 2 aout 2026
+
+- **Toucher un batiment ouvre sa fiche**, plus celle de l'herbe restee dessous.
+  La Boutique propose de vendre les recoltes, le Depot montre sa capacite.
+- **Une parcelle achetee sous un batiment est reprise et remboursee** au lieu
+  de rester la, dessinee sous la construction.
+- On ne peut plus batir sur une case deja batie.
+
 ## 1.48.0 - 2 aout 2026
 
 - Une case boisee s'appelle desormais « Arbre » et non « Bois » : depuis que

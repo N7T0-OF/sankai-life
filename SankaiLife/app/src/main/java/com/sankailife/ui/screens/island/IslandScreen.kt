@@ -225,6 +225,8 @@ fun IslandScreen(
         selection?.let { case ->
             if (ileCourante != null) {
                 BulleParcelle(
+                    x = case.x,
+                    y = case.y,
                     type = ileCourante.type(case.x, case.y),
                     parcelle = parcelles[case.y * ileCourante.largeur + case.x],
                     parcellesPossedees = parcelles.size,
@@ -237,7 +239,11 @@ fun IslandScreen(
                     onSemer = { graine -> viewModel.semer(case.x, case.y, graine) },
                     onArroser = { viewModel.arroser(case.x, case.y) },
                     onRecolter = { viewModel.recolter(case.x, case.y) },
-                    onBatir = { type -> viewModel.batir(type, case.x, case.y) }
+                    onBatir = { type -> viewModel.batir(type, case.x, case.y) },
+                    onOuvrirStock = {
+                        viewModel.fermerSelection()
+                        viewModel.ouvrirStock()
+                    }
                 )
             }
         }
