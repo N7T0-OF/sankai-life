@@ -67,6 +67,14 @@ private fun solPour(
  */
 private const val DEBORDEMENT_SOL = 1.34f
 
+/**
+ * Cases d'océan dessinées au-delà des bords de l'île.
+ *
+ * Assez pour qu'aucun zoom raisonnable ne montre la fin du monde, assez peu
+ * pour ne pas peindre un océan sans fin au dézoom maximum.
+ */
+private const val MARGE_OCEAN = 24
+
 fun DrawScope.dessinerIle(
     ile: IslandGenerator.Ile,
     camera: Offset,
@@ -80,13 +88,26 @@ fun DrawScope.dessinerIle(
     if (pas <= 0f) return
 
     // Culling : seules les cases visibles sont peintes. Sans lui, on repeint
-    // mille rectangles par frame dont la plupart hors écran.
-    val premierX = floor((-camera.x) / pas).toInt().coerceIn(0, ile.largeur - 1)
-    val premierY = floor((-camera.y) / pas).toInt().coerceIn(0, ile.hauteur - 1)
-    val dernierX = (floor((size.width - camera.x) / pas).toInt() + 1)
-        .coerceIn(0, ile.largeur - 1)
-    val dernierY = (floor((size.height - camera.y) / pas).toInt() + 1)
-        .coerceIn(0, ile.hauteur - 1)
+    // des milliers de rectangles par frame dont la plupart hors écran.
+    //
+    // Le balayage déborde volontairement de l'île. En s'arrêtant à ses bords,
+    // l'océan cessait net là où la grille s'arrêtait : on voyait un carré d'eau
+    // texturée posé sur un fond uni, et donc la limite du monde. `ile.type()`
+    // rend de l'eau profonde hors des bornes, il suffit de le laisser faire.
+    //
+    // La marge est bornée pour que dézoomer au maximum ne fasse pas peindre un
+    // océan sans fin.
+    val premierX = maxOf(floor((-camera.x) / pas).toInt(), -MARGE_OCEAN)
+    val premierY = maxOf(floor((-camera.y) / pas).toInt(), -MARGE_OCEAN)
+    val dernierX = minOf(
+        floor((size.width - camera.x) / pas).toInt() + 1,
+        ile.largeur - 1 + MARGE_OCEAN
+    )
+    val dernierY = minOf(
+        floor((size.height - camera.y) / pas).toInt() + 1,
+        ile.hauteur - 1 + MARGE_OCEAN
+    )
+    if (dernierX < premierX || dernierY < premierY) return
 
     // Un pixel de recouvrement : sans lui, un pas fractionnaire laisse une
     // ligne claire entre les colonnes lointaines.

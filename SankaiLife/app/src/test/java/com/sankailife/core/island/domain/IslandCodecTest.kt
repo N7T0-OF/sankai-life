@@ -52,16 +52,21 @@ class IslandCodecTest {
     fun `l'empreinte change des qu'une case change`() {
         val ile = IslandGenerator.generer(11L)
         val donnees = IslandCodec.encoder(ile.tuiles)
-        val altere = donnees.substring(0, 500) + 'W' + donnees.substring(501)
+        // On remplace par une lettre forcement differente de celle en place :
+        // ecrire 'W' au hasard tombait parfois sur une case deja en eau
+        // profonde, et le test passait alors sans rien verifier.
+        val remplacant = if (donnees[500] == 'W') 'g' else 'W'
+        val altere = donnees.substring(0, 500) + remplacant + donnees.substring(501)
         assertNotEquals(IslandCodec.empreinte(donnees), IslandCodec.empreinte(altere))
         assertEquals(IslandCodec.empreinte(donnees), IslandCodec.empreinte(donnees))
     }
 
     @Test
-    fun `une ile complete tient dans un kilo-octet`() {
-        // C'est ce qui justifie la chaine plutot que mille lignes Room.
+    fun `une ile complete tient dans quelques kilo-octets`() {
+        // C'est ce qui justifie la chaine plutot qu'une ligne Room par case :
+        // une ile de 64 cases de cote en compte 4 096.
         val ile = IslandGenerator.generer(3L)
         assertEquals(ile.largeur * ile.hauteur, IslandCodec.encoder(ile.tuiles).length)
-        assertTrue(IslandCodec.encoder(ile.tuiles).length <= 1_024)
+        assertTrue(IslandCodec.encoder(ile.tuiles).length <= 8_192)
     }
 }

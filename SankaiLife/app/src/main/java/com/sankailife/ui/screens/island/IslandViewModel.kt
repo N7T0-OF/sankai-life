@@ -325,7 +325,7 @@ class IslandViewModel(application: Application) : AndroidViewModel(application) 
         const val RELANCES = 3
 
         // Zoom minimum : voir l'île entière sur un écran de téléphone.
-        const val ZOOM_MIN = 0.5f
+        const val ZOOM_MIN = 0.28f
 
         // Zoom maximum : environ trois cases de large, comme demandé.
         const val ZOOM_MAX = 3.5f

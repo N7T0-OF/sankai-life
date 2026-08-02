@@ -252,3 +252,113 @@ Non livré, et signalé comme tel plutôt que bâclé :
 Le brouillard n'a pas été retouché : il avait été **retiré** sur demande
 explicite (« retire le fog au final »), et le point 8 du nouveau cahier des
 charges demandait de le refondre. Il n'a pas été réintroduit sans confirmation.
+
+---
+
+# Sprint correctifs île — 1er août 2026 (Claude)
+
+Correctifs issus d'une utilisation réelle sur téléphone, pas d'une relecture.
+
+## 1. Sélection de la mauvaise case
+
+**Problème** — Toucher l'herbe ouvrait la fiche « Océan » ; le sable donnait
+« Rocher » ; certaines plages semblaient mortes.
+
+**Cause** — Le détecteur de tape était déclaré
+`pointerInput(ile.seed, parcelles.size, niveau, pieces)` : **`zoom` n'était pas
+une clé**. La lambda capturait `pas`, la taille d'une case, telle qu'elle était
+au moment où le détecteur avait été créé. Après un zoom, elle divisait les
+coordonnées par une ancienne valeur, et désignait une case d'autant plus
+éloignée que le zoom s'était écarté de 1. À l'échelle 1, tout paraissait
+correct — ce qui explique que rien ne l'ait révélé avant un vrai téléphone.
+
+**Solution** — Le pas est relu dans le gestionnaire, jamais capturé.
+
+**Fichiers** — `ui/screens/island/IslandScreen.kt`.
+
+**Résultat** — La case touchée est celle affichée, à tout zoom.
+
+## 2. Zoom qui ne se déclenche presque jamais
+
+**Problème** — Deux doigts posés continuaient de déplacer la caméra ; le
+pincement n'était pris en compte qu'exceptionnellement.
+
+**Cause** — Deux causes cumulées.
+
+`detectTransformGestures(panZoomLock = true)` **verrouille le zoom** dès que le
+geste est lu comme un déplacement. Deux doigts posés en bougeant un peu partent
+en pan, et le zoom ne se déclenche plus du tout pour le reste du geste.
+
+Trois détecteurs indépendants — pincement, glissement, tape — se disputaient le
+même flux de doigts, chacun consommant des événements que les autres
+attendaient. Le garde-fou de mode ne pouvait rien contre ça : il arrivait trop
+tard.
+
+**Solution** — Un seul détecteur, avec une boucle écrite à la main. C'est le
+**nombre de doigts** qui décide, pas la direction du mouvement :
+
+```
+deux doigts ou plus -> zoom, et rien d'autre
+un doigt            -> déplacement
+un doigt immobile   -> sélection
+```
+
+Un geste ayant touché le zoom ne repasse jamais en déplacement avant que tous
+les doigts soient levés.
+
+`CameraJardinEngine` est conservé tel quel : sa géométrie n'était pas en cause,
+seule la façon de lui transmettre les gestes l'était.
+
+**Fichiers** — `ui/screens/island/IslandScreen.kt`.
+
+## 3. Barre supérieure derrière l'encoche
+
+**Cause** — Marge fixe en `dp`. Il n'existe aucune hauteur de barre système
+universelle : une valeur juste sur un téléphone passe derrière la caméra du
+suivant.
+
+**Solution** — `WindowInsets.safeDrawing`, qui couvre barre d'état, encoches et
+caméras percées, y compris latérales en paysage. Aucune valeur en dur.
+
+## 4. Océan qui se coupe net
+
+**Cause** — Le balayage de rendu s'arrêtait aux bords de l'île. Au-delà,
+seul le fond uni de la vue restait, alors que l'eau de la grille porte une
+variation par case : on voyait un carré d'eau texturée posé sur un aplat, donc
+la limite du monde.
+
+**Solution** — Le balayage déborde de 24 cases. `ile.type()` rendait déjà de
+l'eau profonde hors bornes ; il suffisait de le laisser faire. La marge est
+bornée pour ne pas peindre un océan sans fin au dézoom maximum.
+
+## 5. Île trop petite
+
+32 × 32 → **64 × 64**, zoom minimum abaissé pour voir l'île entière. Le coût est
+contenu par le culling : le nombre de cases peintes dépend de l'écran, pas de la
+taille du monde.
+
+## Deux tests qui mesuraient la mauvaise chose
+
+Le passage à 64 × 64 a fait tomber deux tests, et ils avaient raison de tomber.
+
+`deux iles n'ont pas la meme silhouette` rapportait les différences au nombre
+**total** de cases. Sur une grille plus grande, l'océan commun dilue le
+résultat : deux îles aussi variées qu'avant tombaient à 7 % d'écart. La mesure
+porte désormais sur l'**union des terres**, ce qui ne dépend plus de la taille
+du monde.
+
+`l'empreinte change des qu'une case change` écrivait `'W'` à une position fixe.
+Sur la nouvelle carte, cette case était déjà de l'eau profonde : le test passait
+sans rien vérifier. Il choisit maintenant une lettre forcément différente.
+
+## Tests
+
+412 tests, 0 échec. `lintDebug` et `lintRelease` sans erreur.
+
+## Non fait, et pourquoi
+
+Le reste du sprint — mode Construction, Port, Maison, Atelier Mimo, chemins,
+construction progressive, Mimos visibles et marchant, arbres posés sur l'île,
+horizon en dégradé — n'est pas traité ici. Ce sont des fonctionnalités, pas des
+correctifs, et les livrer sans les avoir vues sur un téléphone reproduirait
+exactement ce qui a produit les quatre bugs ci-dessus.

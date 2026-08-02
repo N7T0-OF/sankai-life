@@ -164,21 +164,32 @@ class IslandGeneratorTest {
 
     @Test
     fun `deux iles n'ont pas la meme silhouette`() {
-        // Une atteouation radiale nette produit toujours un disque : le bruit
+        // Une attenuation radiale nette produit toujours un disque : le bruit
         // ne fait que grignoter le bord, et toutes les graines se ressemblent.
-        // On compare les silhouettes terre/eau case par case.
+        //
+        // La mesure porte sur la silhouette de terre, pas sur la grille
+        // entiere. Rapporter les differences au nombre total de cases laissait
+        // l'ocean commun diluer le resultat : agrandir la carte faisait
+        // mecaniquement baisser le pourcentage sans que les iles se
+        // ressemblent davantage. Deux formes sont comparees sur leur union,
+        // ce qui ne depend plus de la taille du monde.
         val iles = (0 until 8).map { IslandGenerator.genererJouable(it * 8_191L + 5L).first }
         for (i in iles.indices) {
             for (j in i + 1 until iles.size) {
                 val a = iles[i]
                 val b = iles[j]
-                val differences = a.tuiles.indices.count {
-                    a.tuiles[it].estTerre != b.tuiles[it].estTerre
+                var union = 0
+                var differences = 0
+                a.tuiles.indices.forEach { k ->
+                    val terreA = a.tuiles[k].estTerre
+                    val terreB = b.tuiles[k].estTerre
+                    if (terreA || terreB) union++
+                    if (terreA != terreB) differences++
                 }
-                val part = differences.toFloat() / a.tuiles.size
+                val part = if (union == 0) 0f else differences.toFloat() / union
                 assertTrue(
-                    "Iles $i et $j identiques a ${((1 - part) * 100).toInt()} %",
-                    part > 0.08f
+                    "Iles $i et $j : silhouettes communes a ${((1 - part) * 100).toInt()} %",
+                    part > 0.15f
                 )
             }
         }

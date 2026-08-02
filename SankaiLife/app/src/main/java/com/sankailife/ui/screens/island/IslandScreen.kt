@@ -2,10 +2,17 @@ package com.sankailife.ui.screens.island
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculateCentroid
+import androidx.compose.foundation.gestures.calculateCentroidSize
+import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -166,8 +173,21 @@ fun IslandScreen(
         }
 
         // Barre haute, flottante : elle ne prend pas de hauteur à la carte.
+        //
+        // Les marges viennent des `WindowInsets`, jamais d'une valeur en dp.
+        // Une constante choisie sur un téléphone passe derrière l'encoche du
+        // suivant : il n'existe aucune hauteur de barre système universelle.
+        // `safeDrawing` couvre la barre d'état, les encoches et les caméras
+        // percées, y compris latérales en paysage.
         Row(
-            Modifier.fillMaxWidth().padding(12.dp),
+            Modifier
+                .fillMaxWidth()
+                .windowInsetsPadding(
+                    WindowInsets.safeDrawing.only(
+                        WindowInsetsSides.Top + WindowInsetsSides.Horizontal
+                    )
+                )
+                .padding(12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -230,7 +250,14 @@ fun IslandScreen(
                 batiments = batiments,
                 vue = vueVisible,
                 onAller = viewModel::allerVers,
-                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .windowInsetsPadding(
+                        WindowInsets.safeDrawing.only(
+                            WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal
+                        )
+                    )
+                    .padding(16.dp)
             )
         }
 
@@ -332,54 +359,95 @@ private fun CarteIle(
                     camera = borner(camera)
                 }
             }
-            // Guetteur de levée des doigts : sans lui le mode resterait bloqué
-            // sur « pincement » et plus rien ne se déplacerait ensuite.
-            .pointerInput(Unit) {
-                awaitPointerEventScope {
+            // Un seul détecteur pour tous les gestes.
+            //
+            // Il y en avait trois — pincement, glissement, tape — et ils se
+            // disputaient le même flux de doigts. `detectTransformGestures`
+            // avec `panZoomLock` verrouille le zoom dès que le geste est lu
+            // comme un déplacement : deux doigts posés en bougeant un peu
+            // partaient en pan, et le zoom ne se déclenchait presque jamais.
+            //
+            // La règle est maintenant celle des jeux de gestion : le **nombre
+            // de doigts** décide, pas la direction du mouvement.
+            //
+            //   deux doigts ou plus -> zoom, et rien d'autre
+            //   un doigt            -> déplacement
+            //   un doigt immobile   -> sélection
+            //
+            // Un geste ayant touché le zoom ne repasse jamais en déplacement
+            // avant que tous les doigts soient levés : c'est ce qui supprime le
+            // saut quand la seconde main se retire en dernier.
+            .pointerInput(ile.seed) {
+                awaitEachGesture {
+                    val premier = awaitFirstDown(requireUnconsumed = false)
+                    var aZoome = false
+                    var aGlisse = false
+                    var distancePrecedente = 0f
+
                     while (true) {
-                        val e = awaitPointerEvent(PointerEventPass.Final)
-                        if (e.changes.none { it.pressed }) mode = false
+                        val evenement = awaitPointerEvent()
+                        val presses = evenement.changes.filter { it.pressed }
+                        if (presses.isEmpty()) break
+
+                        if (presses.size >= 2) {
+                            val distance = evenement.calculateCentroidSize(useCurrent = true)
+                            val centroide = evenement.calculateCentroid(useCurrent = true)
+
+                            if (distancePrecedente > 0f && distance > 0f &&
+                                centroide != Offset.Unspecified
+                            ) {
+                                val facteur = distance / distancePrecedente
+                                if (CameraJardinEngine.franchitSeuil(facteur)) {
+                                    aZoome = true
+                                    val r = CameraJardinEngine.pincer(
+                                        camera = CameraJardinEngine.Point(camera.x, camera.y),
+                                        centroide = CameraJardinEngine.Point(
+                                            centroide.x, centroide.y
+                                        ),
+                                        echelleAvant = zoomCourant.value,
+                                        facteur = facteur,
+                                        zoomMin = IslandViewModel.ZOOM_MIN,
+                                        zoomMax = IslandViewModel.ZOOM_MAX,
+                                        cadreApres = ::cadrePour
+                                    )
+                                    camera = Offset(r.camera.x, r.camera.y)
+                                    onZoom(r.echelle)
+                                    distancePrecedente = distance
+                                }
+                            } else if (distance > 0f) {
+                                distancePrecedente = distance
+                            }
+                            // Consommé dans tous les cas : c'est ce qui empêche
+                            // le déplacement de s'emparer du même geste.
+                            presses.forEach { it.consume() }
+                        } else if (!aZoome) {
+                            val delta = evenement.calculatePan()
+                            if (delta != Offset.Zero) {
+                                if (delta.getDistance() > viewConfiguration.touchSlop / 2f) {
+                                    aGlisse = true
+                                }
+                                camera = borner(camera + delta)
+                                presses.forEach { it.consume() }
+                            }
+                        } else {
+                            // Doigt restant après un pincement : on l'ignore
+                            // jusqu'à la levée complète.
+                            presses.forEach { it.consume() }
+                        }
                     }
-                }
-            }
-            .pointerInput(ile.seed) {
-                detectTransformGestures(panZoomLock = true) { centroide, _, facteur, _ ->
-                    if (!CameraJardinEngine.franchitSeuil(facteur)) return@detectTransformGestures
-                    mode = true
-                    dernierZoomMs = System.currentTimeMillis()
-                    val r = CameraJardinEngine.pincer(
-                        camera = CameraJardinEngine.Point(camera.x, camera.y),
-                        centroide = CameraJardinEngine.Point(centroide.x, centroide.y),
-                        echelleAvant = zoomCourant.value,
-                        facteur = facteur,
-                        zoomMin = IslandViewModel.ZOOM_MIN,
-                        zoomMax = IslandViewModel.ZOOM_MAX,
-                        cadreApres = ::cadrePour
-                    )
-                    camera = Offset(r.camera.x, r.camera.y)
-                    onZoom(r.echelle)
-                }
-            }
-            // Pas de `zoom` en clé : le recréer à chaque frame du pincement
-            // annulerait le geste en boucle. C'est le défaut corrigé sur le
-            // Jardin, autant ne pas le refaire ici.
-            .pointerInput(ile.seed) {
-                detectDragGestures { changement, delta ->
-                    changement.consume()
-                    if (!CameraJardinEngine.peutDeplacer(
-                            enZoom = mode,
-                            maintenantMs = System.currentTimeMillis(),
-                            dernierZoomMs = dernierZoomMs
-                        )
-                    ) return@detectDragGestures
-                    camera = borner(camera + delta)
-                }
-            }
-            .pointerInput(ile.seed, parcelles.size, niveau, pieces) {
-                detectTapGestures { position ->
-                    val x = floor((position.x - camera.x) / pas).toInt()
-                    val y = floor((position.y - camera.y) / pas).toInt()
-                    if (x in 0 until ile.largeur && y in 0 until ile.hauteur) onToucher(x, y)
+
+                    // Sélection : un doigt, posé et relevé sans avoir glissé ni
+                    // zoomé. Le pas est relu ici, pas capturé — c'était le
+                    // défaut qui faisait désigner la mauvaise case après un
+                    // zoom.
+                    if (!aZoome && !aGlisse) {
+                        val pasReel = pasPour(zoomCourant.value)
+                        val x = floor((premier.position.x - camera.x) / pasReel).toInt()
+                        val y = floor((premier.position.y - camera.y) / pasReel).toInt()
+                        if (x in 0 until ile.largeur && y in 0 until ile.hauteur) {
+                            onToucher(x, y)
+                        }
+                    }
                 }
             }
     ) {

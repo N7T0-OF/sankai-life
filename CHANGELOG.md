@@ -1,5 +1,23 @@
 # Changelog Sankai Life
 
+## 1.46.0 - 1er aout 2026
+
+Correctifs de l'Ile, issus d'une utilisation reelle sur telephone.
+
+- **La case touchee est enfin la bonne.** Toucher l'herbe ouvrait la fiche
+  « Ocean », le sable donnait « Rocher » : le calcul utilisait l'ancienne taille
+  de case apres chaque zoom. Plus on zoomait, plus la case designee etait
+  fausse.
+- **Le zoom fonctionne.** Deux doigts poses continuaient de deplacer la camera
+  et le pincement n'etait presque jamais pris en compte. C'est desormais le
+  nombre de doigts qui decide : deux doigts zooment et rien d'autre, un doigt
+  deplace, un doigt immobile selectionne.
+- **La barre du haut ne passe plus derriere l'encoche** ni derriere la camera.
+  Les marges viennent du systeme et s'adaptent a chaque telephone.
+- **L'ocean ne se coupe plus** quand on dezoome.
+- **L'ile est deux fois plus grande** : 64 cases de cote au lieu de 32, avec des
+  silhouettes nettement plus variees.
+
 ## 1.45.0 - 1er aout 2026
 
 **Nouveau : l'Ile generative, en construction.**

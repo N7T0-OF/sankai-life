@@ -24,7 +24,15 @@ import kotlin.random.Random
  */
 object IslandGenerator {
 
-    const val TAILLE_DEFAUT = 32
+    /**
+     * Côté de l'île, en cases.
+     *
+     * Doublé depuis la première version : 32 donnait une île qu'on faisait le
+     * tour en quelques glissements. Le coût est contenu par le culling — seules
+     * les cases visibles sont peintes, et il y en a autant à l'écran quelle que
+     * soit la taille du monde.
+     */
+    const val TAILLE_DEFAUT = 64
 
     /** Version du générateur. À incrémenter dès que le relief produit change. */
     const val VERSION = 1
@@ -109,7 +117,7 @@ object IslandGenerator {
         }
 
         private companion object {
-            const val TAILLE_TABLE = 64
+            const val TAILLE_TABLE = 128
         }
     }
 
