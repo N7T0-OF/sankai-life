@@ -1,5 +1,12 @@
 # Changelog Sankai Life
 
+## 1.73.0 - 2 aout 2026
+
+- **Apercu avant construction.** Choisir un batiment montre son emprise sur la
+  carte : on la deplace au doigt, elle est verte si l'endroit convient, rouge
+  sinon, et la barre dit pourquoi avant qu'on paie.
+- Le batiment ne se pose plus a l'aveugle depuis la fiche d'une case.
+
 ## 1.72.0 - 2 aout 2026
 
 - **L'ocean est un aplat bleu, a tous les zooms** : la texture est retiree

@@ -218,6 +218,9 @@ fun DrawScope.dessinerIle(
     arbres: List<com.sankailife.core.island.domain.IslandForetEngine.Arbre> = emptyList(),
     mimos: List<IslandMimoMondeEngine.Place> = emptyList(),
     cultures: Map<Int, com.sankailife.core.garden.domain.CropGrowthEngine.Etat> = emptyMap(),
+    /** Emprise en cours de placement : type, coin haut-gauche, et validite. */
+    apercu: Triple<com.sankailife.core.island.domain.IslandBuildingEngine.Type, IntOffset, Boolean>?
+        = null,
     marquerPonton: Boolean = true
 ) {
     if (pas <= 0f) return
@@ -538,6 +541,34 @@ fun DrawScope.dessinerIle(
             }
         }
         visibles.sortedBy { it.first }.forEach { it.second() }
+    }
+
+    // L'emprise du batiment qu'on est en train de placer.
+    //
+    // Dessinee par-dessus tout le reste, y compris les arbres : c'est une
+    // intention, pas un objet du monde, et elle doit rester visible meme
+    // au-dessus d'un feuillage.
+    //
+    // La couleur dit le verdict avant qu'on paie. Le contour plein plutot qu'un
+    // simple remplissage : sur un terrain deja vert, un voile vert ne se
+    // distingue pas.
+    apercu?.let { (type, coin, possible) ->
+        val couleur = if (possible) Color(0xFF6FD17A) else Color(0xFFE06C6C)
+        val largeur = type.largeur * pas
+        val hauteur = type.hauteur * pas
+        val coinHaut = Offset(camera.x + coin.x * pas, camera.y + coin.y * pas)
+
+        drawRect(
+            color = couleur.copy(alpha = 0.28f),
+            topLeft = coinHaut,
+            size = Size(largeur, hauteur)
+        )
+        drawRect(
+            color = couleur,
+            topLeft = coinHaut,
+            size = Size(largeur, hauteur),
+            style = Stroke(width = (pas * 0.10f).coerceIn(2f, 6f))
+        )
     }
 
     // Le ponton : seul repère dessiné par-dessus. C'est le point d'arrivée, il

@@ -252,6 +252,76 @@ class IslandViewModel(application: Application) : AndroidViewModel(application) 
 
     fun vendre(graineId: String, quantite: Int) = geste { depot.vendre(graineId, quantite) }
 
+    /**
+     * Construction en cours de placement.
+     *
+     * **On ne batissait pas, on pariait.** Choisir un batiment dans la fiche
+     * d'une case le posait immediatement a cet endroit : un magasin de trois
+     * cases sur deux s'installait sans qu'on ait vu ou il tomberait, et le seul
+     * moyen de savoir etait de payer. Le mode visee montre l'emprise avant de
+     * la poser, et refuse a l'avance en disant pourquoi.
+     */
+    data class Visee(
+        val type: IslandBuildingEngine.Type,
+        val x: Int,
+        val y: Int,
+        val verdict: IslandBuildingEngine.Verdict
+    ) {
+        val possible: Boolean get() = verdict is IslandBuildingEngine.Verdict.Oui
+    }
+
+    private val _visee = MutableStateFlow<Visee?>(null)
+    val visee: StateFlow<Visee?> = _visee.asStateFlow()
+
+    /** Entre en mode visee sur la case ou la fiche etait ouverte. */
+    fun preparerConstruction(type: IslandBuildingEngine.Type, x: Int, y: Int) {
+        _selection.value = null
+        viser(type, x, y)
+    }
+
+    /** Deplace l'apercu. Recalcule le verdict a chaque fois : c'est lui qu'on montre. */
+    fun viser(type: IslandBuildingEngine.Type, x: Int, y: Int) {
+        val ile = _etat.value.ile ?: return
+        val cases = parcelles.value
+        val batis = batiments.value
+        val occupees = batis.flatMap {
+            IslandBuildingEngine.Type.parId(it.type)
+                ?.let { t -> IslandBuildingEngine.casesOccupees(t, it.origineX, it.origineY) }
+                ?: emptyList()
+        }.toSet()
+
+        _visee.value = Visee(
+            type = type, x = x, y = y,
+            verdict = IslandBuildingEngine.peutBatir(
+                type = type, x = x, y = y,
+                niveauJoueur = utilisateur.value.level,
+                pieces = utilisateur.value.coins,
+                dejaConstruit = batis.any { it.type == type.id },
+                terrainDe = { cx, cy ->
+                    if (cx in 0 until ile.largeur && cy in 0 until ile.hauteur) {
+                        ile.type(cx, cy)
+                    } else null
+                },
+                occupee = { cx, cy ->
+                    (cx to cy) in occupees || (cy * ile.largeur + cx) in cases
+                }
+            )
+        )
+    }
+
+    fun deplacerVisee(x: Int, y: Int) {
+        _visee.value?.let { viser(it.type, x, y) }
+    }
+
+    fun annulerVisee() { _visee.value = null }
+
+    /** Pose le batiment vise. Le verdict a deja ete montre : plus de surprise. */
+    fun confirmerVisee() {
+        val v = _visee.value ?: return
+        _visee.value = null
+        batir(v.type, v.x, v.y)
+    }
+
     /** Case ouverte dans la bulle, ou `null`. */
     private val _selection = MutableStateFlow<IslandGenerator.Case?>(null)
     val selection: StateFlow<IslandGenerator.Case?> = _selection.asStateFlow()

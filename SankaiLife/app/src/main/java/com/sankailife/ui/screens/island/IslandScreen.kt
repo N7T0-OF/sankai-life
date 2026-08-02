@@ -97,6 +97,7 @@ fun IslandScreen(
     val arbres by viewModel.arbres.collectAsState()
     val cultures by viewModel.cultures.collectAsState()
     val equipeOuverte by viewModel.equipeOuverte.collectAsState()
+    val visee by viewModel.visee.collectAsState()
 
     // Rendu météo construit ici, comme au Jardin : c'est un calcul pur qui ne
     // dépend que de l'heure et du jour, pas d'un état persistant.
@@ -192,7 +193,16 @@ fun IslandScreen(
                 mimos = mimosPlaces,
                 cultures = cultures,
                 onZoom = viewModel::definirZoom,
-                onToucher = viewModel::selectionner,
+                // En mode visee, toucher deplace l'emprise au lieu d'ouvrir la
+                // fiche : ouvrir une fiche par-dessus l'apercu cacherait
+                // justement ce qu'on essaie de regarder.
+                onToucher = { x, y ->
+                    if (visee != null) viewModel.deplacerVisee(x, y)
+                    else viewModel.selectionner(x, y)
+                },
+                apercu = visee?.let {
+                    Triple(it.type, IntOffset(it.x, it.y), it.possible)
+                },
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -287,7 +297,12 @@ fun IslandScreen(
                     onSemer = { graine -> viewModel.semer(case.x, case.y, graine) },
                     onArroser = { viewModel.arroser(case.x, case.y) },
                     onRecolter = { viewModel.recolter(case.x, case.y) },
-                    onBatir = { type -> viewModel.batir(type, case.x, case.y) },
+                    // On ne batit plus depuis la fiche : on entre en visee.
+                    // Poser un batiment de six cases sans l'avoir vu revenait
+                    // a payer pour decouvrir ou il tombait.
+                    onBatir = { type ->
+                        viewModel.preparerConstruction(type, case.x, case.y)
+                    },
                     onOuvrirStock = {
                         viewModel.fermerSelection()
                         viewModel.ouvrirStock()
@@ -336,6 +351,61 @@ fun IslandScreen(
             )
         }
 
+        // Barre de placement.
+        //
+        // Elle dit trois choses avant qu'on paie : ce qu'on pose, ce que ca
+        // coute, et pourquoi ce n'est pas possible ici. Le refus est affiche a
+        // la place du prix — annoncer un prix sur un emplacement impossible
+        // ferait chercher l'argent au lieu de chercher la place.
+        visee?.let { v ->
+            Column(
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .windowInsetsPadding(
+                        WindowInsets.safeDrawing.only(
+                            WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal
+                        )
+                    )
+                    .padding(16.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.Black.copy(alpha = 0.72f))
+                    .padding(16.dp)
+            ) {
+                Text(
+                    "${v.type.libelle} — ${v.type.largeur} × ${v.type.hauteur} cases",
+                    color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    when (val verdict = v.verdict) {
+                        is com.sankailife.core.island.domain.IslandBuildingEngine.Verdict.Oui ->
+                            "${verdict.prix} 🪙 · touche la carte pour déplacer"
+                        is com.sankailife.core.island.domain.IslandBuildingEngine.Verdict.Non ->
+                            verdict.raison
+                    },
+                    color = if (v.possible) Color(0xFF9FE6A8) else Color(0xFFFFAFAF),
+                    fontSize = 12.sp
+                )
+                Spacer(Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    SankaiButton(
+                        "Annuler",
+                        onClick = { viewModel.annulerVisee() },
+                        secondary = true, small = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                    SankaiButton(
+                        "Construire ici",
+                        onClick = { viewModel.confirmerVisee() },
+                        enabled = v.possible,
+                        small = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(16.dp))
     }
 }
@@ -354,6 +424,8 @@ private fun CarteIle(
     arbres: List<com.sankailife.core.island.domain.IslandForetEngine.Arbre>,
     mimos: List<com.sankailife.core.island.domain.IslandMimoMondeEngine.Place>,
     cultures: Map<Int, com.sankailife.core.garden.domain.CropGrowthEngine.Etat>,
+    /** Emprise en cours de placement, ou `null` hors mode visée. */
+    apercu: Triple<com.sankailife.core.island.domain.IslandBuildingEngine.Type, IntOffset, Boolean>?,
     onZoom: (Float) -> Unit,
     onToucher: (Int, Int) -> Unit,
     modifier: Modifier = Modifier
@@ -526,7 +598,7 @@ private fun CarteIle(
                 ile = ile, camera = camera, pas = pas,
                 parcelles = parcelles.keys, batiments = batiments,
                 parcellesDetail = parcelles, textures = textures, arbres = arbres,
-                mimos = mimos, cultures = cultures
+                mimos = mimos, cultures = cultures, apercu = apercu
             )
         }
     }
