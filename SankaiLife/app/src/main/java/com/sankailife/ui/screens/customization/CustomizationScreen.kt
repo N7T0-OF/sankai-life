@@ -27,12 +27,13 @@ import com.sankailife.core.haptics.LocalHaptics
 import com.sankailife.ui.theme.sankaiColors
 
 private fun couleurDepuisHex(hex: String, defaut: Color): Color =
-    runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrDefault(defaut)
+    com.sankailife.ui.theme.Contraste.depuisHex(hex) ?: defaut
 
 @Composable
 fun CustomizationScreen(viewModel: CustomizationViewModel, onBack: () -> Unit) {
     val c = MaterialTheme.sankaiColors
     val haptics = LocalHaptics.current
+    val couleursSysteme by viewModel.couleursSysteme.collectAsState()
 
     val affiches by viewModel.themesAffiches.collectAsState()
     val categorie by viewModel.categorie.collectAsState()
@@ -52,6 +53,17 @@ fun CustomizationScreen(viewModel: CustomizationViewModel, onBack: () -> Unit) {
                     fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 Text("$obtenus thèmes obtenus", color = c.textSecondary, fontSize = 12.sp)
             }
+        }
+
+        // L'avertissement n'apparait que quand le conflit existe reellement.
+        if (couleursSysteme) {
+            Text(
+                "Les couleurs de ton téléphone sont actives : elles remplacent " +
+                    "l'accent du thème équipé. Choisis « Sankai classique » dans " +
+                    "les paramètres d'apparence pour voir tes thèmes.",
+                color = c.textSecondary, fontSize = 12.sp,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+            )
         }
 
         // Onglets : les thèmes utilisables en premier. Placer les verrouillés

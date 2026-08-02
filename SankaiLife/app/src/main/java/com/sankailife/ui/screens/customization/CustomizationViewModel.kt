@@ -48,6 +48,18 @@ class CustomizationViewModel(application: Application) : AndroidViewModel(applic
     val user: StateFlow<UserState> = userRepo.userFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UserState())
 
+    /**
+     * Les couleurs du telephone sont-elles actives ?
+     *
+     * Quand elles le sont, elles l'emportent sur l'accent du theme equipe. Ce
+     * n'est pas un oubli mais un arbitrage — deux sources de couleur qui se
+     * disputent le meme role donnent une interface sans identite — et l'ecran
+     * doit le dire. Le taire recreerait exactement le defaut qu'on vient de
+     * corriger : un theme equipe qui ne change rien, sans explication.
+     */
+    val couleursSysteme: StateFlow<Boolean> = app.preferences.couleursSysteme
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
     private val _categorie = MutableStateFlow(Categorie.OBTENUS)
     val categorie: StateFlow<Categorie> = _categorie
 

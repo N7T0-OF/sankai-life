@@ -1,5 +1,15 @@
 # Changelog Sankai Life
 
+## 1.64.0 - 2 aout 2026
+
+- **Les themes debloques changent enfin les couleurs de l'application.** Ils
+  n'avaient aucun effet : le theme equipe n'etait jamais transmis a
+  l'interface.
+- Les accents sont assombris automatiquement en mode clair, ou aucun des huit
+  n'etait lisible.
+- L'ecran de personnalisation previent quand les couleurs du telephone
+  remplacent le theme equipe.
+
 ## 1.63.0 - 2 aout 2026
 
 - **L'association en deux colonnes existe.** On touche un mot, puis son

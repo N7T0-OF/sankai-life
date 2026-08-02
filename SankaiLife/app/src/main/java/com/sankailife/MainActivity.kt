@@ -22,6 +22,8 @@ import com.sankailife.core.ads.PrivacyConsentManager
 import com.sankailife.core.haptics.AndroidHapticManager
 import com.sankailife.core.haptics.LocalHaptics
 import com.sankailife.ui.navigation.SankaiNavGraph
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
 import com.sankailife.ui.theme.SankaiTheme
 
 class MainActivity : ComponentActivity() {
@@ -52,6 +54,17 @@ class MainActivity : ComponentActivity() {
             // cours.
             val couleursSysteme by app.preferences.couleursSysteme.collectAsState(initial = true)
 
+            // Thème cosmétique équipé, relu en continu comme le reste : équiper
+            // un thème dans la personnalisation doit se voir immédiatement, pas
+            // au prochain lancement.
+            val utilisateur by app.database.userDao().getUser()
+                .collectAsState(initial = null)
+            val accentTheme = remember(utilisateur?.equippedThemeId) {
+                com.sankailife.core.domain.model.ALL_THEMES
+                    .firstOrNull { it.id == utilisateur?.equippedThemeId }
+                    ?.let { com.sankailife.ui.theme.Contraste.depuisHex(it.accentHex) }
+            }
+
             SankaiTheme(
                 darkTheme = when (themeMode) {
                     "light" -> false
@@ -59,7 +72,8 @@ class MainActivity : ComponentActivity() {
                     else -> true
                 },
                 couleursSysteme = couleursSysteme,
-                amoled = themeMode == "amoled"
+                amoled = themeMode == "amoled",
+                accentTheme = accentTheme
             ) {
                 CompositionLocalProvider(LocalHaptics provides haptics) {
                     // Le fond de l'application, peint une fois et une seule.
