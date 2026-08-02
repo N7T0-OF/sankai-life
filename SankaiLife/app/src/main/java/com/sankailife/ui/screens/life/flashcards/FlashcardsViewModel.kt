@@ -10,6 +10,7 @@ import com.sankailife.core.data.repository.UserRepository
 import com.sankailife.core.domain.engine.ExerciceEngine
 import com.sankailife.core.domain.engine.ErreursEngine
 import com.sankailife.core.domain.engine.FlashcardEngine
+import com.sankailife.core.learning.domain.AssociationEngine
 import com.sankailife.core.learning.domain.SessionPlanEngine.Type as TypeSession
 import com.sankailife.core.garden.data.GardenRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,7 +49,14 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
         /** Montrée seulement après une erreur. */
         val reponseAttendue: String? = null,
         /** Verrou anti-double appui pendant l'écriture en base. */
-        val reponseEnCours: Boolean = false
+        val reponseEnCours: Boolean = false,
+        /**
+         * Exercice d'association en cours, quand c'en est un.
+         *
+         * Il remplace [exercice] plutôt que de coexister avec : les deux
+         * affichés en même temps poseraient deux questions à la fois.
+         */
+        val association: AssociationEngine.Etat? = null
     ) {
         val carteCourante: FlashcardEngine.Carte? get() = cartes.getOrNull(index)
         val total: Int get() = cartes.size
@@ -67,13 +75,16 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
         com.sankailife.core.learning.data.LearningRepository(app.database)
 
     /**
-     * Formes demandees par le plan de session, une par exercice.
+     * Types demandes par le plan de session, un par exercice.
      *
      * `null` laisse la maitrise decider, comme avant : c'est le comportement
      * d'une revision libre, ou celui d'une carte reintroduite apres un echec.
+     *
+     * On garde le **type** et non la forme, parce que l'association n'a pas de
+     * forme ExerciceEngine : un null serait alors indistinct de « laisse la
+     * maitrise decider », et l'exercice ne se lancerait jamais.
      */
-    private var formes: List<com.sankailife.core.domain.engine.ExerciceEngine.Forme?> =
-        emptyList()
+    private var typesPlanifies: List<TypeSession?> = emptyList()
 
     /**
      * Demarre une session.
@@ -89,7 +100,7 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
         this.profileId = profileId
         this.uniteId = uniteId
         cartesReintroduites.clear()
-        formes = emptyList()
+        typesPlanifies = emptyList()
         typesJoues.clear()
         sessionId = 0L
 
@@ -168,9 +179,7 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
                         toutes[ex.carteId]?.let { it to ex.type }
                     }
                     cartes = suite.map { it.first }
-                    formes = suite.map {
-                        com.sankailife.core.learning.domain.SessionPlanEngine.forme(it.second)
-                    }
+                    typesPlanifies = suite.map { it.second }
                     uniteEnCours = module.id to uniteId
                 }
             }
@@ -186,8 +195,8 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
                     modeErreurs -> "Aucune carte ne te résiste pour l'instant"
                     else -> "Aucune carte à réviser pour l'instant"
                 },
-                exercice = cartes.firstOrNull()?.let { exercicePour(it, 0) }
-            )
+                exercice = null
+            ).avecExercice(0)
             uniteEnCours?.let { (moduleId, unite) ->
                 sessionId = learningRepo.ouvrirSession(moduleId, unite)
             }
@@ -199,6 +208,143 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
 
     /** Identifiant de la session enregistree, 0 quand il n'y en a pas. */
     private var sessionId: Long = 0L
+
+
+    /**
+     * Prepare une association autour d'une carte.
+     *
+     * Les compagnons viennent des **autres cartes de la session**, pas du
+     * module entier : associer un mot de l'unite en cours a trois mots qu'on
+     * n'a jamais vus ne teste rien, et l'exercice se resoudrait par
+     * elimination.
+     *
+     * @return `null` quand la session ne fournit pas assez de paires.
+     *   L'appelant retombe alors sur un exercice ordinaire plutot que
+     *   d'afficher une association degradee.
+     */
+    private fun associationPour(
+        ancreCarte: FlashcardEngine.Carte,
+        cartes: List<FlashcardEngine.Carte>
+    ): AssociationEngine.Etat? {
+        val paire = { c: FlashcardEngine.Carte ->
+            c.verso?.let { AssociationEngine.Paire(c.id, c.recto, it) }
+        }
+        val principale = paire(ancreCarte) ?: return null
+        val compagnons = cartes.asSequence()
+            .filter { it.id != ancreCarte.id && it.moduleId == ancreCarte.moduleId }
+            .distinctBy { it.id }
+            .mapNotNull(paire)
+            .take(AssociationEngine.PAIRES - 1)
+            .toList()
+
+        // Graine tiree de la carte : l'ordre des colonnes ne doit pas changer a
+        // chaque recomposition, sinon les mots sautent sous le doigt.
+        return AssociationEngine.preparer(
+            listOf(principale) + compagnons,
+            kotlin.random.Random(ancreCarte.id)
+        )
+    }
+
+    /**
+     * Un toucher dans l'exercice d'association.
+     *
+     * Quand la derniere paire tombe, chaque carte impliquee recoit **son
+     * propre** verdict : appariee du premier coup ou non. C'est tout l'interet
+     * de cet exercice, et n'en juger qu'une gaspillerait les trois autres.
+     */
+    fun toucherAssociation(
+        element: AssociationEngine.Element
+    ) {
+        val etat = _etat.value
+        val avant = etat.association ?: return
+        if (etat.reponseEnCours) return
+
+        val apres = AssociationEngine.toucher(avant, element)
+        if (apres == avant) return
+        _etat.value = etat.copy(association = apres)
+        if (!apres.termine) return
+
+        _etat.value = _etat.value.copy(reponseEnCours = true)
+        viewModelScope.launch {
+            runCatching {
+                val verdicts = AssociationEngine.verdicts(apres)
+                val parId = etat.cartes.associateBy { it.id }
+                var justes = 0
+
+                verdicts.forEach { (carteId, juste) ->
+                    val carte = parId[carteId]
+                        ?: reservoirLeurres.firstOrNull { it.id == carteId }
+                        ?: return@forEach
+                    if (juste) justes++
+                    val jugement = if (juste) FlashcardEngine.Jugement.CORRECT
+                    else FlashcardEngine.Jugement.A_REVOIR
+                    val boite = FlashcardEngine.boiteSuivante(carte.box, jugement)
+                    memoDao.majEtatCarte(
+                        id = carte.id, box = boite,
+                        prochaine = FlashcardEngine.prochaineRevision(boite, jugement),
+                        reussite = if (juste) 1 else 0
+                    )
+                    if (juste) {
+                        learningRepo.oublierErreurs(carte.id)
+                    } else {
+                        learningRepo.noterErreur(
+                            moduleId = carte.moduleId, carteId = carte.id,
+                            type = TypeSession.MATCHING
+                        )
+                    }
+                }
+
+                val recompense = recompenseSession()
+                if (recompense.xpParCarte > 0) userRepo.addXp(recompense.xpParCarte * justes)
+                typesJoues += TypeSession.MATCHING
+
+                // L'exercice compte pour **un** dans l'avancement, meme s'il
+                // vient de juger quatre cartes : le compteur affiche des
+                // exercices, et le voir sauter de quatre serait incomprehensible.
+                avancer(justes == verdicts.size)
+            }.onFailure {
+                _etat.value = _etat.value.copy(reponseEnCours = false)
+            }
+        }
+    }
+
+    /** Passe a l'exercice suivant, ou termine la session. */
+    private suspend fun avancer(reussi: Boolean) {
+        val etat = _etat.value
+        val suivant = etat.index + 1
+        if (suivant >= etat.cartes.size) {
+            terminerSession(
+                etat.reussies + if (reussi) 1 else 0,
+                etat.ratees + if (reussi) 0 else 1
+            )
+            return
+        }
+        _etat.value = etat.copy(
+            index = suivant,
+            versoVisible = false,
+            correction = null,
+            reponseAttendue = null,
+            reponseEnCours = false,
+            reussies = etat.reussies + if (reussi) 1 else 0,
+            ratees = etat.ratees + if (reussi) 0 else 1
+        ).avecExercice(suivant)
+    }
+
+    /**
+     * Installe l'exercice de l'index donne : association ou question ordinaire.
+     *
+     * Une association qui ne peut pas se preparer — pas assez de paires —
+     * retombe sur un exercice ordinaire. Sauter l'entree laisserait un blanc.
+     */
+    private fun EtatSession.avecExercice(index: Int): EtatSession {
+        val carte = cartes.getOrNull(index) ?: return this
+        if (typesPlanifies.getOrNull(index) == TypeSession.MATCHING) {
+            associationPour(carte, cartes)?.let {
+                return copy(association = it, exercice = null)
+            }
+        }
+        return copy(association = null, exercice = exercicePour(carte, index))
+    }
 
     /** Derniere reponse saisie, conservee pour decrire une faute. */
     private var derniereReponse: String = ""
@@ -224,7 +370,8 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
         ExerciceEngine.construire(
             carte = carte,
             autres = reservoirLeurres.filter { it.id != carte.id },
-            forme = formes.getOrNull(index)
+            forme = typesPlanifies.getOrNull(index)
+                ?.let { com.sankailife.core.learning.domain.SessionPlanEngine.forme(it) }
         )
 
     /**
@@ -314,7 +461,7 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
                     // La carte reintroduite n'herite pas d'une forme imposee :
                     // la reproposer sous le meme exercice qu'on vient de rater
                     // ferait rejouer l'echec a l'identique.
-                    formes = formes + listOf(null)
+                    typesPlanifies = typesPlanifies + listOf(null)
                     etat.cartes + carte.copy(box = nouvelleBoite)
                 } else etat.cartes
 
@@ -332,10 +479,9 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
                         correction = null,
                         reponseAttendue = null,
                         reponseEnCours = false,
-                        exercice = cartes[suivant].let { exercicePour(it, suivant) },
                         reussies = etat.reussies + if (reussi) 1 else 0,
                         ratees = etat.ratees + if (reussi) 0 else 1
-                    )
+                    ).avecExercice(suivant)
                 }
             }.onFailure {
                 _etat.value = _etat.value.copy(reponseEnCours = false)

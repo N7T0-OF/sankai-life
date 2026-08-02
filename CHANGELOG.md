@@ -1,5 +1,14 @@
 # Changelog Sankai Life
 
+## 1.63.0 - 2 aout 2026
+
+- **L'association en deux colonnes existe.** On touche un mot, puis son
+  equivalent ; une paire trouvee reste affichee, estompee.
+- Chaque paire recoit son propre verdict : une carte trouvee apres une
+  confusion ne compte pas comme sue.
+- Confondre deux mots marque les deux : l'un comme l'autre reviennent.
+- L'exercice n'est propose que si l'unite contient assez de paires.
+
 ## 1.62.0 - 2 aout 2026
 
 - **Ouvrir une unite lance la session composee**, pas la revision generique :

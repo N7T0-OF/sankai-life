@@ -119,6 +119,21 @@ fun FlashcardsScreen(
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text("Rien à réviser", color = c.textSecondary)
                     }
+                } else if (etat.association != null) {
+                    // L'association occupe l'ecran entier : elle porte quatre
+                    // cartes et ne se corrige pas comme les autres, donc rien de
+                    // la barre de reponse habituelle ne s'y applique.
+                    Column(
+                        Modifier.fillMaxSize().padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Spacer(Modifier.height(12.dp))
+                        ExerciceAssociation(
+                            etat = etat.association!!,
+                            onToucher = { viewModel.toucherAssociation(it) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 } else {
                     Column(
                         Modifier.fillMaxSize().padding(20.dp),

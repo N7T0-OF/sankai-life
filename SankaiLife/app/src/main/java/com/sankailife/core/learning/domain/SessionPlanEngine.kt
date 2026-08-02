@@ -90,8 +90,20 @@ object SessionPlanEngine {
         Type.MULTIPLE_CHOICE,
         Type.TYPING,
         Type.FILL_IN_THE_BLANK,
-        Type.SENTENCE_ORDER
+        Type.SENTENCE_ORDER,
+        Type.MATCHING
     )
+
+    /**
+     * Les types construits par [AssociationEngine] et non par `ExerciceEngine`.
+     *
+     * L'association est le seul exercice qui porte **plusieurs cartes à la
+     * fois** et qui garde un état entre deux gestes. Les autres posent une
+     * question et la corrigent d'un coup. Les faire passer par le même moule
+     * aurait demandé de rendre `ExerciceEngine` porteur d'état pour un seul cas,
+     * ce qui aurait compliqué les treize autres.
+     */
+    val PAR_ASSOCIATION: Set<Type> = setOf(Type.MATCHING)
 
     /**
      * Correspondance avec les formes que sait construire [ExerciceEngine].
@@ -104,6 +116,7 @@ object SessionPlanEngine {
      * défaut : un écart entre ce qu'on annonce et ce qui est.
      */
     fun forme(type: Type): com.sankailife.core.domain.engine.ExerciceEngine.Forme? = when (type) {
+        Type.MATCHING -> null // construit par AssociationEngine
         Type.MULTIPLE_CHOICE ->
             com.sankailife.core.domain.engine.ExerciceEngine.Forme.RECONNAISSANCE
         Type.TYPING -> com.sankailife.core.domain.engine.ExerciceEngine.Forme.SAISIE
@@ -176,7 +189,16 @@ object SessionPlanEngine {
         disponibles: Set<Type> = DISPONIBLES,
         graine: Long = 0L
     ): Plan {
-        val utilisables = disponibles.intersect(DISPONIBLES)
+        var utilisables = disponibles.intersect(DISPONIBLES)
+
+        // L'association a besoin de plusieurs paires dans la **même** unité.
+        // Une unité de deux cartes ne peut pas en porter une, et la programmer
+        // quand même donnerait un exercice qui se résout par élimination dès la
+        // deuxième réponse.
+        if (cartes.count { it.aVerso } < AssociationEngine.PAIRES_MIN) {
+            utilisables = utilisables - Type.MATCHING
+        }
+
         if (cartes.isEmpty() || utilisables.isEmpty()) {
             return Plan(moduleId, uniteId, emptyList(), 0)
         }

@@ -162,8 +162,9 @@ class SessionPlanEngineTest {
         // « Disponible » ne veut rien dire sans une forme qui sache l'afficher.
         SessionPlanEngine.DISPONIBLES.forEach { type ->
             assertTrue(
-                "$type est propose mais aucune forme ne sait le construire",
-                SessionPlanEngine.forme(type) != null
+                "$type est propose mais rien ne sait le construire",
+                SessionPlanEngine.forme(type) != null ||
+                    type in SessionPlanEngine.PAR_ASSOCIATION
             )
         }
     }
@@ -173,7 +174,9 @@ class SessionPlanEngineTest {
         // L'erreur inverse, et je l'ai faite : le texte a trous et la phrase a
         // reconstruire fonctionnaient depuis longtemps et n'etaient jamais
         // programmes, parce que DISPONIBLES n'en declarait que trois.
-        Type.entries.filter { SessionPlanEngine.forme(it) != null }.forEach { type ->
+        Type.entries.filter {
+            SessionPlanEngine.forme(it) != null || it in SessionPlanEngine.PAR_ASSOCIATION
+        }.forEach { type ->
             assertTrue(
                 "$type sait se construire mais n'est jamais propose",
                 type in SessionPlanEngine.DISPONIBLES
@@ -188,6 +191,25 @@ class SessionPlanEngineTest {
         assertTrue(
             "Un exercice exige plus de mots que la carte n'en a",
             plan.exercices.all { it.type.motsVersoMin <= 1 }
+        )
+    }
+
+    @Test
+    fun `l'association n'est pas proposee sans assez de paires`() {
+        // Elle se resoudrait par elimination des la deuxieme reponse.
+        val plan = composer(cartes(2), minutes = 6)
+        assertTrue(
+            "Association proposee avec deux cartes seulement",
+            plan.exercices.none { it.type == Type.MATCHING }
+        )
+    }
+
+    @Test
+    fun `l'association est proposee quand l'unite s'y prete`() {
+        val plan = composer(cartes(12), minutes = 12)
+        assertTrue(
+            "Association jamais proposee malgre douze cartes",
+            plan.exercices.any { it.type == Type.MATCHING }
         )
     }
 
