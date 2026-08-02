@@ -12,6 +12,8 @@ import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import com.sankailife.R
+import com.sankailife.core.garden.domain.ArbreSankaiEngine
+import com.sankailife.core.island.domain.IslandForetEngine
 import com.sankailife.core.island.domain.IslandGenerator
 import com.sankailife.core.island.domain.IslandTileType
 import kotlin.math.floor
@@ -38,7 +40,8 @@ data class TexturesIle(
     val herbe: ImageBitmap,
     val solVide: ImageBitmap,
     val solPrepare: ImageBitmap,
-    val solArrose: ImageBitmap
+    val solArrose: ImageBitmap,
+    val arbre: ImageBitmap
 )
 
 @Composable
@@ -46,7 +49,8 @@ fun rememberTexturesIle(): TexturesIle = TexturesIle(
     herbe = ImageBitmap.imageResource(R.drawable.plot_grass),
     solVide = ImageBitmap.imageResource(R.drawable.island_soil_empty),
     solPrepare = ImageBitmap.imageResource(R.drawable.island_soil_tilled),
-    solArrose = ImageBitmap.imageResource(R.drawable.island_soil_watered)
+    solArrose = ImageBitmap.imageResource(R.drawable.island_soil_watered),
+    arbre = ImageBitmap.imageResource(R.drawable.tree_sankai)
 )
 
 /** Sol à poser sur une parcelle, selon son état. */
@@ -83,6 +87,7 @@ fun DrawScope.dessinerIle(
     batiments: List<com.sankailife.core.island.data.IslandBuildingEntity> = emptyList(),
     parcellesDetail: Map<Int, com.sankailife.core.island.data.IslandSlotEntity> = emptyMap(),
     textures: TexturesIle? = null,
+    arbres: List<com.sankailife.core.island.domain.IslandForetEngine.Arbre> = emptyList(),
     marquerPonton: Boolean = true
 ) {
     if (pas <= 0f) return
@@ -119,7 +124,13 @@ fun DrawScope.dessinerIle(
             val type = ile.type(x, y)
             // L'herbe a une vraie texture ; le reste reste un aplat, faute
             // d'illustration correspondante.
-            if (textures != null && type == IslandTileType.GRASS && pas >= 6f) {
+            //
+            // Le bois compte comme de l'herbe depuis que les arbres sont
+            // réellement dessinés : sa couleur sombre servait à suggérer une
+            // forêt qu'on ne voyait pas. La garder poserait chaque arbre sur un
+            // carré foncé, et on verrait le carré plutôt que l'arbre.
+            val herbeuse = type == IslandTileType.GRASS || type == IslandTileType.FOREST
+            if (textures != null && herbeuse && pas >= 6f) {
                 drawImage(
                     image = textures.herbe,
                     dstOffset = IntOffset(
@@ -218,6 +229,44 @@ fun DrawScope.dessinerIle(
             size = Size(type.largeur * pas, type.hauteur * pas),
             style = Stroke(width = (pas * 0.08f).coerceIn(1f, 4f))
         )
+    }
+
+    // Les arbres, posés sur le terrain.
+    //
+    // Ils sont dessinés et non plus seulement suggérés par la couleur de la
+    // case : une forêt doit se voir sans qu'on ait à toucher quoi que ce soit.
+    //
+    // Le tronc est aligné sur l'ancrage mesuré du fichier — ni le centre ni le
+    // bas de l'image — et le feuillage déborde volontairement de l'emprise :
+    // une couronne ronde limitée à ses cases a l'air taillée au carré.
+    //
+    // La liste arrive déjà triée par profondeur, donc dessinée dans l'ordre :
+    // sans cela, un feuillage lointain recouvrirait un tronc proche.
+    if (textures != null && arbres.isNotEmpty() && pas >= 5f) {
+        arbres.forEach { arbre ->
+            if (arbre.x + 2 < premierX || arbre.x - 2 > dernierX ||
+                arbre.y + 2 < premierY || arbre.y - 2 > dernierY
+            ) return@forEach
+
+            val tronc = ArbreSankaiEngine.troncEcran(
+                origineEcran = Pair(
+                    camera.x + arbre.x * pas,
+                    camera.y + arbre.y * pas
+                ),
+                pas = pas,
+                taille = arbre.taille
+            )
+            val (gauche, haut, cote) = ArbreSankaiEngine.cadreDessin(
+                tronc = tronc,
+                pas = pas * IslandForetEngine.echelle(arbre.x, arbre.y),
+                taille = arbre.taille
+            )
+            drawImage(
+                image = textures.arbre,
+                dstOffset = IntOffset(gauche.toInt(), haut.toInt()),
+                dstSize = IntSize(cote.toInt().coerceAtLeast(1), cote.toInt().coerceAtLeast(1))
+            )
+        }
     }
 
     // Le ponton : seul repère dessiné par-dessus. C'est le point d'arrivée, il

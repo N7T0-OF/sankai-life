@@ -291,6 +291,17 @@ private fun CarteIle(
 ) {
     val densite = LocalDensity.current
     val textures = rememberTexturesIle()
+
+    // Découpage des bois en arbres : calculé une fois par île, jamais par
+    // frame. C'est du parcours de grille, pas du rendu.
+    val arbres = remember(ile.seed, ile.largeur) {
+        com.sankailife.core.island.domain.IslandForetEngine.decouper(
+            largeur = ile.largeur,
+            hauteur = ile.hauteur
+        ) { x, y ->
+            ile.type(x, y) == com.sankailife.core.island.domain.IslandTileType.FOREST
+        }
+    }
     var camera by remember { mutableStateOf(Offset.Zero) }
     var initialisee by remember { mutableStateOf(false) }
     var tailleVue by remember { mutableStateOf(IntOffset.Zero) }
@@ -455,7 +466,7 @@ private fun CarteIle(
             dessinerIle(
                 ile = ile, camera = camera, pas = pas,
                 parcelles = parcelles.keys, batiments = batiments,
-                parcellesDetail = parcelles, textures = textures
+                parcellesDetail = parcelles, textures = textures, arbres = arbres
             )
         }
     }

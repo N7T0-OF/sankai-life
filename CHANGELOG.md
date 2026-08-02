@@ -1,5 +1,12 @@
 # Changelog Sankai Life
 
+## 1.47.0 - 2 aout 2026
+
+- **Les arbres sont visibles sur l'ile.** Le bois n'est plus une case verte
+  plus sombre : les arbres sont dessines, de trois tailles differentes selon
+  qu'ils sont isoles ou en bosquet, avec une legere variation de taille pour
+  qu'aucun deux ne soient identiques.
+
 ## 1.46.0 - 1er aout 2026
 
 Correctifs de l'Ile, issus d'une utilisation reelle sur telephone.
