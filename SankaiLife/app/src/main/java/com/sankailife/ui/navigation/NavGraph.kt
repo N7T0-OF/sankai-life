@@ -133,6 +133,17 @@ fun SankaiNavGraph() {
         NavHost(
             navController = navController,
             startDestination = Screen.Home.route,
+            // Aucune transition entre ecrans.
+            //
+            // Le fondu par defaut de Navigation Compose dure 700 ms : passer
+            // d'un onglet a l'autre traversait un demi-ecran gris, et
+            // l'application paraissait lente alors qu'elle ne l'est pas. Un
+            // changement immediat se lit comme une reponse ; un fondu se lit
+            // comme une attente.
+            enterTransition = { androidx.compose.animation.EnterTransition.None },
+            exitTransition = { androidx.compose.animation.ExitTransition.None },
+            popEnterTransition = { androidx.compose.animation.EnterTransition.None },
+            popExitTransition = { androidx.compose.animation.ExitTransition.None },
             modifier = if (currentRoute == Screen.Garden.route ||
                 currentRoute == Screen.Island.route
             ) {

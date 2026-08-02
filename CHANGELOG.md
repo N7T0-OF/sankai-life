@@ -1,5 +1,13 @@
 # Changelog Sankai Life
 
+## 1.76.0 - 2 aout 2026
+
+- **Plus de badge sur une section verrouillee.** L'onglet Defis affichait « 3 »
+  au niveau 2 alors qu'il se debloque au niveau 5.
+- **Changement d'ecran immediat** : le fondu de 700 ms entre onglets est retire.
+- **Barres systeme reellement transparentes** : le voile pose sous la capsule de
+  navigation disparait, le fond de la page passe dessous.
+
 ## 1.75.0 - 2 aout 2026
 
 - **Les rivieres et etangs gardent leur texture** : l'aplat bleu pose par-dessus

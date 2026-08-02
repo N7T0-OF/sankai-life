@@ -34,7 +34,27 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        // Barres systeme reellement transparentes.
+        //
+        // `enableEdgeToEdge()` sans argument pose un voile clair ou sombre
+        // derriere les barres pour garantir le contraste des icones systeme.
+        // Sous la capsule de navigation, ce voile se lit comme un bandeau — et
+        // avec la navigation a trois boutons, comme un calque portant le
+        // triangle de retour. Le fond de la page passe desormais dessous, ce
+        // qui est le comportement attendu d'une barre flottante.
+        //
+        // Le contraste des icones reste gere par le systeme via
+        // `isAppearanceLightNavigationBars`, pilote plus bas par le theme.
+        enableEdgeToEdge(
+            statusBarStyle = androidx.activity.SystemBarStyle.auto(
+                android.graphics.Color.TRANSPARENT,
+                android.graphics.Color.TRANSPARENT
+            ),
+            navigationBarStyle = androidx.activity.SystemBarStyle.auto(
+                android.graphics.Color.TRANSPARENT,
+                android.graphics.Color.TRANSPARENT
+            )
+        )
 
         demanderPermissionNotifications()
 

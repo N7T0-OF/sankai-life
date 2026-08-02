@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sankailife.core.haptics.LocalHaptics
 import com.sankailife.ui.components.LiquidGlassSurface
+import com.sankailife.core.domain.engine.BadgeEngine
 import com.sankailife.core.domain.engine.DeblocageEngine
 import com.sankailife.ui.theme.sankaiColors
 import com.sankailife.ui.theme.SankaiGlass
@@ -104,19 +105,26 @@ fun SankaiBottomNavBar(
                     // barre qui change de composition en cours de partie déplace
                     // les autres boutons sous le doigt, et on n'apprend jamais ce
                     // qui existe plus loin.
-                    val fonction = when (item.route) {
-                        Screen.Challenges.route -> DeblocageEngine.Fonction.DEFIS
-                        else -> null
-                    }
+                    val fonction = BadgeEngine.fonctionDeRoute(item.route)
                     val verrou = fonction?.let { DeblocageEngine.verrou(it, niveau) }
 
-                    val badge = when (item.route) {
-                        Screen.Challenges.route -> challengeBadge
-                        // Un coffre prêt se signale ici plutôt que par une carte
-                        // supplémentaire dans le contenu de l'accueil.
-                        Screen.Home.route -> homeBadge
-                        else -> item.badgeCount
-                    }
+                    // La pastille passe par la meme regle que le verrou.
+                    //
+                    // Elle ne le faisait pas : l'onglet Defis etait grise au
+                    // niveau 2 et portait quand meme « 3 ». On annoncait trois
+                    // choses a reclamer derriere une porte fermee, et le seul
+                    // effet possible etait un aller-retour pour rien.
+                    val badge = BadgeEngine.compte(
+                        fonction = fonction,
+                        niveau = niveau,
+                        compte = when (item.route) {
+                            Screen.Challenges.route -> challengeBadge
+                            // Un coffre prêt se signale ici plutôt que par une
+                            // carte supplémentaire dans le contenu de l'accueil.
+                            Screen.Home.route -> homeBadge
+                            else -> item.badgeCount
+                        }
+                    )
 
                     val scale by animateFloatAsState(
                         targetValue = if (isSelected) 1.08f else 1f,
