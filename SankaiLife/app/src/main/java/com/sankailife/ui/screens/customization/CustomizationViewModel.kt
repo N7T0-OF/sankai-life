@@ -107,6 +107,48 @@ class CustomizationViewModel(application: Application) : AndroidViewModel(applic
 
     fun choisirCategorie(c: Categorie) { _categorie.value = c }
 
+    /**
+     * Une palette gratuite, toujours disponible.
+     *
+     * Les palettes et les themes cosmetiques sont **deux mecanismes
+     * differents** : une palette repeint toute l'interface, un theme ne change
+     * que l'accent. Les afficher ensemble a quand meme du sens, parce que du
+     * point de vue de qui regarde, la question est la meme — de quoi mon
+     * application a-t-elle l'air. Les etiquettes disent laquelle fait quoi,
+     * donc le regroupement n'induit personne en erreur.
+     *
+     * Elles restent en bas de la liste et ne se verrouillent jamais : ce sont
+     * les deux seules garanties de pouvoir revenir a quelque chose de lisible.
+     */
+    data class PaletteUi(
+        val id: String,
+        val nom: String,
+        val badge: String,
+        val active: Boolean,
+        val disponible: Boolean
+    )
+
+    val palettes: StateFlow<List<PaletteUi>> = couleursSysteme.map { systeme ->
+        val dynamiqueDispo = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S
+        listOf(
+            PaletteUi(
+                id = "sankai", nom = "Sankai classique",
+                badge = "Par défaut • Gratuit",
+                active = !systeme || !dynamiqueDispo, disponible = true
+            ),
+            PaletteUi(
+                id = "systeme", nom = "Couleurs du téléphone",
+                badge = if (dynamiqueDispo) "Dynamique Android • Gratuit"
+                else "Demande Android 12 ou plus récent",
+                active = systeme && dynamiqueDispo, disponible = dynamiqueDispo
+            )
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun choisirPalette(id: String) = viewModelScope.launch {
+        app.preferences.setCouleursSysteme(id == "systeme")
+    }
+
     fun equiper(themeUi: ThemeUi) = viewModelScope.launch {
         // Un thème verrouillé reste verrouillé : la vérification vit ici et
         // pas seulement dans l'interface, pour qu'aucun chemin ne la contourne.

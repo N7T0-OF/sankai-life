@@ -1,5 +1,15 @@
 # Changelog Sankai Life
 
+## 1.65.0 - 2 aout 2026
+
+- Les deux themes gratuits — **Sankai classique** et **Couleurs du telephone** —
+  apparaissent en bas des themes obtenus, avec leur etiquette, et ne se
+  verrouillent jamais.
+- L'ecran explique ce qui les distingue d'un theme : ils repeignent toute
+  l'interface, un theme ne change que l'accent.
+- Les parametres d'apparence menent a la collection au lieu d'etre un
+  cul-de-sac.
+
 ## 1.64.0 - 2 aout 2026
 
 - **Les themes debloques changent enfin les couleurs de l'application.** Ils

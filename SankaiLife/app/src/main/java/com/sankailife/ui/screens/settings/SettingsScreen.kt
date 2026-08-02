@@ -26,7 +26,19 @@ import com.sankailife.ui.components.SectionTitle
 import com.sankailife.ui.theme.*
 
 @Composable
-fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit) {
+fun SettingsScreen(
+    viewModel: SettingsViewModel,
+    onBack: () -> Unit,
+    /**
+     * Ouvre la collection de themes.
+     *
+     * Les parametres reglent **comment** l'application s'affiche — clair,
+     * sombre, couleurs du telephone — et la collection dit **lequel** on porte.
+     * Recopier toute la collection ici en ferait deux endroits a tenir a jour,
+     * qui finiraient par ne plus montrer la meme chose.
+     */
+    onGererThemes: () -> Unit = {}
+) {
     val themeMode   by viewModel.themeMode.collectAsState()
     val showLabels  by viewModel.showNavLabels.collectAsState()
     val vibrations  by viewModel.vibrations.collectAsState()
@@ -128,6 +140,13 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit) {
                         ) { Text(label, color = if (themeMode == mode) c.accent else c.textSecondary, fontSize = 11.sp, fontWeight = FontWeight.Medium) }
                     }
                 }
+                Spacer(Modifier.height(12.dp))
+                SankaiButton(
+                    "Gérer les thèmes",
+                    onClick = onGererThemes,
+                    secondary = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
                 Spacer(Modifier.height(12.dp))
                 SettingToggle("Afficher labels navigation", showLabels) { viewModel.setShowNavLabels(it) }
                 SettingToggle("Mode économie batterie", battery) { viewModel.setBatterySaver(it) }

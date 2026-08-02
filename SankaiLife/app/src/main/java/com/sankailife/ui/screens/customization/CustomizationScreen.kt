@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
@@ -34,6 +35,7 @@ fun CustomizationScreen(viewModel: CustomizationViewModel, onBack: () -> Unit) {
     val c = MaterialTheme.sankaiColors
     val haptics = LocalHaptics.current
     val couleursSysteme by viewModel.couleursSysteme.collectAsState()
+    val palettes by viewModel.palettes.collectAsState()
 
     val affiches by viewModel.themesAffiches.collectAsState()
     val categorie by viewModel.categorie.collectAsState()
@@ -123,7 +125,76 @@ fun CustomizationScreen(viewModel: CustomizationViewModel, onBack: () -> Unit) {
                         }
                     }
                 }
+
+                // Les deux palettes gratuites, en bas et seulement dans
+                // « Obtenus » : elles ne se debloquent pas, donc elles n'ont
+                // rien a faire parmi les verrouilles.
+                if (categorie == CustomizationViewModel.Categorie.OBTENUS) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        Column(Modifier.padding(top = 10.dp)) {
+                            Text(
+                                "TOUJOURS DISPONIBLES",
+                                color = c.textSecondary, fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                // La difference merite une phrase : sinon on
+                                // s'etonne qu'un « theme » repeigne tout l'ecran
+                                // quand un autre ne touche qu'a l'accent.
+                                "Ces deux-la repeignent toute l'interface, la ou " +
+                                    "un theme ne change que la couleur d'accent.",
+                                color = c.textSecondary, fontSize = 12.sp
+                            )
+                        }
+                    }
+                    items(palettes, key = { "palette_" + it.id }) { p ->
+                        CartePalette(p) {
+                            if (p.disponible) {
+                                haptics.success()
+                                viewModel.choisirPalette(p.id)
+                            } else {
+                                haptics.error()
+                            }
+                        }
+                    }
+                }
             }
+        }
+    }
+}
+
+/** Une palette gratuite : nom, etiquette, et l'etat bien visible. */
+@Composable
+private fun CartePalette(
+    ui: CustomizationViewModel.PaletteUi,
+    onClick: () -> Unit
+) {
+    val c = MaterialTheme.sankaiColors
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(if (ui.active) c.surface3 else c.surface2)
+            .border(
+                width = if (ui.active) 2.dp else 0.5.dp,
+                color = if (ui.active) c.accent else c.border,
+                shape = RoundedCornerShape(14.dp)
+            )
+            .clickable { onClick() }
+            .padding(14.dp)
+    ) {
+        Text(
+            ui.nom,
+            color = if (ui.disponible) c.textPrimary else c.textDisabled,
+            fontSize = 14.sp, fontWeight = FontWeight.SemiBold
+        )
+        Spacer(Modifier.height(2.dp))
+        Text(ui.badge, color = c.textSecondary, fontSize = 11.sp)
+        if (ui.active) {
+            Spacer(Modifier.height(4.dp))
+            Text("Active", color = c.accent, fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold)
         }
     }
 }

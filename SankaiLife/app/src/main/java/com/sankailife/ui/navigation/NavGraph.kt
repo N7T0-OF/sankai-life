@@ -240,7 +240,11 @@ fun SankaiNavGraph() {
                 ProfileScreen(viewModel = vm, onNavigate = { navController.navigate(it) })
             }
             composable(Screen.Settings.route) {
-                SettingsScreen(viewModel = settingsVm, onBack = { navController.popBackStack() })
+                SettingsScreen(
+                    viewModel = settingsVm,
+                    onBack = { navController.popBackStack() },
+                    onGererThemes = { navController.navigate(Screen.Customization.route) }
+                )
             }
         }
     }
