@@ -1,5 +1,16 @@
 # Changelog Sankai Life
 
+## 1.72.0 - 2 aout 2026
+
+- **L'ocean est un aplat bleu, a tous les zooms** : la texture est retiree
+  partout, y compris sur la mini-carte et l'assistant de creation.
+- **Le carre blanc sur l'eau pres des cotes est supprime.** Il dessinait une
+  rangee de carres alignes sur la grille, exactement ce que l'autotuilage
+  venait d'effacer.
+- **Plus aucun choix de theme dans les Parametres.** Ils se choisissent
+  uniquement dans Profil, Personnalisation. Le mode d'affichage reste, sous son
+  vrai nom.
+
 ## 1.71.0 - 2 aout 2026
 
 - **Les niveaux d'un meme parcours sont regroupes dans une carte repliable.**

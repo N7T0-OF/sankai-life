@@ -30,14 +30,13 @@ fun SettingsScreen(
     viewModel: SettingsViewModel,
     onBack: () -> Unit,
     /**
-     * Ouvre la collection de themes.
+     * Conserve pour la navigation, sans bouton dans cet ecran.
      *
-     * Les parametres reglent **comment** l'application s'affiche — clair,
-     * sombre, couleurs du telephone — et la collection dit **lequel** on porte.
-     * Recopier toute la collection ici en ferait deux endroits a tenir a jour,
-     * qui finiraient par ne plus montrer la meme chose.
+     * Les themes se choisissent uniquement dans Profil, Personnalisation. Le
+     * parametre reste dans la signature parce que la navigation le fournit
+     * deja, et le retirer obligerait a modifier le graphe pour rien.
      */
-    onGererThemes: () -> Unit = {}
+    @Suppress("UNUSED_PARAMETER") onGererThemes: () -> Unit = {}
 ) {
     val themeMode   by viewModel.themeMode.collectAsState()
     val showLabels  by viewModel.showNavLabels.collectAsState()
@@ -95,7 +94,7 @@ fun SettingsScreen(
             SectionTitle("Langue")
             SettingsCard { LangueSection() }
 
-            SectionTitle("Thème")
+            SectionTitle("Apparence")
             val palette by viewModel.palette.collectAsState()
             val dynamiqueDispo = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
@@ -155,7 +154,12 @@ fun SettingsScreen(
             }
 
             SettingsCard {
-                Text("Thème UI", color = c.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                // « Mode d'affichage » et non « Theme » : c'est le seul endroit
+                // ou l'on choisit clair, sombre ou AMOLED, et l'appeler theme
+                // laissait croire a un doublon de la collection alors que les
+                // deux reglages ne font pas la meme chose.
+                Text("Mode d'affichage", color = c.textPrimary, fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(10.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     // AMOLED est un mode a part, pas une nuance de sombre : il eteint
@@ -175,13 +179,11 @@ fun SettingsScreen(
                         ) { Text(label, color = if (themeMode == mode) c.accent else c.textSecondary, fontSize = 11.sp, fontWeight = FontWeight.Medium) }
                     }
                 }
-                Spacer(Modifier.height(12.dp))
-                SankaiButton(
-                    "Choisir un thème",
-                    onClick = onGererThemes,
-                    secondary = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                // Le bouton vers la collection est parti.
+                //
+                // Les themes se choisissent dans Profil, Personnalisation, et
+                // nulle part ailleurs. Un raccourci ici remettait deux chemins
+                // pour une meme chose, ce qu'on venait de corriger.
                 Spacer(Modifier.height(12.dp))
                 SettingToggle("Afficher labels navigation", showLabels) { viewModel.setShowNavLabels(it) }
                 SettingToggle("Mode économie batterie", battery) { viewModel.setBatterySaver(it) }
@@ -546,63 +548,6 @@ private fun ouvrirLien(contexte: android.content.Context, url: String) {
     runCatching { contexte.startActivity(intent) }
 }
 
-/**
- * Carte de choix de thème.
- *
- * Un thème indisponible reste visible, désactivé, avec la raison affichée.
- * Le masquer ferait croire qu'il n'existe pas, et personne ne saurait qu'une
- * mise à jour d'Android l'ouvrirait.
- */
-@Composable
-private fun CarteTheme(
-    titre: String,
-    sousTitre: String,
-    badge: String,
-    choisi: Boolean,
-    actif: Boolean,
-    onChoisir: () -> Unit
-) {
-    val c = MaterialTheme.sankaiColors
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(if (choisi) c.surface3 else c.surface2)
-            .border(
-                width = if (choisi) 2.dp else 1.dp,
-                color = if (choisi) c.accent else c.border,
-                shape = RoundedCornerShape(14.dp)
-            )
-            .then(if (actif) Modifier.clickable(onClick = onChoisir) else Modifier)
-            .padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    titre,
-                    color = if (actif) c.textPrimary else c.textDisabled,
-                    fontSize = 14.sp, fontWeight = FontWeight.SemiBold
-                )
-                Spacer(Modifier.width(8.dp))
-                Box(
-                    Modifier.clip(RoundedCornerShape(6.dp))
-                        .background(c.accent.copy(alpha = 0.18f))
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                ) {
-                    Text(badge, color = c.accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-            Spacer(Modifier.height(2.dp))
-            Text(sousTitre, color = c.textSecondary, fontSize = 12.sp)
-        }
-        if (choisi) {
-            Text("Équipé", color = c.accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-        }
-    }
-}
-
-/** Un choix parmi trois, dans les réglages audio. */
 @Composable
 private fun ChoixAudio(
     libelle: String,

@@ -270,18 +270,19 @@ fun DrawScope.dessinerIle(
         for (x in premierX..dernierX) {
             val type = ile.type(x, y)
             val fond = when {
-                // L'ocean n'est plus texture, et c'est un retrait assume.
+                // L'ocean n'est jamais texture, a aucun zoom.
                 //
-                // La texture d'eau se repetait sur toute la surface : a l'echelle
-                // d'un ecran entier, l'oeil retrouve immediatement le carreau et
-                // le motif attire l'attention loin de l'ile, qui est le sujet.
-                // Un aplat presque uni laisse la place au terrain.
-                autotuilage && type == IslandTileType.DEEP_WATER -> null
+                // La texture se repetait sur toute la surface : a l'echelle d'un
+                // ecran, l'oeil retrouve immediatement le carreau et le motif
+                // attire l'attention loin de l'ile, qui est le sujet. La regle
+                // passe avant l'autotuilage, sinon la miniature et l'assistant
+                // de creation — qui dessinent trop petit pour l'autotuilage —
+                // continuaient d'afficher le motif.
+                type == IslandTileType.DEEP_WATER -> null
                 autotuilage -> textures!!.eauProfonde
                 textures == null || pas < 6f -> null
                 // Sans autotuilage, chaque case garde sa propre texture.
                 type == IslandTileType.GRASS || type == IslandTileType.FOREST -> textures.herbe
-                type == IslandTileType.DEEP_WATER -> textures.eauProfonde
                 type == IslandTileType.SHALLOW_WATER -> textures.eauBasse
                 type == IslandTileType.BEACH || type == IslandTileType.DOCK -> textures.sable
                 else -> null
@@ -353,21 +354,16 @@ fun DrawScope.dessinerIle(
         }
     }
 
-    // Écume : là où l'eau touche la terre. C'est ce qui fait lire une côte
-    // plutôt qu'un simple changement de couleur.
-    for (y in premierY..dernierY) {
-        for (x in premierX..dernierX) {
-            if (!ile.type(x, y).estEau) continue
-            val borde = ile.type(x - 1, y).estTerre || ile.type(x + 1, y).estTerre ||
-                ile.type(x, y - 1).estTerre || ile.type(x, y + 1).estTerre
-            if (!borde) continue
-            drawRect(
-                color = Color.White.copy(alpha = 0.22f),
-                topLeft = Offset(camera.x + x * pas, camera.y + y * pas),
-                size = taille
-            )
-        }
-    }
+    // L'ecume est retiree.
+    //
+    // Elle peignait un carre blanc a 22 % sur chaque case d'eau bordant la
+    // terre. L'intention etait de faire lire une cote ; le resultat etait une
+    // rangee de carres pales parfaitement alignes sur la grille — c'est-a-dire
+    // exactement ce que l'autotuilage venait d'effacer. Un carre ne suggere pas
+    // une ecume, il montre une case.
+    //
+    // Le bord irregulier du sable sur l'eau fait desormais ce travail, et le
+    // fait mieux : il suit la cote au lieu de la quadriller.
 
     // Parcelles achetées.
     //
