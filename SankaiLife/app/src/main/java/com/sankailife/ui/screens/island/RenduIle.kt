@@ -41,7 +41,10 @@ data class TexturesIle(
     val solVide: ImageBitmap,
     val solPrepare: ImageBitmap,
     val solArrose: ImageBitmap,
-    val arbre: ImageBitmap
+    val arbre: ImageBitmap,
+    val eauProfonde: ImageBitmap,
+    val eauBasse: ImageBitmap,
+    val sable: ImageBitmap
 )
 
 @Composable
@@ -50,7 +53,10 @@ fun rememberTexturesIle(): TexturesIle = TexturesIle(
     solVide = ImageBitmap.imageResource(R.drawable.island_soil_empty),
     solPrepare = ImageBitmap.imageResource(R.drawable.island_soil_tilled),
     solArrose = ImageBitmap.imageResource(R.drawable.island_soil_watered),
-    arbre = ImageBitmap.imageResource(R.drawable.tree_sankai)
+    arbre = ImageBitmap.imageResource(R.drawable.tree_sankai),
+    eauProfonde = ImageBitmap.imageResource(R.drawable.island_deep_water),
+    eauBasse = ImageBitmap.imageResource(R.drawable.island_shallow_water),
+    sable = ImageBitmap.imageResource(R.drawable.island_beach)
 )
 
 /** Sol à poser sur une parcelle, selon son état. */
@@ -130,9 +136,20 @@ fun DrawScope.dessinerIle(
             // forêt qu'on ne voyait pas. La garder poserait chaque arbre sur un
             // carré foncé, et on verrait le carré plutôt que l'arbre.
             val herbeuse = type == IslandTileType.GRASS || type == IslandTileType.FOREST
-            if (textures != null && herbeuse && pas >= 6f) {
+            val texture = when {
+                textures == null || pas < 6f -> null
+                herbeuse -> textures.herbe
+                type == IslandTileType.DEEP_WATER -> textures.eauProfonde
+                type == IslandTileType.SHALLOW_WATER -> textures.eauBasse
+                type == IslandTileType.BEACH || type == IslandTileType.DOCK -> textures.sable
+                // Le rocher et la rivière restent des aplats : mes essais de
+                // texture pour eux donnaient un résultat pire que la couleur
+                // franche, et le dire vaut mieux que de le maquiller.
+                else -> null
+            }
+            if (texture != null) {
                 drawImage(
-                    image = textures.herbe,
+                    image = texture,
                     dstOffset = IntOffset(
                         (camera.x + x * pas).toInt(), (camera.y + y * pas).toInt()
                     ),

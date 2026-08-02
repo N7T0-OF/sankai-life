@@ -1,5 +1,13 @@
 # Changelog Sankai Life
 
+## 1.59.0 - 2 aout 2026
+
+- **L'ocean, l'eau peu profonde et la plage ont enfin une texture.** Elles sont
+  generees, pas peintes, et c'est assume : une texture de terrain se calcule,
+  contrairement aux illustrations du jeu.
+- Le rocher reste un aplat de couleur : mes essais de texture donnaient un
+  resultat pire que le gris uni.
+
 ## 1.58.0 - 2 aout 2026
 
 - **L'Ile devient le mode de jeu.** Le bouton de l'accueil y mene directement,
