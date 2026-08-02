@@ -83,6 +83,13 @@ fun SankaiNavGraph() {
         FeuilleVerrou(verrou = v, onFermer = { verrouAffiche = null })
     }
 
+    // Ce qui arrive depuis le menu « Partager » d'une autre application.
+    //
+    // Monté à la racine, pas dans un écran : un partage peut arriver pendant
+    // qu'on est sur l'Île ou dans les paramètres, et l'aperçu doit s'afficher
+    // là où on se trouve plutôt que d'exiger de naviguer d'abord.
+    com.sankailife.ui.screens.life.memo.FeuillePartageEntrant()
+
     val noBottomBarRoutes = setOf(
         Screen.Settings.route, Screen.MemoEditor.route,
         Screen.Objectives.route, Screen.Flashcards.route, Screen.Arenas.route,

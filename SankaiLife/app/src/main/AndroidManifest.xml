@@ -70,11 +70,37 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- « Partager vers Sankai Life » depuis n'importe quelle app de notes. -->
+            <!--
+              « Partager vers Sankai Life », depuis n'importe quelle application.
+              Le filtre text/plain existait deja ; il etait declare et rien ne le
+              lisait, donc partager un texte ouvrait l'application et ne faisait
+              rien du tout.
+
+              Les types listes sont ceux que le partage produit reellement : un
+              carnet de notes envoie du texte, un tableur du CSV, un
+              gestionnaire de fichiers un octet-stream faute de mieux.
+            -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
+                <data android:mimeType="text/csv" />
+                <data android:mimeType="text/comma-separated-values" />
+                <data android:mimeType="application/json" />
+                <data android:mimeType="application/zip" />
+                <data android:mimeType="application/octet-stream" />
+            </intent-filter>
+
+            <!-- « Ouvrir avec » depuis un gestionnaire de fichiers. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:mimeType="application/zip" />
+                <data android:mimeType="application/json" />
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="text/csv" />
             </intent-filter>
         </activity>
 

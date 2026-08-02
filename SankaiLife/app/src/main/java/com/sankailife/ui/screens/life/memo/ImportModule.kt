@@ -67,31 +67,22 @@ fun ImportModuleBouton() {
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.height(6.dp))
-        // Le catalogue s'ouvre dans l'application.
+        // La bibliotheque est livree avec l'application.
         //
-        // Le bouton renvoyait vers le depot dans un navigateur : il fallait y
-        // trouver le bon fichier, le telecharger, revenir, puis l'importer
-        // depuis le gestionnaire de fichiers. Cinq etapes, dont trois hors de
-        // l'application, pour installer deux kilo-octets.
+        // Elle remplace un catalogue qui telechargeait depuis GitHub : tout le
+        // contenu tient en 55 ko, et le telecharger imposait une connexion, des
+        // hotes autorises, une verification d'empreinte et un message d'erreur
+        // hors-ligne pour livrer ce qui pouvait deja etre la.
         SankaiButton(
-            "📚  Contenus disponibles",
+            "📚  Bibliothèque",
             onClick = { catalogueOuvert = true },
             secondary = true,
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.height(6.dp))
-        // Le lien reste, en retrait : c'est la seule facon de voir le contenu
-        // exact d'un module avant de l'installer, et de proposer le sien.
-        SankaiButton(
-            "Voir le dépôt des modules",
-            onClick = { ouvrirDepotModules(contexte) },
-            secondary = true, small = true,
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(Modifier.height(6.dp))
         Text(
-            "Des paquets de cartes prêts à l'emploi. Une fois importés, ils " +
-                "fonctionnent entièrement hors ligne.",
+            "Tout fonctionne hors ligne, sans compte : un module est un fichier " +
+                "qu'on peut copier, sauvegarder et envoyer comme on veut.",
             color = c.textDisabled, fontSize = 11.sp
         )
         avis?.let {
@@ -107,7 +98,7 @@ fun ImportModuleBouton() {
                 app.database.memoDao().getAllProfilesOnce().map { it.name }.toSet()
             }.getOrDefault(emptySet())
         }
-        CatalogueModules(
+        BibliothequeModules(
             nomsInstalles = installes,
             onFermer = { catalogueOuvert = false },
             onInstalle = {
@@ -185,20 +176,6 @@ fun ImportModuleBouton() {
 }
 
 /** Adresse du dossier de modules, dans le dépôt du projet. */
-private const val URL_MODULES = "https://github.com/N7T0-OF/sankai-life/tree/main/modules"
-
-private fun ouvrirDepotModules(contexte: android.content.Context) {
-    val intent = android.content.Intent(
-        android.content.Intent.ACTION_VIEW,
-        android.net.Uri.parse(URL_MODULES)
-    ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-    // Aucun navigateur installé : on échoue en silence plutôt que de planter.
-    runCatching { contexte.startActivity(intent) }
-}
-
-/** Retour d'import : le texte, et s'il annonce une réussite ou un échec. */
-private data class Avis(val texte: String, val succes: Boolean)
-
 @Composable
 private fun LigneInfo(cle: String, valeur: String) {
     val c = MaterialTheme.sankaiColors
@@ -210,3 +187,6 @@ private fun LigneInfo(cle: String, valeur: String) {
         Text(valeur, color = c.textPrimary, fontSize = 13.sp)
     }
 }
+
+/** Retour d'import : le texte, et s'il annonce une réussite ou un échec. */
+private data class Avis(val texte: String, val succes: Boolean)

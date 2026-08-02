@@ -41,6 +41,8 @@ class MainActivity : ComponentActivity() {
         val app = application as SankaiApplication
         val haptics = AndroidHapticManager(this)
 
+        lirePartage(intent)
+
         setContent {
             val themeMode by app.preferences.themeMode.collectAsState(initial = "dark")
             val vibrations by app.preferences.vibrations.collectAsState(initial = true)
@@ -114,4 +116,66 @@ class MainActivity : ComponentActivity() {
         val uiMode = resources.configuration.uiMode
         return (uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
     }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        // L'application deja ouverte recoit aussi les partages : sans cela, il
+        // faudrait la fermer avant de pouvoir importer quoi que ce soit.
+        setIntent(intent)
+        lirePartage(intent)
+    }
+
+    /**
+     * Recupere ce qui a ete partage vers l'application.
+     *
+     * Rien n'est ecrit en base ici : on depose le contenu, l'ecran d'import
+     * l'affichera et demandera confirmation. Installer sans montrer serait
+     * accepter n'importe quoi de n'importe qui.
+     */
+    private fun lirePartage(intent: android.content.Intent?) {
+        if (intent == null) return
+        val action = intent.action
+        if (action != android.content.Intent.ACTION_SEND &&
+            action != android.content.Intent.ACTION_VIEW
+        ) return
+
+        val flux: android.net.Uri? = when {
+            action == android.content.Intent.ACTION_VIEW -> intent.data
+            android.os.Build.VERSION.SDK_INT >= 33 -> intent.getParcelableExtra(
+                android.content.Intent.EXTRA_STREAM, android.net.Uri::class.java
+            )
+            else -> @Suppress("DEPRECATION")
+            intent.getParcelableExtra(android.content.Intent.EXTRA_STREAM)
+        }
+
+        if (flux != null) {
+            com.sankailife.core.modules.PartageEntrant.deposer(
+                com.sankailife.core.modules.PartageEntrant.Contenu.Fichier(
+                    uri = flux,
+                    nom = nomDuFichier(flux)
+                )
+            )
+            return
+        }
+
+        val texte = intent.getStringExtra(android.content.Intent.EXTRA_TEXT)
+        if (!texte.isNullOrBlank()) {
+            com.sankailife.core.modules.PartageEntrant.deposer(
+                com.sankailife.core.modules.PartageEntrant.Contenu.Texte(
+                    valeur = texte,
+                    titre = intent.getStringExtra(android.content.Intent.EXTRA_SUBJECT).orEmpty()
+                )
+            )
+        }
+    }
+
+    /** Nom lisible d'un fichier recu, ou vide si le fournisseur n'en donne pas. */
+    private fun nomDuFichier(uri: android.net.Uri): String = runCatching {
+        contentResolver.query(uri, null, null, null, null)?.use { curseur ->
+            val colonne = curseur.getColumnIndex(
+                android.provider.OpenableColumns.DISPLAY_NAME
+            )
+            if (colonne >= 0 && curseur.moveToFirst()) curseur.getString(colonne) else ""
+        }.orEmpty()
+    }.getOrDefault("")
 }

@@ -1,5 +1,16 @@
 # Changelog Sankai Life
 
+## 1.69.0 - 2 aout 2026
+
+- **Tous les contenus sont livres avec l'application.** 1089 cartes, dont le
+  portugais complet A1 a C2, disponibles en mode avion des l'installation.
+- **Le catalogue distant est supprime.** Plus aucune requete reseau pour
+  trouver, telecharger ou installer un module.
+- **Coller des cartes suffit** : on colle, l'application reconnait le format et
+  montre ce qu'elle a compris avant de creer le module.
+- **Partager vers Sankai Life fonctionne enfin** depuis n'importe quelle
+  application : fichier ZIP, TXT, CSV, JSON ou texte brut.
+
 ## 1.68.0 - 2 aout 2026
 
 - **Le portugais complet, A1 a C2 : 797 cartes en six niveaux relies**, dans un

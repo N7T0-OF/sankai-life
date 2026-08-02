@@ -1,0 +1,228 @@
+{
+  "schemaVersion": 1,
+  "collections": [
+    {
+      "id": "anglais",
+      "nom": "Anglais",
+      "description": "Les bases de l'anglais du quotidien.",
+      "langue": "en",
+      "auteur": "Sankai Life",
+      "modules": [
+        "anglais-a1-bases"
+      ],
+      "niveaux": [
+        "A1"
+      ],
+      "cartes": 86,
+      "octets": 1828,
+      "fichier": "collection-anglais.zip"
+    },
+    {
+      "id": "espagnol",
+      "nom": "Espagnol",
+      "description": "Les bases de l'espagnol du quotidien.",
+      "langue": "es",
+      "auteur": "Sankai Life",
+      "modules": [
+        "espagnol-a1-bases"
+      ],
+      "niveaux": [
+        "A1"
+      ],
+      "cartes": 85,
+      "octets": 1874,
+      "fichier": "collection-espagnol.zip"
+    },
+    {
+      "id": "outils",
+      "nom": "Outils et code",
+      "description": "Raccourcis et syntaxe, a garder sous la main.",
+      "langue": "",
+      "auteur": "Sankai Life",
+      "modules": [
+        "blender-raccourcis",
+        "vscode-raccourcis",
+        "kotlin-bases"
+      ],
+      "niveaux": [
+        "",
+        "",
+        ""
+      ],
+      "cartes": 121,
+      "octets": 3954,
+      "fichier": "collection-outils.zip"
+    },
+    {
+      "id": "portugais",
+      "nom": "Portugais",
+      "description": "Du premier bonjour a l'expression experte, en six niveaux europeens.",
+      "langue": "pt",
+      "auteur": "Souanpt",
+      "modules": [
+        "portugais-a1-complet",
+        "portugais-a2-complet",
+        "portugais-b1-complet",
+        "portugais-b2-complet",
+        "portugais-c1-complet",
+        "portugais-c2-complet"
+      ],
+      "niveaux": [
+        "A1",
+        "A2",
+        "B1",
+        "B2",
+        "C1",
+        "C2"
+      ],
+      "cartes": 797,
+      "octets": 18226,
+      "fichier": "collection-portugais.zip"
+    }
+  ],
+  "modules": [
+    {
+      "id": "anglais-a1-bases",
+      "nom": "Anglais A1 — Bases",
+      "description": "Saluer, se presenter, les mots de tous les jours.",
+      "collection": "anglais",
+      "langue": "en",
+      "niveau": "A1",
+      "cartes": 86,
+      "octets": 1479,
+      "licence": "CC BY 4.0",
+      "auteur": "Sankai Life",
+      "fichier": "anglais-a1-bases.zip"
+    },
+    {
+      "id": "espagnol-a1-bases",
+      "nom": "Espagnol A1 — Bases",
+      "description": "Saluer, se presenter, les mots de tous les jours.",
+      "collection": "espagnol",
+      "langue": "es",
+      "niveau": "A1",
+      "cartes": 85,
+      "octets": 1518,
+      "licence": "CC BY 4.0",
+      "auteur": "Sankai Life",
+      "fichier": "espagnol-a1-bases.zip"
+    },
+    {
+      "id": "blender-raccourcis",
+      "nom": "Blender — Raccourcis",
+      "description": "Les raccourcis clavier du travail quotidien.",
+      "collection": "outils",
+      "langue": "",
+      "niveau": "",
+      "cartes": 45,
+      "octets": 1091,
+      "licence": "CC BY 4.0",
+      "auteur": "Sankai Life",
+      "fichier": "blender-raccourcis.zip"
+    },
+    {
+      "id": "kotlin-bases",
+      "nom": "Kotlin — Bases",
+      "description": "Syntaxe et idiomes courants du langage.",
+      "collection": "outils",
+      "langue": "",
+      "niveau": "",
+      "cartes": 46,
+      "octets": 1443,
+      "licence": "CC BY 4.0",
+      "auteur": "Sankai Life",
+      "fichier": "kotlin-bases.zip"
+    },
+    {
+      "id": "vscode-raccourcis",
+      "nom": "VS Code — Raccourcis",
+      "description": "Les raccourcis Windows et Linux qui font gagner du temps.",
+      "collection": "outils",
+      "langue": "",
+      "niveau": "",
+      "cartes": 30,
+      "octets": 941,
+      "licence": "CC BY 4.0",
+      "auteur": "Sankai Life",
+      "fichier": "vscode-raccourcis.zip"
+    },
+    {
+      "id": "portugais-a1-complet",
+      "nom": "Portugais A1 — Premiers pas",
+      "description": "Bases essentielles : salutations, identité, nombres, quotidien, maison, nourriture et déplacements.",
+      "collection": "portugais",
+      "langue": "pt",
+      "niveau": "A1",
+      "cartes": 189,
+      "octets": 2607,
+      "licence": "CC BY 4.0",
+      "auteur": "Souanpt",
+      "fichier": "portugais-a1-complet.zip"
+    },
+    {
+      "id": "portugais-a2-complet",
+      "nom": "Portugais A2 — Vie quotidienne",
+      "description": "Autonomie dans les situations courantes : routines, voyages, achats, santé, passé et futur proche.",
+      "collection": "portugais",
+      "langue": "pt",
+      "niveau": "A2",
+      "cartes": 161,
+      "octets": 3062,
+      "licence": "CC BY 4.0",
+      "auteur": "Souanpt",
+      "fichier": "portugais-a2-complet.zip"
+    },
+    {
+      "id": "portugais-b1-complet",
+      "nom": "Portugais B1 — Autonomie",
+      "description": "Exprimer une opinion, travailler, voyager, gérer des problèmes et utiliser des structures plus complexes.",
+      "collection": "portugais",
+      "langue": "pt",
+      "niveau": "B1",
+      "cartes": 133,
+      "octets": 3145,
+      "licence": "CC BY 4.0",
+      "auteur": "Souanpt",
+      "fichier": "portugais-b1-complet.zip"
+    },
+    {
+      "id": "portugais-b2-complet",
+      "nom": "Portugais B2 — Argumenter et nuancer",
+      "description": "Argumentation, société, technologie, expressions idiomatiques et structures avancées.",
+      "collection": "portugais",
+      "langue": "pt",
+      "niveau": "B2",
+      "cartes": 115,
+      "octets": 3055,
+      "licence": "CC BY 4.0",
+      "auteur": "Souanpt",
+      "fichier": "portugais-b2-complet.zip"
+    },
+    {
+      "id": "portugais-c1-complet",
+      "nom": "Portugais C1 — Maîtrise avancée",
+      "description": "Langue soutenue, raisonnement, analyse, registre académique et nuances précises.",
+      "collection": "portugais",
+      "langue": "pt",
+      "niveau": "C1",
+      "cartes": 111,
+      "octets": 2961,
+      "licence": "CC BY 4.0",
+      "auteur": "Souanpt",
+      "fichier": "portugais-c1-complet.zip"
+    },
+    {
+      "id": "portugais-c2-complet",
+      "nom": "Portugais C2 — Expression experte",
+      "description": "Finesse stylistique, idiomes avancés, registre soutenu et précision quasi native.",
+      "collection": "portugais",
+      "langue": "pt",
+      "niveau": "C2",
+      "cartes": 88,
+      "octets": 2643,
+      "licence": "CC BY 4.0",
+      "auteur": "Souanpt",
+      "fichier": "portugais-c2-complet.zip"
+    }
+  ]
+}
