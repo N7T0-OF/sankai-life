@@ -58,7 +58,8 @@ class MainActivity : ComponentActivity() {
                     "auto" -> isSystemDarkTheme()
                     else -> true
                 },
-                couleursSysteme = couleursSysteme
+                couleursSysteme = couleursSysteme,
+                amoled = themeMode == "amoled"
             ) {
                 CompositionLocalProvider(LocalHaptics provides haptics) {
                     // Le fond de l'application, peint une fois et une seule.

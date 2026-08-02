@@ -17,6 +17,7 @@ class AppPreferences(private val context: Context) {
     private object Keys {
         val THEME_MODE       = stringPreferencesKey("theme_mode")
         val COULEURS_SYSTEME = booleanPreferencesKey("couleurs_systeme")
+        val PALETTE          = stringPreferencesKey("palette")
         val SHOW_NAV_LABELS  = booleanPreferencesKey("show_nav_labels")
         val VIBRATIONS       = booleanPreferencesKey("vibrations")
         val NOTIFICATIONS    = booleanPreferencesKey("notifications")
@@ -44,6 +45,16 @@ class AppPreferences(private val context: Context) {
      * garder intact.
      */
     val couleursSysteme: Flow<Boolean> = pref(Keys.COULEURS_SYSTEME, true)
+
+    /**
+     * Palette active : « sankai » ou « systeme ».
+     *
+     * Sans valeur enregistrée, on retombe sur l'ancien réglage booléen. C'est
+     * ce qui garde son apparence à quelqu'un qui jouait déjà : écraser une
+     * préférence existante parce qu'on a changé sa forme serait le pire des
+     * accueils pour une mise à jour.
+     */
+    val palette: Flow<String> = pref(Keys.PALETTE, "")
     val showNavLabels: Flow<Boolean>  = pref(Keys.SHOW_NAV_LABELS, true)
     val vibrations: Flow<Boolean>     = pref(Keys.VIBRATIONS, true)
     val notifications: Flow<Boolean>  = pref(Keys.NOTIFICATIONS, true)
@@ -77,6 +88,9 @@ class AppPreferences(private val context: Context) {
 
     suspend fun setCouleursSysteme(actif: Boolean) =
         context.dataStore.edit { it[Keys.COULEURS_SYSTEME] = actif }
+
+    suspend fun setPalette(valeur: String) =
+        context.dataStore.edit { it[Keys.PALETTE] = valeur }
     suspend fun setShowNavLabels(v: Boolean) = context.dataStore.edit { it[Keys.SHOW_NAV_LABELS] = v }
     suspend fun setVibrations(v: Boolean) = context.dataStore.edit { it[Keys.VIBRATIONS] = v }
     suspend fun setNotifications(v: Boolean) = context.dataStore.edit { it[Keys.NOTIFICATIONS] = v }

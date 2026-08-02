@@ -10,6 +10,7 @@ import com.sankailife.SankaiApplication
 import com.sankailife.core.notifications.MemoAlarmScheduler
 import com.sankailife.core.notifications.SankaiNotifications
 import com.sankailife.core.update.UpdateManager
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -34,6 +35,27 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun setThemeMode(mode: String)         = viewModelScope.launch { prefs.setThemeMode(mode) }
     fun setCouleursSysteme(actif: Boolean) = viewModelScope.launch { prefs.setCouleursSysteme(actif) }
+
+    /**
+     * Palette choisie, en tenant compte de l'ancien reglage booleen.
+     *
+     * Tant que le joueur n'a pas choisi explicitement, on respecte ce qu'il
+     * avait : le booleen precedent fait foi.
+     */
+    val palette: StateFlow<String> = combine(prefs.palette, prefs.couleursSysteme) { p, ancien ->
+        when {
+            p.isNotBlank() -> p
+            ancien -> "systeme"
+            else -> "sankai"
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "systeme")
+
+    fun setPalette(valeur: String) = viewModelScope.launch {
+        prefs.setPalette(valeur)
+        // L'ancien reglage reste synchronise : d'autres endroits le lisent
+        // encore, et deux sources de verite finiraient par diverger.
+        prefs.setCouleursSysteme(valeur == "systeme")
+    }
     fun setShowNavLabels(v: Boolean)       = viewModelScope.launch { prefs.setShowNavLabels(v) }
     fun setVibrations(v: Boolean)          = viewModelScope.launch { prefs.setVibrations(v) }
     fun setNotifications(v: Boolean)       = viewModelScope.launch { prefs.setNotifications(v) }

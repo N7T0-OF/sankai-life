@@ -1,5 +1,14 @@
 # Changelog Sankai Life
 
+## 1.57.0 - 2 aout 2026
+
+- **Le fond suit enfin la couleur du telephone.** Il restait bleu nuit meme
+  avec une palette jaune : seuls les accents etaient repris, pas le fond.
+- **Deux themes gratuits** dans Reglages : « Sankai classique » et « Couleurs
+  du telephone ». Ton choix actuel est conserve.
+- **Mode AMOLED** : fond noir reel, pour eteindre vraiment les pixels d'un
+  ecran OLED.
+
 ## 1.56.0 - 2 aout 2026
 
 - **Les surfaces en verre redeviennent bleu nuit.** Sans les couleurs du

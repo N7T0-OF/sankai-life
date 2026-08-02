@@ -110,44 +110,45 @@ fun SettingsScreen(
             SectionTitle("Langue")
             SettingsCard { LangueSection() }
 
-            SectionTitle("Apparence")
-            SettingsCard {
-                val couleursSysteme by viewModel.couleursSysteme.collectAsState()
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            "Couleurs du téléphone",
-                            color = c.textPrimary, fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(Modifier.height(2.dp))
-                        Text(
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
-                                "Reprend la palette de ton fond d'écran. " +
-                                    "L'eau reste bleue et les récompenses dorées."
-                            else
-                                "Demande Android 12 ou plus récent. " +
-                                    "Les couleurs Sankai sont utilisées.",
-                            color = c.textSecondary, fontSize = 12.sp
-                        )
-                    }
-                    Switch(
-                        checked = couleursSysteme,
-                        onCheckedChange = { viewModel.setCouleursSysteme(it) },
-                        enabled = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-                    )
-                }
-            }
+            SectionTitle("Thème")
+            val palette by viewModel.palette.collectAsState()
+            val dynamiqueDispo = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+
+            // Deux thèmes, tous deux gratuits et visibles d'emblée. L'option
+            // indisponible reste affichée avec son motif : la masquer ferait
+            // croire qu'elle n'existe pas.
+            CarteTheme(
+                titre = "Sankai classique",
+                sousTitre = "Bleu nuit, accents violet et or",
+                badge = "Gratuit",
+                choisi = palette == "sankai",
+                actif = true,
+                onChoisir = { viewModel.setPalette("sankai") }
+            )
+            Spacer(Modifier.height(8.dp))
+            CarteTheme(
+                titre = "Couleurs du téléphone",
+                sousTitre = if (dynamiqueDispo) "S'adapte au thème Android"
+                    else "Demande Android 12 ou plus récent",
+                badge = "Gratuit",
+                choisi = palette == "systeme" && dynamiqueDispo,
+                actif = dynamiqueDispo,
+                onChoisir = { viewModel.setPalette("systeme") }
+            )
+
 
             SettingsCard {
                 Text("Thème UI", color = c.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(10.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("dark" to "🌑 Sombre", "light" to "☀️ Clair", "auto" to "⚡ Auto").forEach { (mode, label) ->
+                    // AMOLED est un mode a part, pas une nuance de sombre : il eteint
+                    // reellement les pixels d'une dalle OLED.
+                    listOf(
+                        "dark" to "🌑 Sombre",
+                        "amoled" to "⬛ AMOLED",
+                        "light" to "☀️ Clair",
+                        "auto" to "⚡ Auto"
+                    ).forEach { (mode, label) ->
                         Box(
                             Modifier.weight(1f).clip(RoundedCornerShape(10.dp))
                                 .background(if (themeMode == mode) c.accent.copy(0.15f) else c.surface3)
@@ -519,4 +520,60 @@ private fun ouvrirLien(contexte: android.content.Context, url: String) {
     ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
     // Aucun navigateur installé : on échoue en silence plutôt que de planter.
     runCatching { contexte.startActivity(intent) }
+}
+
+/**
+ * Carte de choix de thème.
+ *
+ * Un thème indisponible reste visible, désactivé, avec la raison affichée.
+ * Le masquer ferait croire qu'il n'existe pas, et personne ne saurait qu'une
+ * mise à jour d'Android l'ouvrirait.
+ */
+@Composable
+private fun CarteTheme(
+    titre: String,
+    sousTitre: String,
+    badge: String,
+    choisi: Boolean,
+    actif: Boolean,
+    onChoisir: () -> Unit
+) {
+    val c = MaterialTheme.sankaiColors
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(if (choisi) c.surface3 else c.surface2)
+            .border(
+                width = if (choisi) 2.dp else 1.dp,
+                color = if (choisi) c.accent else c.border,
+                shape = RoundedCornerShape(14.dp)
+            )
+            .then(if (actif) Modifier.clickable(onClick = onChoisir) else Modifier)
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    titre,
+                    color = if (actif) c.textPrimary else c.textDisabled,
+                    fontSize = 14.sp, fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.width(8.dp))
+                Box(
+                    Modifier.clip(RoundedCornerShape(6.dp))
+                        .background(c.accent.copy(alpha = 0.18f))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                ) {
+                    Text(badge, color = c.accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+            Spacer(Modifier.height(2.dp))
+            Text(sousTitre, color = c.textSecondary, fontSize = 12.sp)
+        }
+        if (choisi) {
+            Text("Équipé", color = c.accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        }
+    }
 }

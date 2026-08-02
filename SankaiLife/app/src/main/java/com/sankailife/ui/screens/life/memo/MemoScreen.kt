@@ -81,8 +81,6 @@ import com.sankailife.ui.components.SankaiFloatingButton
 import com.sankailife.ui.theme.AccentCyan
 import com.sankailife.ui.theme.AccentViolet
 import com.sankailife.ui.theme.DangerRed
-import com.sankailife.ui.theme.GameNavyBottom
-import com.sankailife.ui.theme.GameNavyTop
 import com.sankailife.ui.theme.RewardGold
 import com.sankailife.ui.theme.SankaiRadius
 import com.sankailife.ui.theme.SankaiSpacing

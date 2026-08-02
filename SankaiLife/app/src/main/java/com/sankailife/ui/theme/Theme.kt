@@ -112,6 +112,8 @@ internal val LightColorScheme = lightColorScheme(
 fun SankaiTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     couleursSysteme: Boolean = true,
+    /** Fond noir réel, pour les écrans OLED. Implique le mode sombre. */
+    amoled: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val contexte = LocalContext.current
@@ -121,11 +123,22 @@ fun SankaiTheme(
     // a raison — une exception au lancement ne se voit qu'en production.
     val dynamique = couleursSysteme && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
-    val colorScheme = when {
+    val schemaBase = when {
         dynamique && darkTheme -> dynamicDarkColorScheme(contexte)
         dynamique -> dynamicLightColorScheme(contexte)
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
+    }
+
+    // AMOLED : noir réel pour le fond, surfaces conservées.
+    //
+    // Un noir approché ne sert à rien : sur une dalle OLED, seul le noir exact
+    // éteint le pixel. Les surfaces gardent leur teinte, sinon les cartes
+    // disparaissent dans le fond.
+    val colorScheme = if (amoled) {
+        schemaBase.copy(background = Color.Black, surface = schemaBase.surfaceContainerLowest)
+    } else {
+        schemaBase
     }
 
     val base = if (darkTheme) SankaiColors(
@@ -133,7 +146,7 @@ fun SankaiTheme(
         surface3 = Surface3, border = BorderColor,
         textPrimary = TextPrimary, textSecondary = TextSecondary, textDisabled = TextDisabled,
         accent = AccentGold, accentSecondary = AccentViolet, isDark = true
-    ) else SankaiColors(
+    ).let { if (amoled) it.copy(background = Color.Black) else it } else SankaiColors(
         background = LightBackground, surface1 = LightSurface1, surface2 = LightSurface2,
         surface3 = LightSurface3, border = LightBorder,
         textPrimary = LightTextPrimary, textSecondary = LightTextSecondary,
@@ -141,16 +154,29 @@ fun SankaiTheme(
         accentSecondary = Color(0xFF5B4CF0), isDark = false
     )
 
-    // La palette Sankai emprunte au système ses accents et ses surfaces, et
-    // garde le reste. Les textes ne sont pas repris : ceux du système sont
-    // calculés pour ses propres fonds, et les appliquer aux nôtres produit des
-    // contrastes que personne n'a vérifiés.
+    // Une seule palette à la fois, complète.
+    //
+    // La version précédente ne reprenait que les accents et deux surfaces :
+    // `background` et `surface1` restaient le bleu nuit codé en dur. Le fond
+    // de l'application restait donc bleu même avec une palette jaune, et les
+    // écrans le peignaient par-dessus une racine pourtant dynamique.
+    //
+    // Les textes sont repris **avec** les fonds, et c'est délibéré. Je les
+    // avais volontairement laissés de côté pour ne pas poser un texte système
+    // sur un fond Sankai ; maintenant que le fond vient du système, c'est
+    // l'inverse qui serait faux. Material You calcule ces deux rôles ensemble,
+    // il faut les prendre ensemble.
     val sankaiColors = if (!dynamique) base else base.copy(
-        accent = colorScheme.primary,
-        accentSecondary = colorScheme.tertiary,
-        surface2 = colorScheme.surfaceVariant,
+        background = if (amoled) Color.Black else colorScheme.background,
+        surface1 = if (amoled) colorScheme.surfaceContainerLowest else colorScheme.surface,
+        surface2 = colorScheme.surfaceContainer,
         surface3 = colorScheme.surfaceContainerHigh,
-        border = colorScheme.outlineVariant
+        border = colorScheme.outlineVariant,
+        textPrimary = colorScheme.onBackground,
+        textSecondary = colorScheme.onSurfaceVariant,
+        textDisabled = colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+        accent = colorScheme.primary,
+        accentSecondary = colorScheme.tertiary
     )
 
     CompositionLocalProvider(LocalSankaiColors provides sankaiColors) {
