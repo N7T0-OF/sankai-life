@@ -1,5 +1,15 @@
 # Changelog Sankai Life
 
+## 1.58.0 - 2 aout 2026
+
+- **L'Ile devient le mode de jeu.** Le bouton de l'accueil y mene directement,
+  et l'entree « Voir mon ile » disparait des Reglages.
+- **L'Ile vit aux memes heures que le Jardin** : cycle jour/nuit, etoiles la
+  nuit, lumiere selon la meteo et pluie animee.
+
+Le Jardin n'est plus accessible mais rien n'est efface : ses donnees restent en
+base, intactes, le temps de verifier que l'Ile tient sa place.
+
 ## 1.57.0 - 2 aout 2026
 
 - **Le fond suit enfin la couleur du telephone.** Il restait bleu nuit meme

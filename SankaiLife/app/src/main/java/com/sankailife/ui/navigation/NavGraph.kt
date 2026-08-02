@@ -209,11 +209,7 @@ fun SankaiNavGraph() {
                 ProfileScreen(viewModel = vm, onNavigate = { navController.navigate(it) })
             }
             composable(Screen.Settings.route) {
-                SettingsScreen(
-                    viewModel = settingsVm,
-                    onBack = { navController.popBackStack() },
-                    onVoirIle = { navController.navigate(Screen.Island.route) }
-                )
+                SettingsScreen(viewModel = settingsVm, onBack = { navController.popBackStack() })
             }
         }
     }

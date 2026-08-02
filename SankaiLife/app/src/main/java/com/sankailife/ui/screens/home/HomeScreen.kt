@@ -110,7 +110,9 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
                     modifier = Modifier.fillMaxSize().widthIn(max = 680.dp),
                     onSettings = { onNavigate(Screen.Settings.route) },
                     onArena = { onNavigate(Screen.Arenas.route) },
-                    onGarden = { onNavigate(Screen.Garden.route) }
+                    // Le bouton principal ouvre desormais l'Ile : c'est elle le
+                    // mode de jeu.
+                    onGarden = { onNavigate(Screen.Island.route) }
                 )
             }
 

@@ -89,6 +89,23 @@ fun IslandScreen(
     val stock by viewModel.stock.collectAsState()
     val stockOuvert by viewModel.stockOuvert.collectAsState()
     val eau by viewModel.eau.collectAsState()
+    val ambiance by viewModel.ambiance.collectAsState()
+    val meteo by viewModel.meteo.collectAsState()
+    val intensitePluie by viewModel.intensitePluie.collectAsState()
+
+    // Rendu météo construit ici, comme au Jardin : c'est un calcul pur qui ne
+    // dépend que de l'heure et du jour, pas d'un état persistant.
+    val phase = remember(ambiance) {
+        com.sankailife.core.garden.domain.DayNightEngine.phase()
+    }
+    val renduMeteo = remember(meteo, phase) {
+        com.sankailife.core.garden.domain.WeatherVisualEngine.state(
+            weather = meteo,
+            phase = phase,
+            quality = com.sankailife.core.garden.domain.GraphicsQuality.NORMAL,
+            dayId = java.time.LocalDate.now().toString()
+        )
+    }
     val destination by viewModel.destination.collectAsState()
     val miniCarteOuverte by viewModel.miniCarte.collectAsState()
     var vueVisible by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
@@ -168,6 +185,26 @@ fun IslandScreen(
                 pieces = utilisateur.coins,
                 onZoom = viewModel::definirZoom,
                 onToucher = viewModel::selectionner,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+
+        // Ciel, lumière et météo, par-dessus le terrain et sous l'interface.
+        //
+        // Même ordre qu'au Jardin, pour la même raison : une ombre de nuage
+        // doit passer sur l'île, pas sur les boutons.
+        if (etat.ile != null) {
+            com.sankailife.ui.screens.garden.VoileAmbiance(ambiance, Modifier.fillMaxSize())
+            com.sankailife.ui.screens.garden.CielEtoile(
+                ambiance.etoiles, Modifier.fillMaxSize()
+            )
+            com.sankailife.ui.screens.garden.WeatherLightingOverlay(
+                renduMeteo.lighting, Modifier.fillMaxSize()
+            )
+            com.sankailife.ui.screens.garden.PluieAnimee(
+                intensite = intensitePluie,
+                wind = renduMeteo.wind,
+                animationsReduites = false,
                 modifier = Modifier.fillMaxSize()
             )
         }

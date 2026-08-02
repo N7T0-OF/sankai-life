@@ -142,6 +142,44 @@ class IslandViewModel(application: Application) : AndroidViewModel(application) 
             com.sankailife.core.domain.model.UserState()
         )
 
+    /**
+     * Heure, météo et lumière.
+     *
+     * Repris tels quels du Jardin : ce sont des moteurs purs qui ne connaissent
+     * ni l'un ni l'autre. L'île devenant le mode de jeu, elle doit vivre au
+     * même rythme — un terrain figé à midi n'a pas d'heures.
+     *
+     * Le battement est d'une minute : plus fin, l'écran recomposerait en
+     * continu pour un ciel qui bouge à peine.
+     */
+    private val battement = kotlinx.coroutines.flow.flow {
+        while (true) {
+            emit(System.currentTimeMillis())
+            kotlinx.coroutines.delay(60_000L)
+        }
+    }
+
+    val ambiance: StateFlow<com.sankailife.core.garden.domain.LightingEngine.Ambiance> =
+        battement.map { com.sankailife.core.garden.domain.LightingEngine.ambiance() }
+            .stateIn(
+                viewModelScope, SharingStarted.WhileSubscribed(5_000),
+                com.sankailife.core.garden.domain.LightingEngine.ambiance()
+            )
+
+    val meteo: StateFlow<com.sankailife.core.garden.domain.WeatherEngine.Meteo> =
+        battement.map { com.sankailife.core.garden.domain.WeatherEngine.meteoActuelle() }
+            .stateIn(
+                viewModelScope, SharingStarted.WhileSubscribed(5_000),
+                com.sankailife.core.garden.domain.WeatherEngine.meteoActuelle()
+            )
+
+    val intensitePluie: StateFlow<com.sankailife.core.garden.domain.LightingEngine.IntensitePluie> =
+        meteo.map { com.sankailife.core.garden.domain.LightingEngine.intensitePluie(it) }
+            .stateIn(
+                viewModelScope, SharingStarted.WhileSubscribed(5_000),
+                com.sankailife.core.garden.domain.LightingEngine.IntensitePluie.AUCUNE
+            )
+
     private val _zoom = MutableStateFlow(1f)
     val zoom: StateFlow<Float> = _zoom.asStateFlow()
 
