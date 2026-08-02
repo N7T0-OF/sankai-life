@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "id": "portugais-debutant-a1",
-  "name": "Portugais debutant",
+  "id": "espagnol-a1-bases",
+  "name": "Espagnol A1 — Bases",
   "version": "1.0.0",
-  "language": "pt",
+  "language": "es",
   "sourceLanguage": "fr",
   "author": "Sankai Life",
-  "description": "Premieres phrases du quotidien.",
+  "description": "Saluer, se presenter, les mots de tous les jours.",
   "license": "CC BY 4.0",
   "offline": true,
   "flashcardsFile": "flashcards.txt"

@@ -1,0 +1,86 @@
+Hello | Bonjour / Salut
+Good morning | Bonjour (le matin)
+Good evening | Bonsoir
+Goodbye | Au revoir
+See you soon | À bientôt
+How are you? | Comment vas-tu ?
+I'm fine, thanks | Je vais bien, merci
+Thank you | Merci
+You're welcome | De rien
+Please | S'il te plaît
+Sorry | Désolé
+Excuse me | Excusez-moi
+Yes | Oui
+No | Non
+Maybe | Peut-être
+What's your name? | Comment t'appelles-tu ?
+My name is Paul | Je m'appelle Paul
+Nice to meet you | Enchanté
+I'm French | Je suis français
+Where are you from? | D'où viens-tu ?
+I don't understand | Je ne comprends pas
+Can you repeat? | Peux-tu répéter ?
+Do you speak French? | Parles-tu français ?
+How do you say …? | Comment dit-on … ?
+I speak a little English | Je parle un peu anglais
+one | un
+two | deux
+three | trois
+four | quatre
+five | cinq
+six | six
+seven | sept
+eight | huit
+nine | neuf
+ten | dix
+twenty | vingt
+hundred | cent
+thousand | mille
+Monday | lundi
+Tuesday | mardi
+Wednesday | mercredi
+Thursday | jeudi
+Friday | vendredi
+Saturday | samedi
+Sunday | dimanche
+today | aujourd'hui
+tomorrow | demain
+yesterday | hier
+to be | être
+to have | avoir
+to go | aller
+to do / to make | faire
+to want | vouloir
+to can | pouvoir
+to know | savoir / connaître
+to speak | parler
+to eat | manger
+to drink | boire
+to sleep | dormir
+to see | voir
+to hear | entendre
+to like | aimer bien
+to need | avoir besoin de
+the house | la maison
+the door | la porte
+the water | l'eau
+the bread | le pain
+the food | la nourriture
+the street | la rue
+the city | la ville
+the train | le train
+the car | la voiture
+the shop | le magasin
+the money | l'argent
+the work | le travail
+the friend | l'ami
+the family | la famille
+How much is it? | Combien ça coûte ?
+Where is …? | Où est … ?
+On the left | À gauche
+On the right | À droite
+Straight ahead | Tout droit
+What time is it? | Quelle heure est-il ?
+I need help | J'ai besoin d'aide
+It's open | C'est ouvert
+It's closed | C'est fermé

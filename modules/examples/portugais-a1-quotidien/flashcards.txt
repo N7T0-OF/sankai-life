@@ -1,0 +1,83 @@
+a casa | la maison
+o apartamento | l'appartement
+a porta | la porte
+a janela | la fenêtre
+a cozinha | la cuisine
+o quarto | la chambre
+a casa de banho | la salle de bain (Portugal)
+a sala | le salon
+a mesa | la table
+a cadeira | la chaise
+a cama | le lit
+a chave | la clé
+a luz | la lumière
+a água | l'eau
+a família | la famille
+o pai | le père
+a mãe | la mère
+o filho | le fils
+a filha | la fille
+o irmão | le frère
+a irmã | la sœur
+o avô | le grand-père
+a avó | la grand-mère
+o marido | le mari
+a mulher | la femme / l'épouse
+o amigo | l'ami
+a amiga | l'amie
+o menino | le garçon
+a menina | la fille (enfant)
+o pão | le pain
+o leite | le lait
+o café | le café
+o chá | le thé
+o queijo | le fromage
+a carne | la viande
+o peixe | le poisson
+o arroz | le riz
+a batata | la pomme de terre
+a maçã | la pomme
+a laranja | l'orange
+o ovo | l'œuf
+o açúcar | le sucre
+o sal | le sel
+o vinho | le vin
+a cerveja | la bière
+o pequeno-almoço | le petit-déjeuner (Portugal)
+o almoço | le déjeuner
+o jantar | le dîner
+a cidade | la ville
+a rua | la rue
+a praça | la place
+a loja | le magasin
+o mercado | le marché
+a farmácia | la pharmacie
+o hospital | l'hôpital
+a estação | la gare
+o aeroporto | l'aéroport
+a praia | la plage
+o restaurante | le restaurant
+o hotel | l'hôtel
+o banco | la banque
+os correios | la poste
+o comboio | le train (Portugal)
+o autocarro | le bus (Portugal)
+o carro | la voiture
+o avião | l'avion
+a bicicleta | le vélo
+o metro | le métro
+a pé | à pied
+Quanto custa ? | Combien ça coûte ?
+É caro | C'est cher
+É barato | C'est bon marché
+Queria um café | Je voudrais un café
+A conta, por favor | L'addition, s'il vous plaît
+Onde fica … ? | Où se trouve … ?
+À esquerda | À gauche
+À direita | À droite
+Em frente | Tout droit
+Estou perdido | Je suis perdu
+Preciso de ajuda | J'ai besoin d'aide
+Que horas são ? | Quelle heure est-il ?
+Está aberto | C'est ouvert
+Está fechado | C'est fermé

@@ -1,0 +1,30 @@
+Palette de commandes | Ctrl + Maj + P
+Ouvrir un fichier par son nom | Ctrl + P
+Rechercher dans le fichier | Ctrl + F
+Rechercher dans le projet | Ctrl + Maj + F
+Remplacer | Ctrl + H
+Aller à la ligne | Ctrl + G
+Aller à la définition | F12
+Aperçu de la définition | Alt + F12
+Retour arrière (navigation) | Alt + ←
+Renommer le symbole | F2
+Commenter la ligne | Ctrl + /
+Commenter un bloc | Maj + Alt + A
+Dupliquer la ligne | Maj + Alt + ↓
+Déplacer la ligne | Alt + ↑ / ↓
+Supprimer la ligne | Ctrl + Maj + K
+Curseur multiple | Alt + clic
+Sélectionner l'occurrence suivante | Ctrl + D
+Sélectionner toutes les occurrences | Ctrl + Maj + L
+Formater le document | Maj + Alt + F
+Replier / déplier | Ctrl + Maj + [ / ]
+Terminal intégré | Ctrl + ù
+Nouveau terminal | Ctrl + Maj + ù
+Explorateur de fichiers | Ctrl + Maj + E
+Contrôle de source | Ctrl + Maj + G
+Extensions | Ctrl + Maj + X
+Fermer l'onglet | Ctrl + W
+Rouvrir l'onglet fermé | Ctrl + Maj + T
+Diviser l'éditeur | Ctrl + \
+Zen mode | Ctrl + K puis Z
+Réglages | Ctrl + ,

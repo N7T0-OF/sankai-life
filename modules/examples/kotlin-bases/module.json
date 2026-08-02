@@ -1,10 +1,12 @@
 {
   "schemaVersion": 1,
-  "id": "raccourcis-blender",
-  "name": "Raccourcis Blender",
+  "id": "kotlin-bases",
+  "name": "Kotlin — Bases",
   "version": "1.0.0",
+  "language": "",
+  "sourceLanguage": "",
   "author": "Sankai Life",
-  "description": "Les raccourcis clavier a connaitre.",
+  "description": "Syntaxe et idiomes courants du langage.",
   "license": "CC BY 4.0",
   "offline": true,
   "flashcardsFile": "flashcards.txt"

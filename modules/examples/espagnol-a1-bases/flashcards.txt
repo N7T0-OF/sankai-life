@@ -1,0 +1,85 @@
+Hola | Bonjour / Salut
+Buenos días | Bonjour (le matin)
+Buenas tardes | Bonjour (l'après-midi)
+Buenas noches | Bonsoir / Bonne nuit
+Adiós | Au revoir
+Hasta luego | À bientôt
+¿Qué tal? | Ça va ?
+Muy bien, gracias | Très bien, merci
+Gracias | Merci
+De nada | De rien
+Por favor | S'il vous plaît
+Perdón | Pardon
+Lo siento | Je suis désolé
+Sí | Oui
+No | Non
+¿Cómo te llamas? | Comment t'appelles-tu ?
+Me llamo Ana | Je m'appelle Ana
+Mucho gusto | Enchanté
+Soy francés | Je suis français
+¿De dónde eres? | D'où viens-tu ?
+No entiendo | Je ne comprends pas
+¿Puedes repetir? | Peux-tu répéter ?
+¿Hablas francés? | Parles-tu français ?
+Hablo un poco de español | Je parle un peu espagnol
+uno | un
+dos | deux
+tres | trois
+cuatro | quatre
+cinco | cinq
+seis | six
+siete | sept
+ocho | huit
+nueve | neuf
+diez | dix
+veinte | vingt
+cien | cent
+mil | mille
+lunes | lundi
+martes | mardi
+miércoles | mercredi
+jueves | jeudi
+viernes | vendredi
+sábado | samedi
+domingo | dimanche
+hoy | aujourd'hui
+mañana | demain
+ayer | hier
+ser | être (permanent)
+estar | être (état, lieu)
+tener | avoir
+ir | aller
+hacer | faire
+querer | vouloir
+poder | pouvoir
+saber | savoir
+hablar | parler
+comer | manger
+beber | boire
+dormir | dormir
+ver | voir
+vivir | vivre
+la casa | la maison
+la puerta | la porte
+el agua | l'eau
+el pan | le pain
+la calle | la rue
+la ciudad | la ville
+el tren | le train
+el coche | la voiture (Espagne)
+la tienda | le magasin
+el dinero | l'argent
+el trabajo | le travail
+el amigo | l'ami
+la familia | la famille
+¿Cuánto cuesta? | Combien ça coûte ?
+¿Dónde está …? | Où est … ?
+A la izquierda | À gauche
+A la derecha | À droite
+Todo recto | Tout droit
+¿Qué hora es? | Quelle heure est-il ?
+Necesito ayuda | J'ai besoin d'aide
+Está abierto | C'est ouvert
+Está cerrado | C'est fermé
+Soy profesor | Je suis professeur (métier, durable)
+Estoy cansado | Je suis fatigué (état passager)

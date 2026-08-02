@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "vscode-raccourcis",
+  "name": "VS Code — Raccourcis",
+  "version": "1.0.0",
+  "language": "",
+  "sourceLanguage": "",
+  "author": "Sankai Life",
+  "description": "Les raccourcis Windows et Linux qui font gagner du temps.",
+  "license": "CC BY 4.0",
+  "offline": true,
+  "flashcardsFile": "flashcards.txt"
+}

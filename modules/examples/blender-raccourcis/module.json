@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "blender-raccourcis",
+  "name": "Blender — Raccourcis",
+  "version": "1.0.0",
+  "language": "",
+  "sourceLanguage": "",
+  "author": "Sankai Life",
+  "description": "Les raccourcis clavier du travail quotidien.",
+  "license": "CC BY 4.0",
+  "offline": true,
+  "flashcardsFile": "flashcards.txt"
+}

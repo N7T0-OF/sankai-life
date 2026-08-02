@@ -1,5 +1,16 @@
 # Changelog Sankai Life
 
+## 1.66.0 - 2 aout 2026
+
+- **Des contenus de cours, telechargeables depuis l'application.** Sept modules,
+  462 cartes : portugais A1 (deux unites), anglais A1, espagnol A1, raccourcis
+  Blender et VS Code, bases de Kotlin.
+- Rien n'est embarque : l'installation ne grossit pas. Un module telecharge
+  fonctionne ensuite entierement hors ligne.
+- Taille annoncee avant le telechargement, empreinte verifiee apres : un
+  fichier tronque ne s'installe pas a moitie.
+- Le catalogue s'ouvre dans l'application au lieu d'un navigateur.
+
 ## 1.65.0 - 2 aout 2026
 
 - Les deux themes gratuits — **Sankai classique** et **Couleurs du telephone** —

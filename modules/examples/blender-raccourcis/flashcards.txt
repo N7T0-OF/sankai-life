@@ -1,0 +1,45 @@
+Déplacer un objet | G
+Pivoter un objet | R
+Redimensionner | S
+Contraindre à l'axe X | G puis X
+Dupliquer | Maj + D
+Dupliquer en lien (instance) | Alt + D
+Supprimer | X
+Annuler | Ctrl + Z
+Rétablir | Ctrl + Maj + Z
+Ajouter un objet | Maj + A
+Mode Édition / Objet | Tab
+Sélectionner tout | A
+Tout désélectionner | Alt + A
+Inverser la sélection | Ctrl + I
+Vue caméra | Pavé num. 0
+Vue de face | Pavé num. 1
+Vue de côté | Pavé num. 3
+Vue de dessus | Pavé num. 7
+Basculer perspective / ortho | Pavé num. 5
+Cadrer sur la sélection | Pavé num. .
+Rendu image | F12
+Menu de recherche | F3
+Extruder | E
+Biseauter (bevel) | Ctrl + B
+Coupe en boucle | Ctrl + R
+Subdiviser | Clic droit puis Subdivide
+Fusionner des sommets | M
+Séparer une sélection | P
+Joindre des objets | Ctrl + J
+Parenter | Ctrl + P
+Retirer le parent | Alt + P
+Masquer la sélection | H
+Réafficher tout | Alt + H
+Isoler la sélection | /
+Mode sommets / arêtes / faces | 1 / 2 / 3
+Pivot sur le curseur 3D | Point + C
+Placer le curseur 3D | Maj + clic droit
+Curseur 3D à l'origine | Maj + C
+Appliquer transformations | Ctrl + A
+Mode sculpture / pose | Ctrl + Tab
+Insérer une image clé | I
+Lecture de l'animation | Espace
+Ombrage rendu / solide | Z
+Proportional editing | O
+Snap (aimantation) | Maj + Tab

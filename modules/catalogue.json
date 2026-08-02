@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "modules": [
+    {
+      "id": "anglais-a1-bases",
+      "nom": "Anglais A1 — Bases",
+      "description": "Saluer, se presenter, les mots de tous les jours.",
+      "langue": "en",
+      "niveau": "A1",
+      "cartes": 86,
+      "octets": 1479,
+      "sha256": "ebc23a0581fbefb858abfdd66ad0072d7bb07b4f87436db6e5654e9d88edc134",
+      "licence": "CC BY 4.0",
+      "auteur": "Sankai Life",
+      "url": "https://raw.githubusercontent.com/N7T0-OF/sankai-life/main/modules/paquets/anglais-a1-bases.zip"
+    },
+    {
+      "id": "espagnol-a1-bases",
+      "nom": "Espagnol A1 — Bases",
+      "description": "Saluer, se presenter, les mots de tous les jours.",
+      "langue": "es",
+      "niveau": "A1",
+      "cartes": 85,
+      "octets": 1518,
+      "sha256": "c59ec22c22eb85043a60ac96004dcd6534731ae88777dfb3ea949a2c45197ec3",
+      "licence": "CC BY 4.0",
+      "auteur": "Sankai Life",
+      "url": "https://raw.githubusercontent.com/N7T0-OF/sankai-life/main/modules/paquets/espagnol-a1-bases.zip"
+    },
+    {
+      "id": "portugais-a1-bases",
+      "nom": "Portugais A1 — Bases",
+      "description": "Saluer, se presenter, remercier, compter.",
+      "langue": "pt",
+      "niveau": "A1",
+      "cartes": 87,
+      "octets": 1548,
+      "sha256": "09ad8b80094a947d0156227e359b7b3df9dab0d816cc218018f331e9eb6b8ce4",
+      "licence": "CC BY 4.0",
+      "auteur": "Sankai Life",
+      "url": "https://raw.githubusercontent.com/N7T0-OF/sankai-life/main/modules/paquets/portugais-a1-bases.zip"
+    },
+    {
+      "id": "portugais-a1-quotidien",
+      "nom": "Portugais A1 — Vie quotidienne",
+      "description": "Maison, famille, nourriture, ville, achats.",
+      "langue": "pt",
+      "niveau": "A1",
+      "cartes": 83,
+      "octets": 1418,
+      "sha256": "a44c05f9587c6945f1718fbfb69637003b7cee464ef5325933add4a42bedd276",
+      "licence": "CC BY 4.0",
+      "auteur": "Sankai Life",
+      "url": "https://raw.githubusercontent.com/N7T0-OF/sankai-life/main/modules/paquets/portugais-a1-quotidien.zip"
+    },
+    {
+      "id": "blender-raccourcis",
+      "nom": "Blender — Raccourcis",
+      "description": "Les raccourcis clavier du travail quotidien.",
+      "langue": "",
+      "niveau": "",
+      "cartes": 45,
+      "octets": 1091,
+      "sha256": "de2e60cec14953585b7f1e55298ab227abcc9781ceb6ff226af9d0524cc1866a",
+      "licence": "CC BY 4.0",
+      "auteur": "Sankai Life",
+      "url": "https://raw.githubusercontent.com/N7T0-OF/sankai-life/main/modules/paquets/blender-raccourcis.zip"
+    },
+    {
+      "id": "kotlin-bases",
+      "nom": "Kotlin — Bases",
+      "description": "Syntaxe et idiomes courants du langage.",
+      "langue": "",
+      "niveau": "",
+      "cartes": 46,
+      "octets": 1443,
+      "sha256": "ff4e9914f7112d4296020c9b918c9047b72e94c53bcdaa871bc358958b477e0c",
+      "licence": "CC BY 4.0",
+      "auteur": "Sankai Life",
+      "url": "https://raw.githubusercontent.com/N7T0-OF/sankai-life/main/modules/paquets/kotlin-bases.zip"
+    },
+    {
+      "id": "vscode-raccourcis",
+      "nom": "VS Code — Raccourcis",
+      "description": "Les raccourcis Windows et Linux qui font gagner du temps.",
+      "langue": "",
+      "niveau": "",
+      "cartes": 30,
+      "octets": 941,
+      "sha256": "b26199c479dba9b900decf2f74251604521d11ee7146e3be6a891ea0d9eb2c95",
+      "licence": "CC BY 4.0",
+      "auteur": "Sankai Life",
+      "url": "https://raw.githubusercontent.com/N7T0-OF/sankai-life/main/modules/paquets/vscode-raccourcis.zip"
+    }
+  ]
+}

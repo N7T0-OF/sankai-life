@@ -1,0 +1,46 @@
+Déclarer une variable immuable | val x = 1
+Déclarer une variable modifiable | var x = 1
+Type explicite | val x: Int = 1
+Type nullable | val x: String? = null
+Appel sûr sur un nullable | x?.length
+Valeur de repli si null | x ?: "defaut"
+Lever si null | x!!
+Interpolation dans une chaîne | "Bonjour $nom"
+Expression dans une chaîne | "Total : ${a + b}"
+Fonction courte | fun double(x: Int) = x * 2
+Paramètre par défaut | fun f(n: Int = 0)
+Argument nommé | f(n = 3)
+Classe de données | data class P(val x: Int)
+Copie modifiée | p.copy(x = 2)
+Singleton | object Config
+Compagnon (statique) | companion object { }
+Énumération | enum class Etat { OK, KO }
+Hiérarchie fermée | sealed interface Resultat
+Condition comme expression | val s = if (a) 1 else 2
+Aiguillage exhaustif | when (x) { ... }
+Boucle sur un intervalle | for (i in 0 until n)
+Intervalle inclusif | for (i in 0..n)
+Parcourir une liste | for (e in liste)
+Transformer une liste | liste.map { it * 2 }
+Filtrer une liste | liste.filter { it > 0 }
+Premier élément ou null | liste.firstOrNull()
+Somme | liste.sumOf { it.prix }
+Grouper | liste.groupBy { it.type }
+Trier | liste.sortedBy { it.nom }
+Exécuter sur un objet non nul | x?.let { ... }
+Configurer puis rendre l'objet | obj.apply { ... }
+Rendre un autre résultat | obj.run { ... }
+Fonction d'extension | fun String.crier() = uppercase()
+Interface fonctionnelle | fun interface Clic
+Fonction suspendue | suspend fun charger()
+Lancer une coroutine | scope.launch { ... }
+Attendre un résultat | val r = async { ... }.await()
+Changer de fil d'exécution | withContext(Dispatchers.IO) { }
+Flux de valeurs | flow { emit(1) }
+État observable | MutableStateFlow(0)
+Capturer une exception | runCatching { ... }
+Délégation par paresse | val x by lazy { ... }
+Destructuration | val (a, b) = paire
+Créer une liste | listOf(1, 2, 3)
+Créer une liste modifiable | mutableListOf<Int>()
+Créer une table | mapOf("a" to 1)

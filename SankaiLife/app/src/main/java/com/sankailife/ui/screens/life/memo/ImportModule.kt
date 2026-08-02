@@ -41,6 +41,7 @@ fun ImportModuleBouton() {
     val portee = rememberCoroutineScope()
     val depot = remember { ModuleRepository(contexte, app.database) }
 
+    var catalogueOuvert by remember { mutableStateOf(false) }
     var verdict by remember { mutableStateOf<ModuleEngine.Verdict?>(null) }
     var cartes by remember { mutableStateOf<List<String>>(emptyList()) }
     // Le succès et l'échec ne peuvent pas s'afficher de la même couleur :
@@ -66,11 +67,23 @@ fun ImportModuleBouton() {
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.height(6.dp))
-        // Renvoyer vers « le dépôt GitHub du projet » sans lien laissait
-        // l'utilisateur chercher sur son téléphone une adresse qu'on ne lui
-        // avait jamais donnée.
+        // Le catalogue s'ouvre dans l'application.
+        //
+        // Le bouton renvoyait vers le depot dans un navigateur : il fallait y
+        // trouver le bon fichier, le telecharger, revenir, puis l'importer
+        // depuis le gestionnaire de fichiers. Cinq etapes, dont trois hors de
+        // l'application, pour installer deux kilo-octets.
         SankaiButton(
-            "Voir les modules disponibles",
+            "📚  Contenus disponibles",
+            onClick = { catalogueOuvert = true },
+            secondary = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(6.dp))
+        // Le lien reste, en retrait : c'est la seule facon de voir le contenu
+        // exact d'un module avant de l'installer, et de proposer le sien.
+        SankaiButton(
+            "Voir le dépôt des modules",
             onClick = { ouvrirDepotModules(contexte) },
             secondary = true, small = true,
             modifier = Modifier.fillMaxWidth()
@@ -85,6 +98,22 @@ fun ImportModuleBouton() {
             Spacer(Modifier.height(6.dp))
             Text(it.texte, color = if (it.succes) SuccessGreen else DangerRed, fontSize = 12.sp)
         }
+    }
+
+    if (catalogueOuvert) {
+        var installes by remember { mutableStateOf<Set<String>>(emptySet()) }
+        LaunchedEffect(Unit) {
+            installes = runCatching {
+                app.database.memoDao().getAllProfilesOnce().map { it.name }.toSet()
+            }.getOrDefault(emptySet())
+        }
+        CatalogueModules(
+            nomsInstalles = installes,
+            onFermer = { catalogueOuvert = false },
+            onInstalle = {
+                avis = Avis("Module installé. Retrouve-le dans l'Académie.", succes = true)
+            }
+        )
     }
 
     verdict?.let { v ->
