@@ -10,6 +10,7 @@ import com.sankailife.core.garden.domain.SoilType
 import com.sankailife.core.island.domain.IslandCodec
 import com.sankailife.core.island.domain.IslandBuildingEngine
 import com.sankailife.core.island.domain.IslandCultureEngine
+import com.sankailife.core.island.domain.IslandForetEngine
 import com.sankailife.core.island.domain.IslandMimoEngine
 import com.sankailife.core.island.domain.IslandStockEngine
 import com.sankailife.core.island.domain.IslandGenerator
@@ -154,6 +155,12 @@ class IslandRepository(
             // appelant ne doit pas pouvoir annoncer son propre niveau.
             val utilisateur = db.userDao().getUserOnce()
                 ?: return@withTransaction Achat.Refuse("Profil introuvable.")
+
+            // Une case cachée sous un feuillage ne se vend pas : la vendre
+            // reviendrait à encaisser pour un terrain inutilisable.
+            if (type != IslandTileType.FOREST && (x to y) in casesSousArbres(ile)) {
+                return@withTransaction Achat.Refuse("Un arbre recouvre cette case.")
+            }
 
             val verdict = IslandSlotEngine.peutAcheter(
                 type = type,
@@ -574,6 +581,11 @@ class IslandRepository(
                     return@withTransaction Geste.Refuse(verdict.raison)
                 }
 
+                val sousArbres = casesSousArbres(ile)
+                if (IslandBuildingEngine.casesOccupees(type, x, y).any { it in sousArbres }) {
+                    return@withTransaction Geste.Refuse("Un arbre occupe cet emplacement.")
+                }
+
                 val accessible = IslandBuildingEngine.accessible(type, x, y) { cx, cy ->
                     cx in 0 until ile.largeur && cy in 0 until ile.hauteur &&
                         ile.type(cx, cy).franchissable
@@ -624,6 +636,25 @@ class IslandRepository(
                 )
             }
         }
+
+    /**
+     * Cases rendues inutilisables par les arbres.
+     *
+     * Pas seulement celles où pousse un arbre : aussi celles que sa couronne
+     * recouvre. Sans ce calcul, une case entièrement cachée par du feuillage
+     * restait achetable et cultivable — on pouvait y semer et ne jamais voir ce
+     * qui y poussait.
+     *
+     * Le découpage vient du même moteur que le rendu, avec la même géométrie :
+     * deux calculs séparés finiraient par bloquer une autre case que celle
+     * qu'on voit cachée.
+     */
+    private fun casesSousArbres(ile: IslandGenerator.Ile): Set<Pair<Int, Int>> {
+        val arbres = IslandForetEngine.decouper(ile.largeur, ile.hauteur) { x, y ->
+            ile.type(x, y) == IslandTileType.FOREST
+        }
+        return IslandForetEngine.casesReservees(arbres)
+    }
 
     /**
      * Types de bâtiments **en service**.

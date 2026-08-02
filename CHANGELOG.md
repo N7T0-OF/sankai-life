@@ -1,5 +1,13 @@
 # Changelog Sankai Life
 
+## 1.53.0 - 2 aout 2026
+
+- **Une case cachee sous un feuillage ne se vend plus.** Un arbre ne reservait
+  que la case ou il pousse, alors que sa couronne recouvre largement celles
+  d'a cote — on pouvait acheter puis semer une parcelle invisible, et ne jamais
+  voir ce qui y poussait. Les cases couvertes a plus de moitie sont desormais
+  reservees par l'arbre, pour l'achat comme pour la construction.
+
 ## 1.52.0 - 2 aout 2026
 
 - **Les batiments se construisent au lieu d'apparaitre.** Cinq etapes visibles,
