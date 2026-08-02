@@ -340,14 +340,20 @@ fun DrawScope.dessinerIle(
             }
         }
 
-        // Le rocher et la rivière par-dessus : ils partagent la couche de leurs
-        // voisins mais gardent leur couleur propre.
+        // Le rocher seul par-dessus.
+        //
+        // La rivière et l'étang y étaient aussi, et c'était le défaut : ils
+        // recevaient un aplat bleu **par-dessus** leur texture, donc un carré
+        // net posé sur un bord irrégulier. Ils appartiennent déjà à la couche de
+        // l'eau basse, qui leur donne texture et contour ; il n'y avait rien à
+        // ajouter.
+        //
+        // Le rocher reste, parce qu'il n'a pas de texture — mes essais donnaient
+        // un résultat pire que le gris uni.
         for (y in premierY..dernierY) {
             for (x in premierX..dernierX) {
                 val type = ile.type(x, y)
-                if (type != IslandTileType.ROCK && type != IslandTileType.RIVER &&
-                    type != IslandTileType.POND
-                ) continue
+                if (type != IslandTileType.ROCK) continue
                 drawRect(
                     color = PaletteIle.couleurCase(type, x, y),
                     topLeft = Offset(camera.x + x * pas, camera.y + y * pas),
@@ -400,11 +406,18 @@ fun DrawScope.dessinerIle(
                         dstSize = IntSize(cote, cote)
                     )
                 } else {
+                    // Repli sans texture — la mini-carte, l'assistant de
+                    // création.
+                    //
+                    // C'était un carré blanc à 60 % : sur l'eau peu profonde
+                    // d'une miniature, il se lisait comme une case pâle posée
+                    // là sans raison. Un aplat de terre dit la même chose — une
+                    // parcelle possédée — sans introduire une couleur qui
+                    // n'appartient à aucun terrain.
                     drawRect(
-                        color = Color.White.copy(alpha = 0.6f),
-                        topLeft = Offset(camera.x + x * pas + 1f, camera.y + y * pas + 1f),
-                        size = Size(pas - 2f, pas - 2f),
-                        style = Stroke(width = 2f)
+                        color = PaletteIle.couleur(IslandTileType.FERTILE_GRASS),
+                        topLeft = Offset(camera.x + x * pas, camera.y + y * pas),
+                        size = taille
                     )
                 }
             }

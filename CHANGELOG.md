@@ -1,5 +1,14 @@
 # Changelog Sankai Life
 
+## 1.75.0 - 2 aout 2026
+
+- **Les rivieres et etangs gardent leur texture** : l'aplat bleu pose par-dessus
+  est retire, c'est lui qui dessinait un carre net sur un bord irregulier.
+- **Le dernier carre blanc a faible opacite est supprime** — le repli des
+  parcelles sans texture, visible sur la mini-carte.
+- **Un parcours entier se desinstalle d'un geste**, avec le decompte de ce
+  qu'on perd avant de le perdre.
+
 ## 1.74.0 - 2 aout 2026
 
 - **Le portugais se prononce a l'europeenne.** Les modules declarent desormais

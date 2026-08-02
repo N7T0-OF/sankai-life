@@ -120,6 +120,55 @@ class MemoViewModel(application: Application) : AndroidViewModel(application) {
             com.sankailife.core.learning.domain.GroupementEngine.ouvertsParDefaut(groupes.value)
     }
 
+    /**
+     * Ce qu'on s'apprete a desinstaller, en attente de confirmation.
+     *
+     * Rien n'est supprime avant que le decompte soit affiche. Six modules et
+     * 797 cartes disparaissant sur un appui, c'est une perte qu'on ne peut pas
+     * annuler : il faut voir ce qu'on perd avant de le perdre.
+     */
+    data class Desinstallation(
+        val titre: String,
+        val profileIds: List<Long>,
+        val cartes: Int
+    )
+
+    private val _aDesinstaller = MutableStateFlow<Desinstallation?>(null)
+    val aDesinstaller: StateFlow<Desinstallation?> = _aDesinstaller
+
+    fun demanderDesinstallation(
+        groupe: com.sankailife.core.learning.domain.GroupementEngine.Groupe
+    ) {
+        _aDesinstaller.value = Desinstallation(
+            titre = groupe.titre,
+            profileIds = groupe.modules.map { it.profileId },
+            cartes = groupe.cartes
+        )
+    }
+
+    fun annulerDesinstallation() { _aDesinstaller.value = null }
+
+    /**
+     * Supprime tous les modules d'un parcours.
+     *
+     * La progression part avec : les boites de Leitner vivent sur les lignes,
+     * et les lignes s'en vont. Le dire dans la confirmation plutot que de
+     * proposer une option qui laisserait des donnees orphelines dont personne
+     * ne saurait quoi faire.
+     */
+    fun confirmerDesinstallation() {
+        val cible = _aDesinstaller.value ?: return
+        _aDesinstaller.value = null
+        viewModelScope.launch {
+            runCatching { cible.profileIds.forEach { deleteProfile(it) } }
+                .onSuccess {
+                    _message.value = "« ${cible.titre} » désinstallé — " +
+                        "${cible.profileIds.size} modules, ${cible.cartes} cartes."
+                }
+                .onFailure { _message.value = "Désinstallation impossible." }
+        }
+    }
+
     private val _currentProfileId = MutableStateFlow(-1L)
     val currentProfileId: StateFlow<Long> = _currentProfileId
 

@@ -42,6 +42,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -116,6 +118,7 @@ fun MemoScreen(
     val profiles by viewModel.profiles.collectAsState()
     val groupes by viewModel.groupes.collectAsState()
     val deplies by viewModel.deplies.collectAsState()
+    val aDesinstaller by viewModel.aDesinstaller.collectAsState()
     val message by viewModel.message.collectAsState()
     val stats by viewModel.statsParModule.collectAsState()
     val colors = MaterialTheme.sankaiColors
@@ -220,7 +223,10 @@ fun MemoScreen(
                                 EnteteParcours(
                                     groupe = groupe,
                                     ouvert = groupe.id in deplies,
-                                    onBasculer = { viewModel.basculerGroupe(groupe.id) }
+                                    onBasculer = { viewModel.basculerGroupe(groupe.id) },
+                                    onDesinstaller = {
+                                        viewModel.demanderDesinstallation(groupe)
+                                    }
                                 )
                             }
                             if (groupe.id in deplies) {
@@ -248,6 +254,30 @@ fun MemoScreen(
                     ImportModuleBouton()
                 }
             }
+        }
+
+        aDesinstaller?.let { cible ->
+            AlertDialog(
+                onDismissRequest = { viewModel.annulerDesinstallation() },
+                title = { Text("Désinstaller « ${cible.titre} » ?") },
+                text = {
+                    Text(
+                        "${cible.profileIds.size} modules, ${cible.cartes} cartes.\n\n" +
+                            "La progression part avec : les boîtes de révision " +
+                            "vivent sur les cartes. Rien ne pourra être récupéré."
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.confirmerDesinstallation() }) {
+                        Text("Désinstaller")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { viewModel.annulerDesinstallation() }) {
+                        Text("Annuler")
+                    }
+                }
+            )
         }
 
         SnackbarHost(
@@ -846,7 +876,8 @@ private fun copyMemoText(context: Context, label: String, text: String) {
 private fun EnteteParcours(
     groupe: com.sankailife.core.learning.domain.GroupementEngine.Groupe,
     ouvert: Boolean,
-    onBasculer: () -> Unit
+    onBasculer: () -> Unit,
+    onDesinstaller: () -> Unit = {}
 ) {
     val c = MaterialTheme.sankaiColors
     SankaiCard(
@@ -877,12 +908,20 @@ private fun EnteteParcours(
                     color = c.textSecondary, fontSize = 11.sp
                 )
             }
-            // Le chevron dit dans quel sens ca va s'ouvrir, ce qu'un simple
-            // triangle fixe ne dirait pas.
-            Text(
-                if (ouvert) "⌃" else "⌄",
-                color = c.textSecondary, fontSize = 20.sp
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Le chevron dit dans quel sens ca va s'ouvrir, ce qu'un simple
+                // triangle fixe ne dirait pas.
+                Text(
+                    if (ouvert) "⌃" else "⌄",
+                    color = c.textSecondary, fontSize = 20.sp
+                )
+                Spacer(Modifier.width(6.dp))
+                // Desinstaller tout le parcours, sans avoir a retirer six
+                // modules un par un.
+                TextButton(onClick = onDesinstaller) {
+                    Text("🗑", fontSize = 15.sp)
+                }
+            }
         }
     }
 }
