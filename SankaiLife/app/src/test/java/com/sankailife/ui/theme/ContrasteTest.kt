@@ -72,6 +72,33 @@ class ContrasteTest {
         verifier("sombre / secondary", DarkColorScheme.secondary, DarkColorScheme.onSecondary)
     }
 
+    /**
+     * Les surfaces « container » appartiennent bien à la palette Sankai.
+     *
+     * `darkColorScheme()` remplit tout paramètre omis avec les valeurs de base
+     * de Material — un gris-violet. Les surfaces de verre, qui s'en servent,
+     * viraient donc au violet sur tout appareil sans couleurs dynamiques,
+     * pendant que le reste de l'écran restait bleu nuit : exactement le défaut
+     * de deux palettes superposées qu'on venait de corriger.
+     *
+     * Le bleu nuit de Sankai a plus de bleu que de rouge ; le gris-violet de
+     * Material, l'inverse. C'est ce que ce test vérifie.
+     */
+    @Test
+    fun `les surfaces sombres restent bleu nuit et non violettes`() {
+        listOf(
+            "surfaceContainer" to DarkColorScheme.surfaceContainer,
+            "surfaceContainerHigh" to DarkColorScheme.surfaceContainerHigh,
+            "surfaceContainerHighest" to DarkColorScheme.surfaceContainerHighest,
+            "outlineVariant" to DarkColorScheme.outlineVariant
+        ).forEach { (nom, couleur) ->
+            assertTrue(
+                "$nom n'est pas bleu : rouge=%.2f bleu=%.2f".format(couleur.red, couleur.blue),
+                couleur.blue > couleur.red + 0.08f
+            )
+        }
+    }
+
     @Test
     fun `les textes sur fond et sur surface restent lisibles`() {
         verifier("clair / background", LightColorScheme.background, LightColorScheme.onBackground)

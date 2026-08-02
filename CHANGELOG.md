@@ -1,5 +1,13 @@
 # Changelog Sankai Life
 
+## 1.56.0 - 2 aout 2026
+
+- **Les surfaces en verre redeviennent bleu nuit.** Sans les couleurs du
+  telephone, elles viraient au gris-violet : Material remplacait par ses
+  propres teintes les surfaces que le theme Sankai n'avait pas declarees.
+  L'ecran affichait donc deux palettes a la fois — le defaut meme qu'on venait
+  de corriger.
+
 ## 1.55.0 - 2 aout 2026
 
 - **Texte des boutons lisible sans couleurs dynamiques.** En theme clair, le

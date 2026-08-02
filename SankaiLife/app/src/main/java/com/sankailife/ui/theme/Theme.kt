@@ -47,7 +47,20 @@ internal val DarkColorScheme = darkColorScheme(
     onSecondary     = Color(0xFF120A2E),
     onBackground    = TextPrimary,
     onSurface       = TextPrimary,
-    outline         = BorderColor
+    outline         = BorderColor,
+
+    // Les surfaces « container » et `outlineVariant` doivent être déclarées.
+    //
+    // Sans elles, `darkColorScheme()` retombe sur les valeurs de base de
+    // Material — un gris-violet sans aucun rapport avec le bleu nuit de
+    // Sankai. Les surfaces Liquid Glass, qui les utilisent, viraient au violet
+    // dès qu'un téléphone ne fournissait pas de couleurs dynamiques.
+    surfaceContainerLowest  = Background,
+    surfaceContainerLow     = Surface1,
+    surfaceContainer        = Surface1,
+    surfaceContainerHigh    = Surface2,
+    surfaceContainerHighest = Surface3,
+    outlineVariant          = BorderColor
 )
 
 // Palette claire de repli, utilisée quand le téléphone ne fournit pas de
@@ -68,7 +81,16 @@ internal val LightColorScheme = lightColorScheme(
     onSecondary     = Color.White,
     onBackground    = LightTextPrimary,
     onSurface       = LightTextPrimary,
-    outline         = LightBorder
+    outline         = LightBorder,
+
+    // Même raison qu'en thème sombre : sans ces valeurs, Material impose son
+    // lavande de base.
+    surfaceContainerLowest  = Color.White,
+    surfaceContainerLow     = LightSurface1,
+    surfaceContainer        = LightSurface2,
+    surfaceContainerHigh    = LightSurface3,
+    surfaceContainerHighest = LightSurface3,
+    outlineVariant          = LightBorder
 )
 
 /**
