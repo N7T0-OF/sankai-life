@@ -68,6 +68,7 @@ fun CatalogueModules(
 
     var chargement by remember { mutableStateOf(true) }
     var erreur by remember { mutableStateOf("") }
+    var collections by remember { mutableStateOf<List<CatalogueEngine.Collection>>(emptyList()) }
     var groupes by remember {
         mutableStateOf<List<Pair<CatalogueEngine.Famille, List<CatalogueEngine.Entree>>>>(
             emptyList()
@@ -78,7 +79,11 @@ fun CatalogueModules(
 
     LaunchedEffect(Unit) {
         depot.catalogue()
-            .onSuccess { groupes = CatalogueEngine.classer(it); erreur = "" }
+            .onSuccess {
+                collections = it.collections.filter { c -> CatalogueEngine.refus(c) == null }
+                groupes = CatalogueEngine.classer(it.modules)
+                erreur = ""
+            }
             .onFailure { erreur = it.message ?: "Catalogue indisponible." }
         chargement = false
     }
@@ -119,7 +124,53 @@ fun CatalogueModules(
                     color = c.textSecondary, fontSize = 13.sp
                 )
 
-                else -> groupes.forEach { (famille, entrees) ->
+                else -> {
+                // Les parcours complets d'abord.
+                //
+                // Installer six niveaux un par un demandait de savoir qu'ils
+                // existaient, de les trouver, et de deviner l'ordre. Un
+                // parcours entier tient en un fichier de dix-huit kilo-octets :
+                // le proposer en premier evite d'avoir a le reconstituer.
+                if (collections.isNotEmpty()) {
+                    Text(
+                        "PARCOURS COMPLETS", color = c.textSecondary,
+                        fontSize = 11.sp, fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    collections.forEach { collection ->
+                        LigneCollection(
+                            collection = collection,
+                            occupe = enCours != null,
+                            enCours = enCours == collection.id,
+                            onInstaller = {
+                                enCours = collection.id
+                                avis = null
+                                portee.launch {
+                                    when (val r = depot.installerCollection(collection)) {
+                                        is CatalogueRepository.Issue.Ok -> {
+                                            avis = r.message to true
+                                            onInstalle()
+                                        }
+                                        is CatalogueRepository.Issue.Echec ->
+                                            avis = r.raison to false
+                                    }
+                                    enCours = null
+                                }
+                            }
+                        )
+                        HorizontalDivider(color = c.border)
+                    }
+                    Spacer(Modifier.height(18.dp))
+                    Text(
+                        // On dit pourquoi les deux listes coexistent, sinon on
+                        // se demande laquelle prendre.
+                        "Ou niveau par niveau, si tu n'en veux qu'un :",
+                        color = c.textSecondary, fontSize = 12.sp
+                    )
+                    Spacer(Modifier.height(10.dp))
+                }
+
+                groupes.forEach { (famille, entrees) ->
                     Text(
                         famille.libelle.uppercase(), color = c.textSecondary,
                         fontSize = 11.sp, fontWeight = FontWeight.SemiBold
@@ -151,6 +202,7 @@ fun CatalogueModules(
                     }
                     Spacer(Modifier.height(16.dp))
                 }
+                }
             }
 
             avis?.let { (texte, succes) ->
@@ -161,6 +213,37 @@ fun CatalogueModules(
                 )
             }
         }
+    }
+}
+
+/** Un parcours complet : tous ses niveaux en un fichier. */
+@Composable
+private fun LigneCollection(
+    collection: CatalogueEngine.Collection,
+    occupe: Boolean,
+    enCours: Boolean,
+    onInstaller: () -> Unit
+) {
+    val c = MaterialTheme.sankaiColors
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 10.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.fillMaxWidth(0.62f)) {
+            Text(collection.nom, color = c.textPrimary, fontSize = 15.sp,
+                fontWeight = FontWeight.Bold)
+            Text(collection.details, color = c.textSecondary, fontSize = 12.sp)
+            if (collection.description.isNotBlank()) {
+                Text(collection.description, color = c.textDisabled, fontSize = 11.sp)
+            }
+        }
+        SankaiButton(
+            text = if (enCours) "…" else "Tout installer",
+            onClick = onInstaller,
+            enabled = !occupe,
+            small = true
+        )
     }
 }
 

@@ -112,6 +112,76 @@ class ModuleRepository(
      * utilisé. Exiger `module.json` à la racine ferait échouer un module
      * parfaitement valide pour une raison que personne ne comprendrait.
      */
+
+    /**
+     * Lit une archive contenant **plusieurs** modules.
+     *
+     * C'est ce qui permet de partager un parcours entier en un fichier : les
+     * six niveaux de portugais dans une archive, chacun dans son dossier, plus
+     * un `collection.json` qui dit dans quel ordre les suivre.
+     *
+     * Rend la liste des modules trouvés, dans l'ordre déclaré par la collection
+     * quand elle en déclare un — un parcours installé dans le désordre
+     * afficherait le C2 avant le A1.
+     */
+    suspend fun inspecterCollection(
+        source: Uri
+    ): List<Pair<ModuleEngine.Manifeste, List<String>>> = withContext(Dispatchers.IO) {
+        val contenu = lireArchive(source)
+
+        val ordre = trouver(contenu, "collection.json")?.let { octets ->
+            runCatching {
+                val tableau = JSONObject(String(octets)).getJSONArray("modules")
+                (0 until tableau.length()).map { tableau.getJSONObject(it).optString("id") }
+            }.getOrNull()
+        }.orEmpty()
+
+        // Chaque dossier qui porte un module.json est un module.
+        val dossiers = contenu.keys
+            .filter { it.substringAfterLast('/') == "module.json" && it.contains('/') }
+            .map { it.substringBeforeLast('/') }
+            .distinct()
+
+        val tries = if (ordre.isEmpty()) dossiers.sorted()
+        else dossiers.sortedBy { d ->
+            ordre.indexOf(d).let { if (it < 0) Int.MAX_VALUE else it }
+        }
+
+        tries.mapNotNull { dossier ->
+            val manifeste = trouver(contenu, "$dossier/module.json")?.let { octets ->
+                runCatching { manifesteDepuis(String(octets)) }.getOrNull()
+            } ?: return@mapNotNull null
+
+            val nomCartes = runCatching {
+                JSONObject(String(trouver(contenu, "$dossier/module.json")!!))
+                    .optString("flashcardsFile", "flashcards.txt")
+            }.getOrDefault("flashcards.txt")
+
+            val cartes = trouver(contenu, "$dossier/$nomCartes")
+                ?.let { String(it) }
+                ?.lines()
+                ?.mapNotNull { ModuleEngine.nettoyerLigne(it) }
+                .orEmpty()
+
+            if (cartes.isEmpty()) null else manifeste to cartes
+        }
+    }
+
+    private fun manifesteDepuis(json: String): ModuleEngine.Manifeste {
+        val o = JSONObject(json)
+        return ModuleEngine.Manifeste(
+            schemaVersion = o.optInt("schemaVersion", 0),
+            id = o.optString("id"),
+            nom = o.optString("name"),
+            version = o.optString("version"),
+            langue = o.optString("language"),
+            langueSource = o.optString("sourceLanguage"),
+            auteur = o.optString("author"),
+            description = o.optString("description"),
+            licence = o.optString("license")
+        )
+    }
+
     private fun trouver(contenu: Map<String, ByteArray>, nom: String): ByteArray? =
         contenu[nom] ?: contenu.entries
             .firstOrNull { it.key.substringAfterLast('/') == nom }

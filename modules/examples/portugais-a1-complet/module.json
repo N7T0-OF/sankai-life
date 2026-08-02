@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "portugais-a1-complet",
+  "name": "Portugais A1 — Premiers pas",
+  "version": "1.0.0",
+  "language": "pt",
+  "sourceLanguage": "fr",
+  "author": "Souanpt",
+  "description": "Bases essentielles : salutations, identité, nombres, quotidien, maison, nourriture et déplacements.",
+  "license": "CC BY 4.0",
+  "offline": true,
+  "flashcardsFile": "flashcards.txt"
+}

@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "portugais-c2-complet",
+  "name": "Portugais C2 — Expression experte",
+  "version": "1.0.0",
+  "language": "pt",
+  "sourceLanguage": "fr",
+  "author": "Souanpt",
+  "description": "Finesse stylistique, idiomes avancés, registre soutenu et précision quasi native.",
+  "license": "CC BY 4.0",
+  "offline": true,
+  "flashcardsFile": "flashcards.txt"
+}

@@ -1,0 +1,62 @@
+{
+  "_lisez_moi": [
+    "Les collections relient des modules qui forment un seul parcours.",
+    "Sans elles, six niveaux de portugais donnaient six themes independants :",
+    "on installait A1 sans savoir que A2 existait, et rien ne disait par ou",
+    "continuer une fois A1 termine.",
+    "",
+    "Une collection s'installe d'un seul geste, ou niveau par niveau : les deux",
+    "doivent rester possibles. Quelqu'un qui debute n'a pas besoin du C2, et",
+    "quelqu'un qui revise n'a pas envie de tout reprendre."
+  ],
+  "schemaVersion": 1,
+  "collections": [
+    {
+      "id": "portugais",
+      "nom": "Portugais",
+      "langue": "pt",
+      "description": "Du premier bonjour a l'expression experte, en six niveaux europeens.",
+      "auteur": "Souanpt",
+      "modules": [
+        { "id": "portugais-a1-complet", "niveau": "A1" },
+        { "id": "portugais-a2-complet", "niveau": "A2" },
+        { "id": "portugais-b1-complet", "niveau": "B1" },
+        { "id": "portugais-b2-complet", "niveau": "B2" },
+        { "id": "portugais-c1-complet", "niveau": "C1" },
+        { "id": "portugais-c2-complet", "niveau": "C2" }
+      ]
+    },
+    {
+      "id": "anglais",
+      "nom": "Anglais",
+      "langue": "en",
+      "description": "Les bases de l'anglais du quotidien.",
+      "auteur": "Sankai Life",
+      "modules": [
+        { "id": "anglais-a1-bases", "niveau": "A1" }
+      ]
+    },
+    {
+      "id": "espagnol",
+      "nom": "Espagnol",
+      "langue": "es",
+      "description": "Les bases de l'espagnol du quotidien.",
+      "auteur": "Sankai Life",
+      "modules": [
+        { "id": "espagnol-a1-bases", "niveau": "A1" }
+      ]
+    },
+    {
+      "id": "outils",
+      "nom": "Outils et code",
+      "langue": "",
+      "description": "Raccourcis et syntaxe, a garder sous la main.",
+      "auteur": "Sankai Life",
+      "modules": [
+        { "id": "blender-raccourcis", "niveau": "" },
+        { "id": "vscode-raccourcis", "niveau": "" },
+        { "id": "kotlin-bases", "niveau": "" }
+      ]
+    }
+  ]
+}

@@ -38,7 +38,13 @@ class CatalogueRepository(
      * cacherait les nouveaux — pour un gain de quelques centaines de
      * millisecondes.
      */
-    suspend fun catalogue(): Result<List<CatalogueEngine.Entree>> =
+    /** Le catalogue complet : collections et modules. */
+    data class Catalogue(
+        val collections: List<CatalogueEngine.Collection> = emptyList(),
+        val modules: List<CatalogueEngine.Entree> = emptyList()
+    )
+
+    suspend fun catalogue(): Result<Catalogue> =
         withContext(Dispatchers.IO) {
             runCatching {
                 val texte = lireTexte(URL_CATALOGUE)
@@ -47,13 +53,37 @@ class CatalogueRepository(
                 require(version <= CatalogueEngine.VERSION_SCHEMA) {
                     "Ce catalogue demande une version plus récente de l'application."
                 }
+                val collections = racine.optJSONArray("collections")?.let { t ->
+                    (0 until t.length()).map { i ->
+                        val o = t.getJSONObject(i)
+                        CatalogueEngine.Collection(
+                            id = o.optString("id"),
+                            nom = o.optString("nom"),
+                            description = o.optString("description"),
+                            langue = o.optString("langue"),
+                            auteur = o.optString("auteur"),
+                            modules = o.optJSONArray("modules")?.let { m ->
+                                (0 until m.length()).map { j -> m.getString(j) }
+                            }.orEmpty(),
+                            niveaux = o.optJSONArray("niveaux")?.let { n ->
+                                (0 until n.length()).map { j -> n.getString(j) }
+                            }.orEmpty(),
+                            cartes = o.optInt("cartes"),
+                            octets = o.optLong("octets"),
+                            empreinte = o.optString("sha256"),
+                            url = o.optString("url")
+                        )
+                    }
+                }.orEmpty()
+
                 val tableau = racine.getJSONArray("modules")
-                (0 until tableau.length()).map { i ->
+                val modules = (0 until tableau.length()).map { i ->
                     val o = tableau.getJSONObject(i)
                     CatalogueEngine.Entree(
                         id = o.optString("id"),
                         nom = o.optString("nom"),
                         description = o.optString("description"),
+                        collection = o.optString("collection"),
                         langue = o.optString("langue"),
                         niveau = o.optString("niveau"),
                         cartes = o.optInt("cartes"),
@@ -64,6 +94,7 @@ class CatalogueRepository(
                         url = o.optString("url")
                     )
                 }
+                Catalogue(collections = collections, modules = modules)
             }.recoverCatching { throw IllegalStateException(messageLisible(it), it) }
         }
 
@@ -103,6 +134,57 @@ class CatalogueRepository(
             } finally {
                 // Le paquet ne sert plus : les cartes sont en base. Le garder
                 // occuperait de la place pour un fichier que rien ne relira.
+                temporaire.delete()
+            }
+        }
+
+
+    /**
+     * Telecharge et installe une collection entiere.
+     *
+     * Un seul telechargement pour tous les niveaux : six requetes pour six
+     * modules d'un meme cours, c'est six occasions d'echouer a moitie et de
+     * laisser quelqu'un avec un parcours troue.
+     *
+     * Les modules deja presents sont reinstalles sous un nom distinct plutot
+     * qu'ecrases : ecraser ferait perdre les boites de Leitner de quelqu'un qui
+     * a deja revise, et personne ne s'attend a perdre sa progression en
+     * installant un contenu.
+     */
+    suspend fun installerCollection(collection: CatalogueEngine.Collection): Issue =
+        withContext(Dispatchers.IO) {
+            CatalogueEngine.refus(collection)?.let { return@withContext Issue.Echec(it) }
+
+            val temporaire = File(contexte.cacheDir, "collection-${collection.id}.zip")
+            try {
+                val octets = telecharger(collection.url, temporaire)
+                    ?: return@withContext Issue.Echec("Telechargement impossible.")
+                if (octets != collection.octets) {
+                    return@withContext Issue.Echec(
+                        "Telechargement incomplet : $octets o recus sur ${collection.octets}."
+                    )
+                }
+                if (!empreinte(temporaire).equals(collection.empreinte, ignoreCase = true)) {
+                    return@withContext Issue.Echec("Le fichier recu ne correspond pas.")
+                }
+
+                val trouves = modules.inspecterCollection(android.net.Uri.fromFile(temporaire))
+                if (trouves.isEmpty()) {
+                    return@withContext Issue.Echec("Aucun module lisible dans cette collection.")
+                }
+
+                var cartes = 0
+                trouves.forEach { (manifeste, lignes) ->
+                    modules.installer(manifeste, lignes)
+                    cartes += lignes.size
+                }
+                Issue.Ok(
+                    "« ${collection.nom} » installe — ${trouves.size} niveaux, " +
+                        "$cartes cartes, hors ligne."
+                )
+            } catch (e: Throwable) {
+                Issue.Echec(messageLisible(e))
+            } finally {
                 temporaire.delete()
             }
         }

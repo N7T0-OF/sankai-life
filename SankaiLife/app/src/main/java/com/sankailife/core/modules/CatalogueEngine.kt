@@ -16,8 +16,14 @@ import java.util.Locale
  */
 object CatalogueEngine {
 
-    /** Version de format comprise. Au-delà, on refuse plutôt que de deviner. */
-    const val VERSION_SCHEMA = 1
+    /**
+     * Version de format comprise. Au-delà, on refuse plutôt que de deviner.
+     *
+     * La 2 ajoute les collections. Une application plus ancienne refusera ce
+     * catalogue au lieu d'en lire la moitié : mieux vaut dire « mets à jour »
+     * que d'afficher un catalogue amputé sans l'expliquer.
+     */
+    const val VERSION_SCHEMA = 2
 
     /**
      * Plafond de taille d'un module du catalogue.
@@ -33,6 +39,8 @@ object CatalogueEngine {
         val id: String,
         val nom: String,
         val description: String = "",
+        /** Collection à laquelle il appartient, vide s'il est seul. */
+        val collection: String = "",
         /** Code BCP-47, vide pour un module qui n'est pas une langue. */
         val langue: String = "",
         val niveau: String = "",
@@ -56,6 +64,81 @@ object CatalogueEngine {
                 add("$cartes cartes")
                 add(taille)
             }.joinToString(" · ")
+    }
+
+    /**
+     * Une collection : plusieurs modules qui forment un seul parcours.
+     *
+     * **C'est ce qui manquait.** Six niveaux de portugais donnaient six thèmes
+     * indépendants : on installait A1 sans savoir que A2 existait, et rien ne
+     * disait par où continuer une fois A1 terminé.
+     *
+     * Elle s'installe d'un geste **ou** niveau par niveau, et les deux doivent
+     * rester possibles : quelqu'un qui débute n'a pas besoin du C2, et
+     * quelqu'un qui révise n'a pas envie de tout reprendre.
+     */
+    data class Collection(
+        val id: String,
+        val nom: String,
+        val description: String = "",
+        val langue: String = "",
+        val auteur: String = "",
+        /** Identifiants des modules, dans l'ordre d'apprentissage. */
+        val modules: List<String> = emptyList(),
+        /** Niveaux correspondants, même ordre. Vide pour une matière sans niveau. */
+        val niveaux: List<String> = emptyList(),
+        val cartes: Int = 0,
+        val octets: Long = 0L,
+        val empreinte: String = "",
+        val url: String = ""
+    ) {
+        val taille: String
+            get() = if (octets < 1024) "$octets o"
+            else String.format(Locale.FRANCE, "%.0f ko", octets / 1024.0)
+
+        /** « 6 niveaux · A1 → C2 · 797 cartes · 18 ko ». */
+        val details: String
+            get() = buildList {
+                add("${modules.size} module(s)")
+                val bornes = niveaux.filter { it.isNotBlank() }
+                if (bornes.size >= 2) add("${bornes.first()} → ${bornes.last()}")
+                add("$cartes cartes")
+                add(taille)
+            }.joinToString(" · ")
+    }
+
+    /** Mêmes contrôles que pour un module : refuser avant de télécharger. */
+    fun refus(collection: Collection): String? = when {
+        collection.id.isBlank() -> "Collection sans identifiant."
+        collection.nom.isBlank() -> "Collection sans nom."
+        collection.modules.isEmpty() -> "Collection vide."
+        !collection.url.startsWith("https://") ->
+            "Adresse non sécurisée : la collection ne sera pas téléchargée."
+        collection.octets <= 0L -> "Taille inconnue."
+        collection.octets > MAX_OCTETS ->
+            "Collection démesurée (${collection.taille})."
+        collection.empreinte.length != 64 ->
+            "Empreinte absente : impossible de vérifier ce qui sera reçu."
+        else -> null
+    }
+
+    /**
+     * Part de la collection déjà installée, de 0 à 1.
+     *
+     * Sert à proposer « Installer les 4 niveaux restants » plutôt que de
+     * reproposer l'ensemble à quelqu'un qui en a déjà la moitié.
+     */
+    fun partInstallee(
+        collection: Collection,
+        modulesDuCatalogue: List<Entree>,
+        nomsInstalles: Set<String>
+    ): Float {
+        if (collection.modules.isEmpty()) return 0f
+        val parId = modulesDuCatalogue.associateBy { it.id }
+        val installes = collection.modules.count { id ->
+            parId[id]?.let { estInstalle(it, nomsInstalles) } == true
+        }
+        return installes.toFloat() / collection.modules.size
     }
 
     /**

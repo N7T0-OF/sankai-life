@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "portugais-c1-complet",
+  "name": "Portugais C1 — Maîtrise avancée",
+  "version": "1.0.0",
+  "language": "pt",
+  "sourceLanguage": "fr",
+  "author": "Souanpt",
+  "description": "Langue soutenue, raisonnement, analyse, registre académique et nuances précises.",
+  "license": "CC BY 4.0",
+  "offline": true,
+  "flashcardsFile": "flashcards.txt"
+}

@@ -1,5 +1,15 @@
 # Changelog Sankai Life
 
+## 1.68.0 - 2 aout 2026
+
+- **Le portugais complet, A1 a C2 : 797 cartes en six niveaux relies**, dans un
+  seul parcours qui s'installe d'un geste — ou niveau par niveau.
+- **Les collections existent.** Six niveaux ne donnent plus six themes
+  independants sans lien entre eux.
+- **L'import accepte bien plus que le ZIP** : JSON, texte, CSV, exports Anki et
+  Quizlet. Le format est reconnu au contenu, pas a l'extension.
+- 1089 cartes disponibles au catalogue, 11 modules, 4 parcours.
+
 ## 1.67.0 - 2 aout 2026
 
 - **L'ile est beaucoup moins cubique.** Les cotes ne sont plus un escalier de

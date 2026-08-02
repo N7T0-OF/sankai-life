@@ -1,5 +1,89 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
+  "collections": [
+    {
+      "id": "anglais",
+      "nom": "Anglais",
+      "description": "Les bases de l'anglais du quotidien.",
+      "langue": "en",
+      "auteur": "Sankai Life",
+      "modules": [
+        "anglais-a1-bases"
+      ],
+      "niveaux": [
+        "A1"
+      ],
+      "cartes": 86,
+      "octets": 1828,
+      "sha256": "19080904e553b56c9edc20729e3fccb77dd6f99c6937efd4bffdc5f572c1e550",
+      "url": "https://raw.githubusercontent.com/N7T0-OF/sankai-life/main/modules/paquets/collection-anglais.zip"
+    },
+    {
+      "id": "espagnol",
+      "nom": "Espagnol",
+      "description": "Les bases de l'espagnol du quotidien.",
+      "langue": "es",
+      "auteur": "Sankai Life",
+      "modules": [
+        "espagnol-a1-bases"
+      ],
+      "niveaux": [
+        "A1"
+      ],
+      "cartes": 85,
+      "octets": 1874,
+      "sha256": "c9e58471f055caf9d1d4715414279c382b14917b2ce6bee857fd76e9284fc2d5",
+      "url": "https://raw.githubusercontent.com/N7T0-OF/sankai-life/main/modules/paquets/collection-espagnol.zip"
+    },
+    {
+      "id": "outils",
+      "nom": "Outils et code",
+      "description": "Raccourcis et syntaxe, a garder sous la main.",
+      "langue": "",
+      "auteur": "Sankai Life",
+      "modules": [
+        "blender-raccourcis",
+        "vscode-raccourcis",
+        "kotlin-bases"
+      ],
+      "niveaux": [
+        "",
+        "",
+        ""
+      ],
+      "cartes": 121,
+      "octets": 3954,
+      "sha256": "cd3d560f079492ae1d11f47a0b2bc95d14f8247208057633ac2545bcbb357548",
+      "url": "https://raw.githubusercontent.com/N7T0-OF/sankai-life/main/modules/paquets/collection-outils.zip"
+    },
+    {
+      "id": "portugais",
+      "nom": "Portugais",
+      "description": "Du premier bonjour a l'expression experte, en six niveaux europeens.",
+      "langue": "pt",
+      "auteur": "Souanpt",
+      "modules": [
+        "portugais-a1-complet",
+        "portugais-a2-complet",
+        "portugais-b1-complet",
+        "portugais-b2-complet",
+        "portugais-c1-complet",
+        "portugais-c2-complet"
+      ],
+      "niveaux": [
+        "A1",
+        "A2",
+        "B1",
+        "B2",
+        "C1",
+        "C2"
+      ],
+      "cartes": 797,
+      "octets": 18226,
+      "sha256": "2c6afb8bce5b311297a911f986f7ad5d0cfd11c4f0fcede8ac34e3736ca591f5",
+      "url": "https://raw.githubusercontent.com/N7T0-OF/sankai-life/main/modules/paquets/collection-portugais.zip"
+    }
+  ],
   "modules": [
     {
       "id": "anglais-a1-bases",
@@ -7,6 +91,7 @@
       "description": "Saluer, se presenter, les mots de tous les jours.",
       "langue": "en",
       "niveau": "A1",
+      "collection": "anglais",
       "cartes": 86,
       "octets": 1479,
       "sha256": "ebc23a0581fbefb858abfdd66ad0072d7bb07b4f87436db6e5654e9d88edc134",
@@ -20,6 +105,7 @@
       "description": "Saluer, se presenter, les mots de tous les jours.",
       "langue": "es",
       "niveau": "A1",
+      "collection": "espagnol",
       "cartes": 85,
       "octets": 1518,
       "sha256": "c59ec22c22eb85043a60ac96004dcd6534731ae88777dfb3ea949a2c45197ec3",
@@ -28,37 +114,12 @@
       "url": "https://raw.githubusercontent.com/N7T0-OF/sankai-life/main/modules/paquets/espagnol-a1-bases.zip"
     },
     {
-      "id": "portugais-a1-bases",
-      "nom": "Portugais A1 — Bases",
-      "description": "Saluer, se presenter, remercier, compter.",
-      "langue": "pt",
-      "niveau": "A1",
-      "cartes": 87,
-      "octets": 1548,
-      "sha256": "09ad8b80094a947d0156227e359b7b3df9dab0d816cc218018f331e9eb6b8ce4",
-      "licence": "CC BY 4.0",
-      "auteur": "Sankai Life",
-      "url": "https://raw.githubusercontent.com/N7T0-OF/sankai-life/main/modules/paquets/portugais-a1-bases.zip"
-    },
-    {
-      "id": "portugais-a1-quotidien",
-      "nom": "Portugais A1 — Vie quotidienne",
-      "description": "Maison, famille, nourriture, ville, achats.",
-      "langue": "pt",
-      "niveau": "A1",
-      "cartes": 83,
-      "octets": 1418,
-      "sha256": "a44c05f9587c6945f1718fbfb69637003b7cee464ef5325933add4a42bedd276",
-      "licence": "CC BY 4.0",
-      "auteur": "Sankai Life",
-      "url": "https://raw.githubusercontent.com/N7T0-OF/sankai-life/main/modules/paquets/portugais-a1-quotidien.zip"
-    },
-    {
       "id": "blender-raccourcis",
       "nom": "Blender — Raccourcis",
       "description": "Les raccourcis clavier du travail quotidien.",
       "langue": "",
       "niveau": "",
+      "collection": "outils",
       "cartes": 45,
       "octets": 1091,
       "sha256": "de2e60cec14953585b7f1e55298ab227abcc9781ceb6ff226af9d0524cc1866a",
@@ -72,6 +133,7 @@
       "description": "Syntaxe et idiomes courants du langage.",
       "langue": "",
       "niveau": "",
+      "collection": "outils",
       "cartes": 46,
       "octets": 1443,
       "sha256": "ff4e9914f7112d4296020c9b918c9047b72e94c53bcdaa871bc358958b477e0c",
@@ -85,12 +147,97 @@
       "description": "Les raccourcis Windows et Linux qui font gagner du temps.",
       "langue": "",
       "niveau": "",
+      "collection": "outils",
       "cartes": 30,
       "octets": 941,
       "sha256": "b26199c479dba9b900decf2f74251604521d11ee7146e3be6a891ea0d9eb2c95",
       "licence": "CC BY 4.0",
       "auteur": "Sankai Life",
       "url": "https://raw.githubusercontent.com/N7T0-OF/sankai-life/main/modules/paquets/vscode-raccourcis.zip"
+    },
+    {
+      "id": "portugais-a1-complet",
+      "nom": "Portugais A1 — Premiers pas",
+      "description": "Bases essentielles : salutations, identité, nombres, quotidien, maison, nourriture et déplacements.",
+      "langue": "pt",
+      "niveau": "A1",
+      "collection": "portugais",
+      "cartes": 189,
+      "octets": 2607,
+      "sha256": "1582f794b143113197ec5a88b0e7eff063365cec7515a8d2ded2345866582e0c",
+      "licence": "CC BY 4.0",
+      "auteur": "Souanpt",
+      "url": "https://raw.githubusercontent.com/N7T0-OF/sankai-life/main/modules/paquets/portugais-a1-complet.zip"
+    },
+    {
+      "id": "portugais-a2-complet",
+      "nom": "Portugais A2 — Vie quotidienne",
+      "description": "Autonomie dans les situations courantes : routines, voyages, achats, santé, passé et futur proche.",
+      "langue": "pt",
+      "niveau": "A2",
+      "collection": "portugais",
+      "cartes": 161,
+      "octets": 3062,
+      "sha256": "6b93bd461446cf8434f10380de20ce2a7ef6964a55f0a742122ff9f48afdf690",
+      "licence": "CC BY 4.0",
+      "auteur": "Souanpt",
+      "url": "https://raw.githubusercontent.com/N7T0-OF/sankai-life/main/modules/paquets/portugais-a2-complet.zip"
+    },
+    {
+      "id": "portugais-b1-complet",
+      "nom": "Portugais B1 — Autonomie",
+      "description": "Exprimer une opinion, travailler, voyager, gérer des problèmes et utiliser des structures plus complexes.",
+      "langue": "pt",
+      "niveau": "B1",
+      "collection": "portugais",
+      "cartes": 133,
+      "octets": 3145,
+      "sha256": "5dd2620f4b3927b4d0928b85fe972ff49d8ca2290768eb0e00017d3340a9f639",
+      "licence": "CC BY 4.0",
+      "auteur": "Souanpt",
+      "url": "https://raw.githubusercontent.com/N7T0-OF/sankai-life/main/modules/paquets/portugais-b1-complet.zip"
+    },
+    {
+      "id": "portugais-b2-complet",
+      "nom": "Portugais B2 — Argumenter et nuancer",
+      "description": "Argumentation, société, technologie, expressions idiomatiques et structures avancées.",
+      "langue": "pt",
+      "niveau": "B2",
+      "collection": "portugais",
+      "cartes": 115,
+      "octets": 3055,
+      "sha256": "1557a4e5900b2287cb8e162da4922b31cd3e67f6b0118e371c6966837409589e",
+      "licence": "CC BY 4.0",
+      "auteur": "Souanpt",
+      "url": "https://raw.githubusercontent.com/N7T0-OF/sankai-life/main/modules/paquets/portugais-b2-complet.zip"
+    },
+    {
+      "id": "portugais-c1-complet",
+      "nom": "Portugais C1 — Maîtrise avancée",
+      "description": "Langue soutenue, raisonnement, analyse, registre académique et nuances précises.",
+      "langue": "pt",
+      "niveau": "C1",
+      "collection": "portugais",
+      "cartes": 111,
+      "octets": 2961,
+      "sha256": "c37d14b399b082dd2bf5126447872614ed51311a438d01b2f313ace1a9711ecb",
+      "licence": "CC BY 4.0",
+      "auteur": "Souanpt",
+      "url": "https://raw.githubusercontent.com/N7T0-OF/sankai-life/main/modules/paquets/portugais-c1-complet.zip"
+    },
+    {
+      "id": "portugais-c2-complet",
+      "nom": "Portugais C2 — Expression experte",
+      "description": "Finesse stylistique, idiomes avancés, registre soutenu et précision quasi native.",
+      "langue": "pt",
+      "niveau": "C2",
+      "collection": "portugais",
+      "cartes": 88,
+      "octets": 2643,
+      "sha256": "5b42c2e1f194a150b3aa550d2d06daaf8b5c5568ab8d9bb7278591179fb647a1",
+      "licence": "CC BY 4.0",
+      "auteur": "Souanpt",
+      "url": "https://raw.githubusercontent.com/N7T0-OF/sankai-life/main/modules/paquets/portugais-c2-complet.zip"
     }
   ]
 }

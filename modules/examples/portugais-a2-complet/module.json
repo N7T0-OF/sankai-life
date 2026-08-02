@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "portugais-a2-complet",
+  "name": "Portugais A2 — Vie quotidienne",
+  "version": "1.0.0",
+  "language": "pt",
+  "sourceLanguage": "fr",
+  "author": "Souanpt",
+  "description": "Autonomie dans les situations courantes : routines, voyages, achats, santé, passé et futur proche.",
+  "license": "CC BY 4.0",
+  "offline": true,
+  "flashcardsFile": "flashcards.txt"
+}

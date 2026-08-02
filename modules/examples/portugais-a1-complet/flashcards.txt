@@ -1,0 +1,189 @@
+Olá | Bonjour / Salut
+Bom dia | Bonjour (le matin)
+Boa tarde | Bonjour / Bon après-midi
+Boa noite | Bonsoir / Bonne nuit
+Até logo | À bientôt
+Até amanhã | À demain
+Adeus | Au revoir
+Por favor | S’il vous plaît
+Obrigado | Merci (homme)
+Obrigada | Merci (femme)
+De nada | De rien
+Desculpe | Excusez-moi / Pardon
+Com licença | Excusez-moi / Permission
+Sim | Oui
+Não | Non
+Talvez | Peut-être
+Claro | Bien sûr
+Está bem | D’accord / Ça va
+Tudo bem? | Ça va ?
+Estou bem | Je vais bien
+Como estás? | Comment vas-tu ?
+Como está? | Comment allez-vous ?
+Qual é o teu nome? | Comment t’appelles-tu ?
+Qual é o seu nome? | Comment vous appelez-vous ?
+Chamo-me Swann | Je m’appelle Swann
+Muito prazer | Enchanté
+De onde és? | D’où viens-tu ?
+Sou de França | Je viens de France
+Sou francês | Je suis français
+Sou francesa | Je suis française
+Falo francês | Je parle français
+Falo um pouco de português | Je parle un peu portugais
+Não percebo | Je ne comprends pas
+Pode repetir? | Pouvez-vous répéter ?
+Mais devagar, por favor | Plus lentement, s’il vous plaît
+Como se diz isto em português? | Comment dit-on cela en portugais ?
+O que significa? | Qu’est-ce que cela signifie ?
+Eu | Je / Moi
+Tu | Tu
+Ele | Il
+Ela | Elle
+Nós | Nous
+Vocês | Vous (pluriel)
+Eles | Ils
+Elas | Elles
+ser | être (identité / caractéristique)
+estar | être (état / position)
+ter | avoir
+fazer | faire
+ir | aller
+vir | venir
+querer | vouloir
+poder | pouvoir
+gostar de | aimer
+falar | parler
+comer | manger
+beber | boire
+morar | habiter
+trabalhar | travailler
+estudar | étudier
+Eu sou | Je suis
+Tu és | Tu es
+Ele é | Il est
+Nós somos | Nous sommes
+Eu estou | Je suis / Je me trouve
+Tu estás | Tu es / Tu te trouves
+Eu tenho | J’ai
+Tu tens | Tu as
+Eu quero | Je veux
+Eu posso | Je peux
+Eu gosto de café | J’aime le café
+Não gosto de chá | Je n’aime pas le thé
+Quero aprender português | Je veux apprendre le portugais
+Estou a aprender português | J’apprends le portugais
+um | un
+dois | deux
+três | trois
+quatro | quatre
+cinco | cinq
+seis | six
+sete | sept
+oito | huit
+nove | neuf
+dez | dix
+onze | onze
+doze | douze
+treze | treize
+catorze | quatorze
+quinze | quinze
+dezasseis | seize
+dezassete | dix-sept
+dezoito | dix-huit
+dezanove | dix-neuf
+vinte | vingt
+trinta | trente
+quarenta | quarante
+cinquenta | cinquante
+cem | cent
+segunda-feira | lundi
+terça-feira | mardi
+quarta-feira | mercredi
+quinta-feira | jeudi
+sexta-feira | vendredi
+sábado | samedi
+domingo | dimanche
+hoje | aujourd’hui
+amanhã | demain
+ontem | hier
+agora | maintenant
+depois | après
+antes | avant
+de manhã | le matin
+à tarde | l’après-midi
+à noite | le soir / la nuit
+Que horas são? | Quelle heure est-il ?
+É uma hora | Il est une heure
+São duas horas | Il est deux heures
+meia hora | une demi-heure
+um quarto de hora | un quart d’heure
+a família | la famille
+a mãe | la mère
+o pai | le père
+o irmão | le frère
+a irmã | la sœur
+o filho | le fils
+a filha | la fille
+os pais | les parents
+o amigo | l’ami
+a amiga | l’amie
+a casa | la maison
+o quarto | la chambre
+a cozinha | la cuisine
+a casa de banho | la salle de bains / les toilettes
+a sala | le salon
+a porta | la porte
+a janela | la fenêtre
+a mesa | la table
+a cadeira | la chaise
+a cama | le lit
+a escola | l’école
+o trabalho | le travail
+a loja | le magasin
+o mercado | le marché
+a rua | la rue
+a cidade | la ville
+o carro | la voiture
+o autocarro | le bus
+o comboio | le train
+o avião | l’avion
+a bicicleta | le vélo
+a água | l’eau
+o pão | le pain
+o leite | le lait
+o café | le café
+o chá | le thé
+a carne | la viande
+o peixe | le poisson
+o arroz | le riz
+a fruta | le fruit
+a maçã | la pomme
+a banana | la banane
+Estou com fome | J’ai faim
+Estou com sede | J’ai soif
+Quero água, por favor | Je voudrais de l’eau, s’il vous plaît
+Quanto custa? | Combien ça coûte ?
+É caro | C’est cher
+É barato | C’est bon marché
+Quero isto | Je veux ceci
+Onde fica a estação? | Où se trouve la gare ?
+Onde é a casa de banho? | Où sont les toilettes ?
+À direita | À droite
+À esquerda | À gauche
+Em frente | En face / Tout droit
+Perto | Près
+Longe | Loin
+Estou cansado | Je suis fatigué (homme)
+Estou cansada | Je suis fatiguée (femme)
+Estou feliz | Je suis heureux / heureuse
+Estou triste | Je suis triste
+Tenho frio | J’ai froid
+Tenho calor | J’ai chaud
+Conjugue « ser » : eu | eu sou
+Conjugue « ser » : tu | tu és
+Conjugue « estar » : eu | eu estou
+Conjugue « ter » : eu | eu tenho
+Traduis : Je suis français. | Sou francês.
+Traduis : J’habite en France. | Moro em França.
+Traduis : Je veux un café. | Quero um café.
+Traduis : Où est le magasin ? | Onde fica a loja?
