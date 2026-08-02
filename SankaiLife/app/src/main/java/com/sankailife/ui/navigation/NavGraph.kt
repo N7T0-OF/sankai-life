@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -91,6 +92,14 @@ fun SankaiNavGraph() {
     val showBottom = currentRoute !in noBottomBarRoutes
 
     Scaffold(
+        // Transparent, et c'est le correctif du « rectangle sous la barre ».
+        //
+        // Sans cette ligne, le Scaffold peint `colorScheme.background` sur
+        // toute sa surface, barre basse comprise, pendant que chaque écran
+        // peint son propre fond par-dessus. Les deux ne coïncidant pas, on
+        // voyait un bandeau d'une autre couleur derrière la barre flottante.
+        // Le fond est désormais peint une seule fois, à la racine.
+        containerColor = Color.Transparent,
         bottomBar = {
             if (showBottom) {
                 SankaiBottomNavBar(

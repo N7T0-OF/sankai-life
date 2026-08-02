@@ -187,13 +187,11 @@ private fun BulleFlottante(
         Box(
             Modifier.size(48.dp)
                 .clip(CircleShape)
+                // Couleur unie du thème. C'étaient deux verts codés en dur :
+                // un bouton de HUD reste de l'interface, il doit suivre la
+                // palette comme le reste, y compris par-dessus le Jardin.
                 .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color(0xFF16241C).copy(alpha = 0.92f),
-                            Color(0xFF0C1611).copy(alpha = 0.88f)
-                        )
-                    )
+                    MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.92f)
                 )
                 .border(
                     1.dp,

@@ -135,7 +135,7 @@ fun MemoScreen(
     Box(
         Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(GameNavyTop, GameNavyBottom)))
+            .background(colors.background)
     ) {
         Column(Modifier.fillMaxSize()) {
             MemoTopBar(

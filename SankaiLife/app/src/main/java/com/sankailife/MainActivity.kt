@@ -9,6 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -60,7 +61,13 @@ class MainActivity : ComponentActivity() {
                 couleursSysteme = couleursSysteme
             ) {
                 CompositionLocalProvider(LocalHaptics provides haptics) {
-                    Surface(modifier = Modifier.fillMaxSize()) {
+                    // Le fond de l'application, peint une fois et une seule.
+                    // Chaque ecran qui repeignait le sien produisait des
+                    // raccords visibles des que la palette changeait.
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
                         SankaiNavGraph()
                     }
                 }

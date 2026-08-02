@@ -48,7 +48,7 @@ fun OnboardingScreen(onTermine: () -> Unit) {
     Box(
         Modifier.fillMaxSize()
             .background(
-                Brush.verticalGradient(listOf(Color(0xFF0E1A13), c.background))
+                c.background
             )
             .windowInsetsPadding(WindowInsets.safeDrawing)
     ) {

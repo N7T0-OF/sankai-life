@@ -51,35 +51,25 @@ fun LiquidGlassSurface(
 ) {
     val c = MaterialTheme.sankaiColors
 
-    // Deux teintes proches : le dégradé donne l'épaisseur, sans quoi la
-    // surface paraît plate et l'effet de verre disparaît.
-    val fond = remember(c.surface1, c.surface2, intensite) {
-        Brush.verticalGradient(
-            listOf(
-                c.surface2.copy(alpha = intensite),
-                c.surface1.copy(alpha = (intensite + 0.04f).coerceAtMost(1f))
-            )
-        )
-    }
+    // Surface unie, tirée du thème.
+    //
+    // C'était un dégradé de deux teintes, censé donner l'épaisseur du verre.
+    // Posé sur une palette dynamique, il se superposait à elle et le composant
+    // affichait deux identités à la fois. L'épaisseur vient désormais du
+    // liseré seul, qui suffit.
+    val fond = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = intensite)
 
-    // Liseré : plus clair en haut, presque nul en bas. C'est lui qui simule
-    // la lumière rasante sur une tranche de verre.
-    val liseré = remember(selectionne) {
-        Brush.verticalGradient(
-            listOf(
-                Color.White.copy(
-                    alpha = if (selectionne) SankaiGlass.SelectedHighlight else 0.12f
-                ),
-                Color.White.copy(alpha = 0.02f)
-            )
-        )
-    }
+    // Liseré uni : plus marqué quand la surface est sélectionnée. Le blanc fixe
+    // salissait les teintes chaudes ; il suit maintenant le thème.
+    val liseré = MaterialTheme.colorScheme.outlineVariant.copy(
+        alpha = if (selectionne) SankaiGlass.SelectedHighlight * 3f else 0.5f
+    )
 
     Box(
         modifier = modifier
             .clip(forme)
             .background(fond)
-            .border(width = 1.dp, brush = liseré, shape = forme),
+            .border(width = 1.dp, color = liseré, shape = forme),
         content = content
     )
 }

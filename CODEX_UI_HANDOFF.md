@@ -446,3 +446,31 @@ mode sombre existant plutôt qu'ajoutée à côté.
 `DYNAMIC_COLOR_MIGRATION_REPORT.md` n'a pas été produit : aucune couleur codée
 en dur n'a été migrée, puisque la bascule se fait dans la palette maison et non
 écran par écran. Un rapport listant zéro migration n'apprendrait rien.
+
+---
+
+# Degrades d'interface supprimes — 2 août 2026 (Claude)
+
+Voir [GRADIENT_REMOVAL_REPORT.md](GRADIENT_REMOVAL_REPORT.md) pour le détail
+fichier par fichier.
+
+**Le défaut** : les couleurs dynamiques livrées en 1.51.0 changeaient bien la
+palette, mais quinze dégradés fixes restaient peints par-dessus. Un même bouton
+affichait donc deux identités — celle du système et l'ancienne, codée en dur.
+
+**Le plus visible** : `SankaiButton`, le bouton principal de toute
+l'application, était un dégradé `RewardGold → RewardGoldDark` écrit en dur. La
+palette pouvait virer au vert ou au rose, les boutons restaient or.
+
+**Le rectangle sous la barre** venait du `Scaffold` appelé sans
+`containerColor`. Il peignait `colorScheme.background` sur toute sa surface,
+pendant que chaque écran peignait le sien par-dessus.
+
+**Trois dégradés conservés**, tous dans `GrilleJardin.kt` : fond de terrain,
+lumière météo, halo d'éclairage. Ce sont des effets de monde, pas des fonds de
+composant.
+
+**Non fait** : `SankaiScreenBackground` et les composants unifiés
+(`SankaiTab`, `SankaiChip`, `SankaiSettingsGroup`) n'ont pas été créés. Le fond
+est désormais peint une fois à la racine, ce qui rend le premier inutile ; les
+seconds regrouperaient du code qui n'existe pas encore en double.

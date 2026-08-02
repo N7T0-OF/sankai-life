@@ -143,15 +143,21 @@ fun SankaiButton(
         animationSpec = tween(SankaiMotion.Fast),
         label = "sankaiButtonPress"
     )
-    val bg = when {
-        !enabled -> Brush.verticalGradient(listOf(c.surface3, c.surface2))
-        secondary -> Brush.verticalGradient(listOf(c.surface3, c.surface2))
-        else -> Brush.verticalGradient(listOf(RewardGold, RewardGoldDark))
+    // Couleurs unies, tirées du thème.
+    //
+    // Le bouton principal était un dégradé or codé en dur : il ignorait
+    // complètement la palette du téléphone, et se superposait à elle. Un
+    // dégradé fixe posé sur une couleur dynamique donne deux identités
+    // visuelles qui se contredisent — c'est le défaut signalé.
+    val fond = when {
+        !enabled -> c.surface3
+        secondary -> c.surface2
+        else -> MaterialTheme.colorScheme.primary
     }
     val textColor = when {
         !enabled -> c.textDisabled
         secondary -> c.textPrimary
-        else -> Color(0xFF2B1800)
+        else -> MaterialTheme.colorScheme.onPrimary
     }
     Box(
         modifier = modifier
@@ -168,7 +174,7 @@ fun SankaiButton(
                 }
             )
             .clip(RoundedCornerShape(SankaiRadius.Small))
-            .background(bg)
+            .background(fond)
             .border(
                 width = 1.dp,
                 color = when {

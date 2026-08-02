@@ -1,5 +1,17 @@
 # Changelog Sankai Life
 
+## 1.54.0 - 2 aout 2026
+
+- **Plus de couleurs en conflit.** Quinze anciens degrades fixes etaient peints
+  par-dessus les couleurs du telephone : le bouton principal restait or quelle
+  que soit ta palette, le bouton « Entrer dans le Jardin » melangeait trois
+  teintes, et les fonds de l'accueil, des Arenes et des Memos ignoraient le
+  theme. Tout suit desormais une seule palette.
+- **Le rectangle sous la barre de navigation est supprime.** Il venait du
+  Scaffold, qui peignait son propre fond derriere la barre flottante.
+- Les degrades du Jardin sont conserves : ciel, lumiere et meteo n'ont aucune
+  raison de suivre la palette d'un fond d'ecran.
+
 ## 1.53.0 - 2 aout 2026
 
 - **Une case cachee sous un feuillage ne se vend plus.** Un arbre ne reservait

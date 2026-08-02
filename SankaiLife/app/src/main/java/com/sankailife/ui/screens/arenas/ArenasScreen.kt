@@ -83,15 +83,7 @@ fun ArenasScreen(viewModel: ArenasViewModel, onBack: () -> Unit) {
             stringResource(R.string.arena_chest_slots_full)
         null -> ""
     }
-    val background = remember(c.background, c.accentSecondary) {
-        Brush.verticalGradient(
-            listOf(
-                c.background,
-                c.accentSecondary.copy(alpha = 0.07f),
-                c.background
-            )
-        )
-    }
+    val background = c.background
 
     var detail by remember { mutableStateOf<ArenasViewModel.LigneArene?>(null) }
 
@@ -527,11 +519,7 @@ private fun ArenaPathCard(
     ) {
         if (ligne.estCourante) {
             Box(
-                Modifier.matchParentSize().background(
-                    Brush.horizontalGradient(
-                        listOf(accent.copy(alpha = 0.15f), Color.Transparent)
-                    )
-                )
+                Modifier.matchParentSize().background(accent.copy(alpha = 0.08f))
             )
             Box(Modifier.matchParentSize().border(1.dp, accent.copy(alpha = 0.55f), shape))
         }
@@ -740,9 +728,7 @@ fun CarteResumeArene(
         selectionne = true
     ) {
         Box(
-            Modifier.matchParentSize().background(
-                Brush.horizontalGradient(listOf(accent.copy(alpha = 0.12f), Color.Transparent))
-            )
+            Modifier.matchParentSize().background(accent.copy(alpha = 0.06f))
         )
         Column(Modifier.fillMaxWidth().padding(SankaiSpacing.Lg)) {
             Row(verticalAlignment = Alignment.CenterVertically) {

@@ -68,15 +68,7 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
     val arenesAReclamer by viewModel.arenesAReclamer.collectAsStateWithLifecycle()
     val c = MaterialTheme.sankaiColors
     val fontScale = LocalDensity.current.fontScale
-    val background = remember(c.background, c.accentSecondary) {
-        Brush.verticalGradient(
-            listOf(
-                c.background,
-                c.accentSecondary.copy(alpha = 0.055f),
-                c.background
-            )
-        )
-    }
+    val background = c.background
 
     if (showLevelUp) {
         LevelUpDialog(
@@ -216,11 +208,7 @@ private fun PremiumProfileHeader(
                 modifier = Modifier
                     .size(if (dense) 40.dp else 46.dp)
                     .clip(CircleShape)
-                    .background(
-                        Brush.linearGradient(
-                            listOf(c.accentSecondary, c.accent.copy(alpha = 0.9f))
-                        )
-                    )
+                    .background(MaterialTheme.colorScheme.primaryContainer)
                     .border(1.dp, Color.White.copy(alpha = 0.24f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
@@ -395,11 +383,7 @@ fun ArenaHeroCard(
                             }
                         )
                         .clip(CircleShape)
-                        .background(
-                            Brush.radialGradient(
-                                listOf(accent.copy(alpha = 0.34f), accent.copy(alpha = 0.06f))
-                            )
-                        )
+                        .background(accent.copy(alpha = 0.18f))
                         .border(1.dp, accent.copy(alpha = 0.38f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
@@ -574,15 +558,12 @@ private fun GardenPrimaryAction(
 ) {
     val c = MaterialTheme.sankaiColors
     val label = stringResource(R.string.home_enter_garden)
-    val gradient = remember(c.accent, c.accentSecondary) {
-        Brush.horizontalGradient(
-            listOf(
-                SuccessGreen.copy(alpha = 0.82f),
-                c.accent.copy(alpha = 0.92f),
-                c.accentSecondary.copy(alpha = 0.84f)
-            )
-        )
-    }
+    // Une seule couleur, celle du thème.
+    //
+    // C'était un dégradé de trois teintes dont une verte codée en dur. Posé
+    // sur une palette dynamique, il donnait au bouton principal une identité
+    // qui contredisait le reste de l'écran.
+    val gradient = MaterialTheme.colorScheme.primary
 
     Row(
         modifier = modifier
