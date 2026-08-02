@@ -346,6 +346,12 @@ class IslandViewModel(application: Application) : AndroidViewModel(application) 
      * l'impression que le toucher a rate.
      */
     fun toucher(x: Int, y: Int) {
+        // Une bulle passe avant tout le reste : elle est dessinee au-dessus, et
+        // c'est le geste le plus frequent du jeu.
+        com.sankailife.core.island.domain.RecolteRapideEngine
+            .bulleTouchee(bullesRecolte.value, x, y)
+            ?.let { recolterBulle(it); return }
+
         val mimo = mimosPlaces.value.firstOrNull { it.x == x && it.y == y }
         if (mimo != null) {
             _mimoTouche.value = mimo
@@ -353,6 +359,45 @@ class IslandViewModel(application: Application) : AndroidViewModel(application) 
         } else {
             selectionner(x, y)
         }
+    }
+
+    /**
+     * Les bulles de recolte : une par groupe de plantes mures de meme espece.
+     *
+     * Recolter demandait quatre gestes pour un resultat evident — toucher,
+     * lire une fiche, trouver le bouton, fermer. Sur huit tournesols, trente-deux
+     * gestes pour une action dont personne n'hesite jamais.
+     */
+    val bullesRecolte: StateFlow<
+        List<com.sankailife.core.island.domain.RecolteRapideEngine.Bulle>
+        > = kotlinx.coroutines.flow.combine(parcelles, cultures) { cases, pousses ->
+            val pretes = cases.values.mapNotNull { p ->
+                if (pousses[p.cle]?.prete != true) null
+                else com.sankailife.core.island.domain.RecolteRapideEngine.Prete(
+                    cle = p.cle, x = p.x, y = p.y, graineId = p.graineId
+                )
+            }
+            com.sankailife.core.island.domain.RecolteRapideEngine.bulles(pretes)
+        }
+            .flowOn(Dispatchers.Default)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /**
+     * Un appui sur une bulle recolte immediatement.
+     *
+     * Aucune fiche, aucune confirmation : la question « veux-tu recolter cette
+     * plante mure » n'a jamais eu qu'une reponse.
+     */
+    fun recolterBulle(
+        bulle: com.sankailife.core.island.domain.RecolteRapideEngine.Bulle
+    ) = geste {
+        depot.recolterPlusieurs(
+            com.sankailife.core.island.domain.RecolteRapideEngine.aRecolter(
+                touchee = bulle,
+                toutes = bullesRecolte.value,
+                portee = com.sankailife.core.island.domain.RecolteRapideEngine.Portee.GROUPE
+            )
+        )
     }
 
     /** Case ouverte dans la bulle, ou `null`. */

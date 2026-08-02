@@ -478,6 +478,66 @@ class IslandRepository(
     }
 
     /**
+     * Recolte plusieurs parcelles en une fois.
+     *
+     * Chaque parcelle garde sa propre condition de maturite : `recolterSiPrete`
+     * rend zero ligne si la plante n'est plus prete, et on passe. Une boucle
+     * qui verifierait d'abord puis ecrirait ensuite pourrait crediter une
+     * recolte qu'un Mimo vient de prendre entre les deux.
+     *
+     * Le tout dans une seule transaction : une recolte groupee a moitie
+     * appliquee laisserait des parcelles videes sans stock credite, et personne
+     * ne saurait lesquelles.
+     */
+    suspend fun recolterPlusieurs(cles: List<Int>): Geste = withContext(Dispatchers.IO) {
+        if (cles.isEmpty()) return@withContext Geste.Refuse("Rien à récolter.")
+
+        db.withTransaction {
+            val maintenant = System.currentTimeMillis()
+            val batiments = batimentsEnService(maintenant)
+            val capacite = IslandStockEngine.capacite(
+                aDepot = IslandBuildingEngine.Type.DEPOT.id in batiments
+            )
+            val aBoutique = IslandBuildingEngine.Type.BOUTIQUE.id in batiments
+
+            var recoltees = 0
+            var pieces = 0
+            var nom = ""
+
+            cles.forEach { cle ->
+                val parcelle = dao.parcelle(cle) ?: return@forEach
+                val graine = ALL_SEEDS.firstOrNull { it.id == parcelle.graineId }
+                    ?: return@forEach
+                if (dao.recolterSiPrete(cle) == 0) return@forEach
+
+                val range = IslandStockEngine.ranger(
+                    graine = graine, quantite = 1,
+                    stockActuel = dao.totalStock(),
+                    capacite = capacite, aBoutique = aBoutique
+                )
+                if (range.entrepose > 0) {
+                    dao.creerStockSiAbsent(IslandStockEntity(graine.id, 0))
+                    dao.ajouterAuStock(graine.id, range.entrepose)
+                }
+                pieces += range.pieces
+                recoltees++
+                nom = graine.nom
+            }
+
+            if (recoltees == 0) {
+                return@withTransaction Geste.Refuse("Ces cultures ne sont plus prêtes.")
+            }
+            // Le surplus est vendu sur place plutot que perdu : une recolte
+            // detruite punirait quelqu'un qui a seme, arrose et attendu.
+            if (pieces > 0) userRepo.addCoins(pieces)
+
+            val resume = com.sankailife.core.island.domain.RecolteRapideEngine
+                .resume(nom, recoltees)
+            Geste.Fait(if (pieces > 0) "$resume — +$pieces 🪙" else resume)
+        }
+    }
+
+    /**
      * Vend une partie du stock.
      *
      * Le retrait vient d'abord et porte sa propre condition de quantite : c'est

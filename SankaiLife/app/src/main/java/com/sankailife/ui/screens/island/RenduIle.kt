@@ -221,6 +221,8 @@ fun DrawScope.dessinerIle(
     /** Emprise en cours de placement : type, coin haut-gauche, et validite. */
     apercu: Triple<com.sankailife.core.island.domain.IslandBuildingEngine.Type, IntOffset, Boolean>?
         = null,
+    /** Bulles de recolte, une par groupe de plantes mures. */
+    bulles: List<com.sankailife.core.island.domain.RecolteRapideEngine.Bulle> = emptyList(),
     marquerPonton: Boolean = true
 ) {
     if (pas <= 0f) return
@@ -554,6 +556,54 @@ fun DrawScope.dessinerIle(
             }
         }
         visibles.sortedBy { it.first }.forEach { it.second() }
+    }
+
+    // Les bulles de recolte, au-dessus des plantes mures.
+    //
+    // Elles remplacent quatre gestes par un : toucher, lire une fiche, trouver
+    // le bouton, fermer. Sur huit tournesols, trente-deux gestes pour une
+    // action dont personne n'hesite jamais.
+    //
+    // Dessinees apres les cultures et avant l'apercu de construction : une
+    // bulle doit se voir par-dessus sa plante, mais ne doit pas masquer une
+    // emprise qu'on est en train de placer.
+    if (textures != null && bulles.isNotEmpty() && pas >= 14f) {
+        val rayon = pas * 0.34f
+        bulles.forEach { bulle ->
+            if (bulle.x < premierX - 1 || bulle.x > dernierX + 1 ||
+                bulle.y < premierY - 1 || bulle.y > dernierY + 1
+            ) return@forEach
+
+            val cx = camera.x + (bulle.x + 0.5f) * pas
+            // Au-dessus de la plante, pas dessus : une pastille posee sur le
+            // sprite cacherait ce qu'elle annonce.
+            val cy = camera.y + bulle.y * pas - rayon * 0.5f
+
+            drawCircle(color = Color(0x66000000), radius = rayon * 1.06f, center = Offset(cx, cy + 2f))
+            drawCircle(color = Color(0xFFFFF4D6), radius = rayon, center = Offset(cx, cy))
+            drawCircle(
+                color = Color(0xFFE0A03C), radius = rayon,
+                center = Offset(cx, cy), style = Stroke(width = (pas * 0.035f).coerceAtLeast(1.5f))
+            )
+
+            val sprite = textures.plantes.last()
+            val cote = (rayon * 1.5f).toInt().coerceAtLeast(1)
+            drawImage(
+                image = sprite,
+                dstOffset = IntOffset((cx - cote / 2f).toInt(), (cy - cote / 2f).toInt()),
+                dstSize = IntSize(cote, cote)
+            )
+
+            // Le compte n'apparait que s'il y a bien un groupe : « x1 » sur une
+            // plante isolee est du bruit.
+            if (bulle.groupee && pas >= PAS_MIN_EMOJI) {
+                pinceauEmoji.textSize = pas * 0.26f
+                pinceauEmoji.alpha = 255
+                drawContext.canvas.nativeCanvas.drawText(
+                    "×${bulle.quantite}", cx + rayon * 0.95f, cy + rayon * 0.5f, pinceauEmoji
+                )
+            }
+        }
     }
 
     // L'emprise du batiment qu'on est en train de placer.

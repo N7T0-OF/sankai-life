@@ -1,5 +1,14 @@
 # Changelog Sankai Life
 
+## 1.77.0 - 2 aout 2026
+
+- **Recolte en un appui.** Une bulle apparait au-dessus des plantes mures ;
+  la toucher recolte, sans fiche ni confirmation.
+- **Recolte groupee** : les plantes de meme espece proches partagent une seule
+  bulle, avec le compte. Huit tournesols se recoltent d'un geste au lieu de
+  trente-deux.
+- Une bulle ne melange jamais deux especes.
+
 ## 1.76.0 - 2 aout 2026
 
 - **Plus de badge sur une section verrouillee.** L'onglet Defis affichait « 3 »

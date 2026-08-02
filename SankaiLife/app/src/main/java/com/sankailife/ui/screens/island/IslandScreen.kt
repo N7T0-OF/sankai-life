@@ -98,6 +98,7 @@ fun IslandScreen(
     val cultures by viewModel.cultures.collectAsState()
     val equipeOuverte by viewModel.equipeOuverte.collectAsState()
     val visee by viewModel.visee.collectAsState()
+    val bulles by viewModel.bullesRecolte.collectAsState()
     val mimoTouche by viewModel.mimoTouche.collectAsState()
 
     // Rendu météo construit ici, comme au Jardin : c'est un calcul pur qui ne
@@ -204,6 +205,7 @@ fun IslandScreen(
                 apercu = visee?.let {
                     Triple(it.type, IntOffset(it.x, it.y), it.possible)
                 },
+                bulles = bulles,
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -431,6 +433,7 @@ private fun CarteIle(
     cultures: Map<Int, com.sankailife.core.garden.domain.CropGrowthEngine.Etat>,
     /** Emprise en cours de placement, ou `null` hors mode visée. */
     apercu: Triple<com.sankailife.core.island.domain.IslandBuildingEngine.Type, IntOffset, Boolean>?,
+    bulles: List<com.sankailife.core.island.domain.RecolteRapideEngine.Bulle>,
     onZoom: (Float) -> Unit,
     onToucher: (Int, Int) -> Unit,
     modifier: Modifier = Modifier
@@ -603,7 +606,8 @@ private fun CarteIle(
                 ile = ile, camera = camera, pas = pas,
                 parcelles = parcelles.keys, batiments = batiments,
                 parcellesDetail = parcelles, textures = textures, arbres = arbres,
-                mimos = mimos, cultures = cultures, apercu = apercu
+                mimos = mimos, cultures = cultures, apercu = apercu,
+                bulles = bulles
             )
         }
     }
