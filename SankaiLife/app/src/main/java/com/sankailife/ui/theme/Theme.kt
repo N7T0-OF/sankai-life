@@ -34,7 +34,7 @@ val LocalSankaiColors = staticCompositionLocalOf {
     )
 }
 
-private val DarkColorScheme = darkColorScheme(
+internal val DarkColorScheme = darkColorScheme(
     primary         = AccentGold,
     secondary       = AccentViolet,
     tertiary        = AccentCyan,
@@ -42,20 +42,29 @@ private val DarkColorScheme = darkColorScheme(
     surface         = Surface1,
     surfaceVariant  = Surface2,
     onPrimary       = Color.Black,
-    onSecondary     = Color.White,
+    // Le violet d'accent est clair : du blanc dessus ne donnait que 3,95:1.
+    // Un texte sombre y est nettement plus lisible, et le test le verifie.
+    onSecondary     = Color(0xFF120A2E),
     onBackground    = TextPrimary,
     onSurface       = TextPrimary,
     outline         = BorderColor
 )
 
-private val LightColorScheme = lightColorScheme(
+// Palette claire de repli, utilisée quand le téléphone ne fournit pas de
+// couleurs dynamiques ou quand le joueur les a désactivées.
+//
+// `onPrimary` était blanc sur un orange saturé : 2,39:1, soit très en dessous
+// du minimum lisible. Le bouton principal de l'application était donc
+// difficilement lisible en thème clair. Un test verrouille désormais ces
+// contrastes.
+internal val LightColorScheme = lightColorScheme(
     primary         = Color(0xFFE8960D),
     secondary       = Color(0xFF5B4CF0),
     tertiary        = Color(0xFF0891B2),
     background      = LightBackground,
     surface         = LightSurface1,
     surfaceVariant  = LightSurface2,
-    onPrimary       = Color.White,
+    onPrimary       = Color(0xFF2B1800),
     onSecondary     = Color.White,
     onBackground    = LightTextPrimary,
     onSurface       = LightTextPrimary,

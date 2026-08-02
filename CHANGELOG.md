@@ -1,5 +1,13 @@
 # Changelog Sankai Life
 
+## 1.55.0 - 2 aout 2026
+
+- **Texte des boutons lisible sans couleurs dynamiques.** En theme clair, le
+  texte du bouton principal etait blanc sur orange — un contraste de 2,4:1, tres
+  en dessous du lisible. Un second defaut, plus ancien, rendait les boutons
+  secondaires du theme sombre a peine plus lisibles. Les deux sont corriges, et
+  un test verifie desormais chaque contraste.
+
 ## 1.54.0 - 2 aout 2026
 
 - **Plus de couleurs en conflit.** Quinze anciens degrades fixes etaient peints
