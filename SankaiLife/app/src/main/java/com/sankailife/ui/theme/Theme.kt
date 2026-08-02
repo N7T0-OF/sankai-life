@@ -2,7 +2,11 @@ package com.sankailife.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*
+import android.os.Build
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
@@ -58,10 +62,42 @@ private val LightColorScheme = lightColorScheme(
     outline         = LightBorder
 )
 
+/**
+ * Thème de l'application.
+ *
+ * Sur Android 12 et au-delà, la palette du téléphone peut être reprise
+ * (Material You). Elle ne remplace pas tout : elle fournit les **accents** et
+ * les **surfaces**, c'est-à-dire ce qui doit s'harmoniser avec le système.
+ *
+ * Ce qui a un sens ne bouge jamais — l'eau reste bleue, une erreur rouge, une
+ * récompense dorée. Un thème jaune qui transformerait l'eau en jaune ou les
+ * erreurs en violet rendrait l'interface illisible tout en ayant l'air
+ * « personnalisée ».
+ *
+ * Les illustrations du Jardin et de l'Île ne sont jamais teintées : ce sont des
+ * dessins, pas des composants.
+ */
 @Composable
-fun SankaiTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
-    val sankaiColors = if (darkTheme) SankaiColors(
+fun SankaiTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    couleursSysteme: Boolean = true,
+    content: @Composable () -> Unit
+) {
+    val contexte = LocalContext.current
+
+    // `Build.VERSION.SDK_INT` est testé explicitement, et non déduit d'un
+    // `try` : le lint refuse une API récente appelée sans garde visible, et il
+    // a raison — une exception au lancement ne se voit qu'en production.
+    val dynamique = couleursSysteme && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+
+    val colorScheme = when {
+        dynamique && darkTheme -> dynamicDarkColorScheme(contexte)
+        dynamique -> dynamicLightColorScheme(contexte)
+        darkTheme -> DarkColorScheme
+        else -> LightColorScheme
+    }
+
+    val base = if (darkTheme) SankaiColors(
         background = Background, surface1 = Surface1, surface2 = Surface2,
         surface3 = Surface3, border = BorderColor,
         textPrimary = TextPrimary, textSecondary = TextSecondary, textDisabled = TextDisabled,
@@ -73,6 +109,19 @@ fun SankaiTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable
         textDisabled = Color(0xFFAAAAAA), accent = Color(0xFFE8960D),
         accentSecondary = Color(0xFF5B4CF0), isDark = false
     )
+
+    // La palette Sankai emprunte au système ses accents et ses surfaces, et
+    // garde le reste. Les textes ne sont pas repris : ceux du système sont
+    // calculés pour ses propres fonds, et les appliquer aux nôtres produit des
+    // contrastes que personne n'a vérifiés.
+    val sankaiColors = if (!dynamique) base else base.copy(
+        accent = colorScheme.primary,
+        accentSecondary = colorScheme.tertiary,
+        surface2 = colorScheme.surfaceVariant,
+        surface3 = colorScheme.surfaceContainerHigh,
+        border = colorScheme.outlineVariant
+    )
+
     CompositionLocalProvider(LocalSankaiColors provides sankaiColors) {
         MaterialTheme(colorScheme = colorScheme, typography = SankaiTypography, content = content)
     }

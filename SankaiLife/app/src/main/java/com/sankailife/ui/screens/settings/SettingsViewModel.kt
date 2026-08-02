@@ -29,7 +29,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val graphicsQuality: StateFlow<String> = prefs.graphicsQuality.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "normal")
     val streakReminder: StateFlow<Boolean> = prefs.streakReminder.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
+    val couleursSysteme: StateFlow<Boolean> = prefs.couleursSysteme
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
     fun setThemeMode(mode: String)         = viewModelScope.launch { prefs.setThemeMode(mode) }
+    fun setCouleursSysteme(actif: Boolean) = viewModelScope.launch { prefs.setCouleursSysteme(actif) }
     fun setShowNavLabels(v: Boolean)       = viewModelScope.launch { prefs.setShowNavLabels(v) }
     fun setVibrations(v: Boolean)          = viewModelScope.launch { prefs.setVibrations(v) }
     fun setNotifications(v: Boolean)       = viewModelScope.launch { prefs.setNotifications(v) }

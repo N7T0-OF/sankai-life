@@ -16,6 +16,7 @@ class AppPreferences(private val context: Context) {
 
     private object Keys {
         val THEME_MODE       = stringPreferencesKey("theme_mode")
+        val COULEURS_SYSTEME = booleanPreferencesKey("couleurs_systeme")
         val SHOW_NAV_LABELS  = booleanPreferencesKey("show_nav_labels")
         val VIBRATIONS       = booleanPreferencesKey("vibrations")
         val NOTIFICATIONS    = booleanPreferencesKey("notifications")
@@ -33,6 +34,16 @@ class AppPreferences(private val context: Context) {
     }
 
     val themeMode: Flow<String>       = pref(Keys.THEME_MODE, "dark")
+
+    /**
+     * Reprendre les couleurs du téléphone (Material You).
+     *
+     * Activé par défaut : sur un appareil qui les fournit, une application qui
+     * ignore la palette du système jure avec tout le reste. Le réglage existe
+     * quand même — quelqu'un qui a choisi un thème dans le jeu doit pouvoir le
+     * garder intact.
+     */
+    val couleursSysteme: Flow<Boolean> = pref(Keys.COULEURS_SYSTEME, true)
     val showNavLabels: Flow<Boolean>  = pref(Keys.SHOW_NAV_LABELS, true)
     val vibrations: Flow<Boolean>     = pref(Keys.VIBRATIONS, true)
     val notifications: Flow<Boolean>  = pref(Keys.NOTIFICATIONS, true)
@@ -63,6 +74,9 @@ class AppPreferences(private val context: Context) {
         }.map { it[key] ?: default }
 
     suspend fun setThemeMode(mode: String) = context.dataStore.edit { it[Keys.THEME_MODE] = mode }
+
+    suspend fun setCouleursSysteme(actif: Boolean) =
+        context.dataStore.edit { it[Keys.COULEURS_SYSTEME] = actif }
     suspend fun setShowNavLabels(v: Boolean) = context.dataStore.edit { it[Keys.SHOW_NAV_LABELS] = v }
     suspend fun setVibrations(v: Boolean) = context.dataStore.edit { it[Keys.VIBRATIONS] = v }
     suspend fun setNotifications(v: Boolean) = context.dataStore.edit { it[Keys.NOTIFICATIONS] = v }

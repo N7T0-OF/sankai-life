@@ -362,3 +362,87 @@ construction progressive, Mimos visibles et marchant, arbres posés sur l'île,
 horizon en dégradé — n'est pas traité ici. Ce sont des fonctionnalités, pas des
 correctifs, et les livrer sans les avoir vues sur un téléphone reproduirait
 exactement ce qui a produit les quatre bugs ci-dessus.
+
+---
+
+# Boutique restaurée + couleurs du téléphone — 2 août 2026 (Claude)
+
+## Boutique : ancienne interface restaurée
+
+**Ancienne interface restaurée** — reprise de `c39ac59`, avant la refonte :
+barre de ressources, titre, **onglets** de catégories (Coffres / Jardin /
+Progression), grille adaptative de 150 dp, offre du jour sur toute la largeur,
+bloc publicité réservé à l'onglet Coffres.
+
+**Fonctions modernes conservées** — la recherche, qui rendait service, et les
+illustrations PNG des articles, qui valaient mieux que les emojis d'origine.
+`ShopViewModel` n'a pas été touché : les transactions Room, le remboursement,
+le calcul du coût réel et l'offre du jour restent ceux de la version actuelle.
+
+La recherche filtre **à l'intérieur de l'onglet courant** et non dans tout le
+catalogue : chercher « eau » ne doit pas faire disparaître les onglets sous les
+pieds de quelqu'un qui regardait les coffres.
+
+**Composants supprimés** — bannière d'offre pleine hauteur, rails de puces,
+cartes à étages, aperçu animé en relief. Ce sont eux qui avaient allongé le
+fichier de 308 à 948 lignes sans rendre la Boutique plus lisible.
+
+**Sur « Possédé » et « Équipé »** : ces états n'existent pas dans la Boutique et
+n'ont pas été inventés. `ShopItem` n'a ni l'un ni l'autre, et pour cause — les
+huit articles sont des consommables (coffres, eau, compost, bouclier, slot).
+Les thèmes possédés et équipés vivent dans l'écran Personnalisation, qui n'a pas
+changé.
+
+**Fichiers** — `ui/screens/shop/ShopScreen.kt` uniquement.
+
+## Couleurs du téléphone (Material You)
+
+**Ce qui a décidé de l'implémentation** : l'application n'utilise presque pas
+`MaterialTheme.colorScheme`. Elle passe par `MaterialTheme.sankaiColors`, une
+palette maison. Appeler `dynamicDarkColorScheme` sans plus n'aurait donc
+quasiment rien changé à l'écran — c'est le piège de cette tâche.
+
+La palette Sankai emprunte désormais au système ses **accents** et ses
+**surfaces**, et garde le reste :
+
+| Rôle Sankai | Source dynamique |
+|---|---|
+| `accent` | `colorScheme.primary` |
+| `accentSecondary` | `colorScheme.tertiary` |
+| `surface2` | `colorScheme.surfaceVariant` |
+| `surface3` | `colorScheme.surfaceContainerHigh` |
+| `border` | `colorScheme.outlineVariant` |
+
+**Les textes ne sont pas repris.** Ceux du système sont calculés pour ses
+propres fonds ; les appliquer aux nôtres produirait des contrastes que personne
+n'a vérifiés.
+
+**Rien de sémantique ne bouge** — l'eau reste bleue, une erreur rouge, une
+récompense dorée, un verrou gris. Un thème jaune qui transformerait l'eau en
+jaune rendrait l'interface illisible tout en ayant l'air « personnalisée ».
+
+**Les illustrations ne sont jamais teintées** : le Jardin, l'Île, les arbres,
+les sols, les pièces et les coffres sont des dessins, pas des composants.
+
+**Repli** — sous Android 12, les couleurs Sankai sont utilisées et le réglage
+est grisé avec son motif affiché, plutôt que masqué sans explication.
+
+**Application immédiate** — la préférence est lue en continu depuis DataStore au
+niveau racine ; basculer le réglage recompose le thème sans relancer l'activité
+ni perdre l'écran en cours.
+
+**Fichiers** — `ui/theme/Theme.kt`, `MainActivity.kt`,
+`core/data/preferences/AppPreferences.kt`,
+`ui/screens/settings/SettingsViewModel.kt`, `ui/screens/settings/SettingsScreen.kt`.
+
+## Non fait, et pourquoi
+
+Les options « Intensité des couleurs système » (discrète / normale / renforcée)
+et le mode AMOLED distinct ne sont pas livrés. La première demanderait de
+recalculer une palette à partir de celle du système, ce qui revient à refaire le
+travail que Material You fait déjà ; la seconde mérite d'être traitée avec le
+mode sombre existant plutôt qu'ajoutée à côté.
+
+`DYNAMIC_COLOR_MIGRATION_REPORT.md` n'a pas été produit : aucune couleur codée
+en dur n'a été migrée, puisque la bascule se fait dans la palette maison et non
+écran par écran. Un rapport listant zéro migration n'apprendrait rien.

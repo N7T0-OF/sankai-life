@@ -1,5 +1,6 @@
 package com.sankailife.ui.screens.settings
 
+import android.os.Build
 import android.app.Activity
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -110,6 +111,38 @@ fun SettingsScreen(
             SettingsCard { LangueSection() }
 
             SectionTitle("Apparence")
+            SettingsCard {
+                val couleursSysteme by viewModel.couleursSysteme.collectAsState()
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            "Couleurs du téléphone",
+                            color = c.textPrimary, fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                                "Reprend la palette de ton fond d'écran. " +
+                                    "L'eau reste bleue et les récompenses dorées."
+                            else
+                                "Demande Android 12 ou plus récent. " +
+                                    "Les couleurs Sankai sont utilisées.",
+                            color = c.textSecondary, fontSize = 12.sp
+                        )
+                    }
+                    Switch(
+                        checked = couleursSysteme,
+                        onCheckedChange = { viewModel.setCouleursSysteme(it) },
+                        enabled = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+                    )
+                }
+            }
+
             SettingsCard {
                 Text("Thème UI", color = c.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(10.dp))

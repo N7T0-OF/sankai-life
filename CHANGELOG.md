@@ -1,5 +1,15 @@
 # Changelog Sankai Life
 
+## 1.51.0 - 2 aout 2026
+
+- **L'ancienne Boutique est de retour** : onglets Coffres / Jardin /
+  Progression et grille de cartes. La recherche et les illustrations PNG de la
+  version precedente sont conservees.
+- **Sankai Life reprend les couleurs de ton telephone** (Android 12 et plus).
+  Si ton theme est jaune, boutons et accents s'y accordent. L'eau reste bleue,
+  les erreurs rouges, les recompenses dorees, et le Jardin garde ses couleurs
+  naturelles. Reglable dans Reglages -> Apparence.
+
 ## 1.50.0 - 2 aout 2026
 
 - **Deux nouveaux batiments.** Le Port (3x2) doit toucher l'eau et ajoute 25 %

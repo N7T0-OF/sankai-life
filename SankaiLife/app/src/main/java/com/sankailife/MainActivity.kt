@@ -46,12 +46,18 @@ class MainActivity : ComponentActivity() {
             // prend effet immédiatement, sans relancer l'application.
             LaunchedEffect(vibrations) { haptics.enabled = vibrations }
 
+            // Relu en continu : basculer les couleurs du telephone prend effet
+            // immediatement, sans relancer l'application ni perdre l'ecran en
+            // cours.
+            val couleursSysteme by app.preferences.couleursSysteme.collectAsState(initial = true)
+
             SankaiTheme(
                 darkTheme = when (themeMode) {
                     "light" -> false
                     "auto" -> isSystemDarkTheme()
                     else -> true
-                }
+                },
+                couleursSysteme = couleursSysteme
             ) {
                 CompositionLocalProvider(LocalHaptics provides haptics) {
                     Surface(modifier = Modifier.fillMaxSize()) {
