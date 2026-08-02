@@ -1,5 +1,12 @@
 # Changelog Sankai Life
 
+## 1.67.0 - 2 aout 2026
+
+- **L'ile est beaucoup moins cubique.** Les cotes ne sont plus un escalier de
+  carres : chaque terrain se pose sur le precedent a travers un bord irregulier.
+- Sable et herbe suivent des contours organiques ; le rendu simple reste
+  utilise au dezoom, ou la difference ne se verrait pas.
+
 ## 1.66.0 - 2 aout 2026
 
 - **Des contenus de cours, telechargeables depuis l'application.** Sept modules,

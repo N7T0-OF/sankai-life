@@ -15,6 +15,8 @@ import androidx.compose.ui.unit.IntSize
 import com.sankailife.R
 import com.sankailife.core.garden.domain.ArbreSankaiEngine
 import com.sankailife.core.garden.domain.MimoEngine
+import androidx.compose.ui.graphics.asImageBitmap
+import com.sankailife.core.island.domain.AutotuilageEngine
 import com.sankailife.core.island.domain.IslandForetEngine
 import com.sankailife.core.island.domain.IslandGenerator
 import com.sankailife.core.island.domain.IslandMimoMondeEngine
@@ -48,6 +50,18 @@ data class TexturesIle(
     val eauBasse: ImageBitmap,
     val sable: ImageBitmap,
     /**
+     * Les seize variantes de chaque terrain, une par combinaison de voisins.
+     *
+     * Pré-composées au chargement plutôt qu'à chaque frame : appliquer un
+     * masque à une texture demande un calque intermédiaire, et en ouvrir un par
+     * case et par frame coûterait plus cher que tout le reste du rendu réuni.
+     *
+     * Trois terrains × seize masques à 96 pixels de côté, soit environ 1,8 Mo
+     * en mémoire. L'eau profonde n'y est pas : c'est le fond, elle n'a pas de
+     * bord à adoucir.
+     */
+    val variantes: Map<AutotuilageEngine.Couche, List<ImageBitmap>>,
+    /**
      * Les six âges d'une plante, du semis à la récolte.
      *
      * Dans l'ordre : c'est un index, pas une liste au hasard, et
@@ -55,6 +69,34 @@ data class TexturesIle(
      */
     val plantes: List<ImageBitmap>
 )
+
+/**
+ * Compose une texture et un masque en une seule image.
+ *
+ * `DST_IN` garde la texture là où le masque est opaque et l'efface ailleurs :
+ * c'est ce qui donne au terrain un bord irrégulier au lieu d'un carré.
+ */
+private fun composer(
+    texture: android.graphics.Bitmap,
+    masque: android.graphics.Bitmap,
+    cote: Int
+): ImageBitmap {
+    val sortie = android.graphics.Bitmap.createBitmap(
+        cote, cote, android.graphics.Bitmap.Config.ARGB_8888
+    )
+    val toile = android.graphics.Canvas(sortie)
+    val cadre = android.graphics.Rect(0, 0, cote, cote)
+    toile.drawBitmap(texture, null, cadre, null)
+    val pinceau = android.graphics.Paint().apply {
+        isAntiAlias = true
+        xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.DST_IN)
+    }
+    toile.drawBitmap(masque, null, cadre, pinceau)
+    return sortie.asImageBitmap()
+}
+
+/** Côté des variantes composées. Assez pour du bruit, assez peu pour la mémoire. */
+private const val COTE_VARIANTE = 96
 
 @Composable
 fun rememberTexturesIle(): TexturesIle = TexturesIle(
@@ -66,6 +108,7 @@ fun rememberTexturesIle(): TexturesIle = TexturesIle(
     eauProfonde = ImageBitmap.imageResource(R.drawable.island_deep_water),
     eauBasse = ImageBitmap.imageResource(R.drawable.island_shallow_water),
     sable = ImageBitmap.imageResource(R.drawable.island_beach),
+    variantes = rememberVariantes(),
     plantes = listOf(
         ImageBitmap.imageResource(R.drawable.plant_stage_0_seed),
         ImageBitmap.imageResource(R.drawable.plant_stage_1),
@@ -92,6 +135,40 @@ private fun spritePlante(
     val index = com.sankailife.core.garden.domain.CropStage.entries
         .indexOf(culture.stage).coerceIn(0, textures.plantes.size - 2)
     return textures.plantes[index]
+}
+
+/**
+ * Les variantes masquées de chaque terrain.
+ *
+ * `remember` sans clé : les seize masques et les trois textures ne changent
+ * jamais, donc la composition n'a lieu qu'une fois par écran.
+ */
+@Composable
+private fun rememberVariantes(): Map<AutotuilageEngine.Couche, List<ImageBitmap>> {
+    val contexte = androidx.compose.ui.platform.LocalContext.current
+    return androidx.compose.runtime.remember {
+        val options = android.graphics.BitmapFactory.Options().apply {
+            inScaled = false
+        }
+        fun charger(id: Int) =
+            android.graphics.BitmapFactory.decodeResource(contexte.resources, id, options)
+
+        val masques = (0 until AutotuilageEngine.MASQUES).map { i ->
+            charger(
+                contexte.resources.getIdentifier(
+                    "tuile_transition_%02d".format(i), "drawable", contexte.packageName
+                )
+            )
+        }
+        mapOf(
+            AutotuilageEngine.Couche.BASSE to R.drawable.island_shallow_water,
+            AutotuilageEngine.Couche.SABLE to R.drawable.island_beach,
+            AutotuilageEngine.Couche.TERRE to R.drawable.plot_grass
+        ).mapValues { (_, res) ->
+            val texture = charger(res)
+            masques.map { composer(texture, it, COTE_VARIANTE) }
+        }
+    }
 }
 
 /** Sol à poser sur une parcelle, selon son état. */
@@ -172,37 +249,85 @@ fun DrawScope.dessinerIle(
     val taille = Size(pas + 1f, pas + 1f)
 
     val entier = IntSize(pas.toInt() + 1, pas.toInt() + 1)
+
+    // Le terrain, en couches successives plutôt qu'en carrés juxtaposés.
+    //
+    // C'était le défaut le plus visible de l'île : chaque case étant un carré
+    // plein, une côte était un escalier, et le terrain se lisait comme une
+    // grille au lieu d'un paysage.
+    //
+    // Le fond est peint d'abord — l'océan, partout — puis chaque terrain
+    // supérieur vient par-dessus à travers un masque au bord irrégulier. Une
+    // case d'herbe porte donc aussi le sable et l'eau basse qu'elle recouvre,
+    // sans quoi on verrait l'océan à travers ses bords adoucis.
+    //
+    // Les masques ne servent qu'à partir d'une certaine taille : en dessous, un
+    // bord irrégulier de deux pixels ne se distingue pas d'un bord droit, et on
+    // paierait trois passes de dessin pour rien.
+    val autotuilage = textures != null && pas >= 10f
+
     for (y in premierY..dernierY) {
         for (x in premierX..dernierX) {
             val type = ile.type(x, y)
-            // L'herbe a une vraie texture ; le reste reste un aplat, faute
-            // d'illustration correspondante.
-            //
-            // Le bois compte comme de l'herbe depuis que les arbres sont
-            // réellement dessinés : sa couleur sombre servait à suggérer une
-            // forêt qu'on ne voyait pas. La garder poserait chaque arbre sur un
-            // carré foncé, et on verrait le carré plutôt que l'arbre.
-            val herbeuse = type == IslandTileType.GRASS || type == IslandTileType.FOREST
-            val texture = when {
+            val fond = when {
+                autotuilage -> textures!!.eauProfonde
                 textures == null || pas < 6f -> null
-                herbeuse -> textures.herbe
+                // Sans autotuilage, chaque case garde sa propre texture.
+                type == IslandTileType.GRASS || type == IslandTileType.FOREST -> textures.herbe
                 type == IslandTileType.DEEP_WATER -> textures.eauProfonde
                 type == IslandTileType.SHALLOW_WATER -> textures.eauBasse
                 type == IslandTileType.BEACH || type == IslandTileType.DOCK -> textures.sable
-                // Le rocher et la rivière restent des aplats : mes essais de
-                // texture pour eux donnaient un résultat pire que la couleur
-                // franche, et le dire vaut mieux que de le maquiller.
                 else -> null
             }
-            if (texture != null) {
+            if (fond != null) {
                 drawImage(
-                    image = texture,
+                    image = fond,
                     dstOffset = IntOffset(
                         (camera.x + x * pas).toInt(), (camera.y + y * pas).toInt()
                     ),
                     dstSize = entier
                 )
             } else {
+                // Le rocher et la rivière restent des aplats : mes essais de
+                // texture pour eux donnaient un résultat pire que la couleur
+                // franche, et le dire vaut mieux que de le maquiller.
+                drawRect(
+                    color = PaletteIle.couleurCase(type, x, y),
+                    topLeft = Offset(camera.x + x * pas, camera.y + y * pas),
+                    size = taille
+                )
+            }
+        }
+    }
+
+    if (autotuilage) {
+        val variantes = textures!!.variantes
+        AutotuilageEngine.COUCHES_SUPERIEURES.forEach { couche ->
+            val images = variantes[couche] ?: return@forEach
+            for (y in premierY..dernierY) {
+                for (x in premierX..dernierX) {
+                    val type = ile.type(x, y)
+                    if (!AutotuilageEngine.concernee(type, couche)) continue
+                    val code = AutotuilageEngine.code(x, y, couche) { cx, cy -> ile.type(cx, cy) }
+                    drawImage(
+                        image = images[code],
+                        dstOffset = IntOffset(
+                            (camera.x + x * pas).toInt(), (camera.y + y * pas).toInt()
+                        ),
+                        dstSize = entier
+                    )
+                }
+            }
+        }
+
+        // Le rocher et la rivière par-dessus : ils partagent la couche de leurs
+        // voisins mais gardent leur couleur propre.
+        for (y in premierY..dernierY) {
+            for (x in premierX..dernierX) {
+                val type = ile.type(x, y)
+                if (type != IslandTileType.ROCK && type != IslandTileType.RIVER &&
+                    type != IslandTileType.POND
+                ) continue
                 drawRect(
                     color = PaletteIle.couleurCase(type, x, y),
                     topLeft = Offset(camera.x + x * pas, camera.y + y * pas),
