@@ -44,14 +44,24 @@ object IslandMimoEngine {
      * vider la réserve d'eau d'un coup ni récolter toute l'île en une fois. Un
      * rattrapage démesuré se lit comme un bug, même quand il est mérité.
      */
-    fun actions(type: MimoEngine.Type, minutesEcoulees: Long): Int {
+    fun actions(
+        type: MimoEngine.Type,
+        minutesEcoulees: Long,
+        plafond: Int = PLAFOND_ACTIONS
+    ): Int {
         if (minutesEcoulees <= 0L) return 0
         val brut = minutesEcoulees / type.cadenceMinutes
-        return brut.coerceAtMost(PLAFOND_ACTIONS.toLong()).toInt()
+        return brut.coerceAtMost(plafond.coerceAtLeast(0).toLong()).toInt()
     }
 
     /** Au-delà, on considère que le joueur reprend une partie, pas une session. */
     const val PLAFOND_ACTIONS = 12
+
+    /** Ce que l'Atelier Mimo ajoute au plafond. */
+    const val PLAFOND_AVEC_ATELIER = 24
+
+    fun plafond(aAtelier: Boolean): Int =
+        if (aAtelier) PLAFOND_AVEC_ATELIER else PLAFOND_ACTIONS
 
     /**
      * Décide du travail accompli.
@@ -69,7 +79,8 @@ object IslandMimoEngine {
         types: List<MimoEngine.Type>,
         minutesEcoulees: Long,
         parcelles: List<Vue>,
-        eauDisponible: Int
+        eauDisponible: Int,
+        plafond: Int = PLAFOND_ACTIONS
     ): Plan {
         if (types.isEmpty() || minutesEcoulees <= 0L) return Plan()
 
@@ -77,12 +88,12 @@ object IslandMimoEngine {
         val arroseur = types.count { it == MimoEngine.Type.ARROSEUR }
 
         val aRecolter = if (recolteur == 0) emptyList() else {
-            val budget = actions(MimoEngine.Type.RECOLTEUR, minutesEcoulees) * recolteur
+            val budget = actions(MimoEngine.Type.RECOLTEUR, minutesEcoulees, plafond) * recolteur
             parcelles.filter { it.prete }.take(budget).map { it.cle }
         }
 
         val aArroser = if (arroseur == 0) emptyList() else {
-            val budget = actions(MimoEngine.Type.ARROSEUR, minutesEcoulees) * arroseur
+            val budget = actions(MimoEngine.Type.ARROSEUR, minutesEcoulees, plafond) * arroseur
             parcelles
                 // Une plante qu'on vient de récolter n'a plus soif : l'exclure
                 // évite de dépenser une goutte pour une parcelle vide.

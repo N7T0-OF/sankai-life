@@ -25,10 +25,23 @@ object IslandBuildingEngine {
         val largeur: Int,
         val hauteur: Int,
         val prix: Int,
-        val niveauRequis: Int
+        val niveauRequis: Int,
+        /** Doit être posé au bord de l'eau. */
+        val cotier: Boolean = false
     ) {
         BOUTIQUE("boutique", "Boutique", "🏪", 2, 2, 500, 1),
-        DEPOT("depot", "Dépôt", "📦", 2, 2, 300, 2);
+        DEPOT("depot", "Dépôt", "📦", 2, 2, 300, 2),
+
+        /**
+         * Le Port doit toucher l'eau. C'est la seule contrainte de terrain
+         * particulière du jeu, et elle est vérifiée à part : un port au milieu
+         * des terres n'aurait aucun sens même sur un emplacement par ailleurs
+         * valide.
+         */
+        PORT("port", "Port", "⚓", 3, 2, 900, 4, cotier = true),
+
+        /** Fait travailler les Mimos davantage pendant une absence. */
+        ATELIER("atelier", "Atelier Mimo", "🛠️", 2, 2, 750, 6);
 
         companion object {
             fun parId(id: String): Type? = entries.firstOrNull { it.id == id }
@@ -100,6 +113,9 @@ object IslandBuildingEngine {
         if (cases.any { (cx, cy) -> occupee(cx, cy) }) {
             return Verdict.Non("Il y a déjà quelque chose sur cet emplacement.")
         }
+        if (type.cotier && !bordeEau(type, x, y, terrainDe)) {
+            return Verdict.Non("${type.libelle} doit toucher l'eau.")
+        }
         if (niveauJoueur < type.niveauRequis) {
             return Verdict.Non("${type.libelle} demande le niveau ${type.niveauRequis}.")
         }
@@ -107,6 +123,26 @@ object IslandBuildingEngine {
             return Verdict.Non("Il te manque ${type.prix - pieces} pièces.")
         }
         return Verdict.Oui(type.prix)
+    }
+
+    /**
+     * L'emprise touche-t-elle l'eau ?
+     *
+     * Vérifié sur le **voisinage** de l'emprise et non sur ses propres cases :
+     * un bâtiment posé sur l'eau serait refusé plus haut, donc c'est bien la
+     * case d'à côté qui doit être mouillée.
+     */
+    fun bordeEau(
+        type: Type,
+        x: Int,
+        y: Int,
+        terrainDe: (Int, Int) -> IslandTileType?
+    ): Boolean {
+        val emprise = casesOccupees(type, x, y).toSet()
+        return emprise.any { (cx, cy) ->
+            listOf(cx - 1 to cy, cx + 1 to cy, cx to cy - 1, cx to cy + 1)
+                .any { it !in emprise && terrainDe(it.first, it.second)?.estEau == true }
+        }
     }
 
     /**
@@ -132,6 +168,6 @@ object IslandBuildingEngine {
 
     private fun unOuUne(type: Type): String = when (type) {
         Type.BOUTIQUE -> "une"
-        Type.DEPOT -> "un"
+        Type.DEPOT, Type.PORT, Type.ATELIER -> "un"
     }
 }

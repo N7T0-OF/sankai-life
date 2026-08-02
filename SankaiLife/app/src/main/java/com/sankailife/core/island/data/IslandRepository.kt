@@ -383,7 +383,15 @@ class IslandRepository(
                 )
             }
 
-            val plan = IslandMimoEngine.planifier(types, minutes, vues, eau)
+            // L'Atelier releve le plafond d'actions : c'est sa seule fonction,
+            // et elle doit passer jusqu'ici sous peine d'etre decorative.
+            val batis = dao.batiments().map { it.type }.toSet()
+            val plan = IslandMimoEngine.planifier(
+                types, minutes, vues, eau,
+                plafond = IslandMimoEngine.plafond(
+                    aAtelier = IslandBuildingEngine.Type.ATELIER.id in batis
+                )
+            )
             if (plan.vide) return@withTransaction null
 
             // Récolte d'abord : le plan a été construit dans cet ordre, et
@@ -479,9 +487,12 @@ class IslandRepository(
                 return@withTransaction Geste.Refuse("Tu n'en as pas autant en stock.")
             }
 
-            val aBoutique = dao.batiments()
-                .any { it.type == IslandBuildingEngine.Type.BOUTIQUE.id }
-            val gain = IslandStockEngine.valeurTotale(graine, quantite, aBoutique)
+            val types = dao.batiments().map { it.type }.toSet()
+            val gain = IslandStockEngine.valeurTotale(
+                graine, quantite,
+                aBoutique = IslandBuildingEngine.Type.BOUTIQUE.id in types,
+                aPort = IslandBuildingEngine.Type.PORT.id in types
+            )
             userRepo.addCoins(gain)
             Geste.Fait("+$gain 🪙 — $quantite ${graine.nom} vendue(s).")
         }

@@ -45,6 +45,7 @@ fun PanneauStock(
     val types = batiments.map { it.type }.toSet()
     val aBoutique = IslandBuildingEngine.Type.BOUTIQUE.id in types
     val aDepot = IslandBuildingEngine.Type.DEPOT.id in types
+    val aPort = IslandBuildingEngine.Type.PORT.id in types
     val capacite = IslandStockEngine.capacite(aDepot)
     val total = stock.sumOf { it.quantite }
 
@@ -57,11 +58,16 @@ fun PanneauStock(
                 "$total / $capacite" + if (!aDepot) " — un Dépôt agrandirait le stock." else "",
                 color = c.textSecondary, fontSize = 12.sp
             )
-            if (!aBoutique) {
+            if (!aBoutique || !aPort) {
                 Spacer(Modifier.height(4.dp))
                 // On dit ce qu'on perd, sans empêcher de vendre.
                 Text(
-                    "Sans Boutique, tu vends au prix de base.",
+                    when {
+                        !aBoutique && !aPort ->
+                            "Sans Boutique ni Port, tu vends au prix de base."
+                        !aBoutique -> "Une Boutique ameliorerait encore le prix."
+                        else -> "Un Port ameliorerait encore le prix."
+                    },
                     color = c.textSecondary, fontSize = 12.sp
                 )
             }
@@ -74,7 +80,7 @@ fun PanneauStock(
 
             stock.forEach { ligne ->
                 val graine = ALL_SEEDS.firstOrNull { it.id == ligne.graineId } ?: return@forEach
-                val unitaire = IslandStockEngine.prixUnitaire(graine, aBoutique)
+                val unitaire = IslandStockEngine.prixUnitaire(graine, aBoutique, aPort)
                 Row(
                     Modifier.fillMaxWidth().padding(vertical = 6.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,

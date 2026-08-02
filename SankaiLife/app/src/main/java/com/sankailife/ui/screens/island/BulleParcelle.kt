@@ -185,6 +185,29 @@ private fun ContenuBatiment(
             )
         }
 
+        IslandBuildingEngine.Type.PORT -> {
+            Text(
+                "Le Port ajoute ${(IslandStockEngine.BONUS_PORT * 100).toInt()} % au prix de " +
+                    "vente. Le bonus s'ajoute à celui de la Boutique au lieu de le remplacer.",
+                color = c.textSecondary, fontSize = 12.sp
+            )
+            Spacer(Modifier.height(12.dp))
+            SankaiButton(
+                "Vendre mes récoltes", onClick = onOuvrirStock,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        IslandBuildingEngine.Type.ATELIER -> {
+            Text(
+                "Tes Mimos travaillent deux fois plus longtemps pendant ton absence : " +
+                    "jusqu'à ${com.sankailife.core.island.domain.IslandMimoEngine
+                        .PLAFOND_AVEC_ATELIER} actions chacun au lieu de " +
+                    "${com.sankailife.core.island.domain.IslandMimoEngine.PLAFOND_ACTIONS}.",
+                color = c.textSecondary, fontSize = 12.sp
+            )
+        }
+
         IslandBuildingEngine.Type.DEPOT -> {
             Text(
                 "Le Dépôt porte la capacité de stockage à " +

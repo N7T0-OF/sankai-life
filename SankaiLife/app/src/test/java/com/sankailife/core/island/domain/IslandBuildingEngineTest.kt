@@ -162,6 +162,51 @@ class IslandBuildingEngineTest {
         )
     }
 
+    // --- Contrainte cotiere ---------------------------------------------------
+
+    @Test
+    fun `le Port doit toucher l'eau`() {
+        // Un port au milieu des terres n'aurait aucun sens, meme sur un
+        // emplacement par ailleurs valide.
+        val v = batir(type = Type.PORT, terrainDe = terrain(taille = 10))
+        assertTrue(v is Verdict.Non)
+        assertTrue((v as Verdict.Non).raison.contains("eau"))
+    }
+
+    @Test
+    fun `le Port est accepte au bord de l'eau`() {
+        val cote = terrain(
+            (0 until 10).associate { (it to 5) to IslandTileType.SHALLOW_WATER },
+            taille = 10
+        )
+        assertTrue(batir(type = Type.PORT, x = 2, y = 3, terrainDe = cote) is Verdict.Oui)
+    }
+
+    @Test
+    fun `l'eau sous l'emprise ne compte pas comme une cote`() {
+        // Une case mouillee dans l'emprise fait echouer plus tot : c'est bien
+        // le voisinage qui doit etre mouille.
+        val dedans = terrain(mapOf((2 to 2) to IslandTileType.SHALLOW_WATER), taille = 10)
+        assertTrue(batir(type = Type.PORT, x = 2, y = 2, terrainDe = dedans) is Verdict.Non)
+    }
+
+    @Test
+    fun `les batiments non cotiers ne sont pas soumis a cette regle`() {
+        Type.entries.filter { !it.cotier }.forEach { t ->
+            assertTrue(
+                "$t refuse loin de l'eau",
+                batir(type = t, x = 2, y = 2, terrainDe = terrain(taille = 10)) is Verdict.Oui
+            )
+        }
+    }
+
+    @Test
+    fun `le Port occupe trois cases sur deux`() {
+        assertEquals(6, IslandBuildingEngine.casesOccupees(Type.PORT, 0, 0).size)
+        assertEquals(3, Type.PORT.largeur)
+        assertEquals(2, Type.PORT.hauteur)
+    }
+
     // --- Catalogue ------------------------------------------------------------
 
     @Test

@@ -1,5 +1,12 @@
 # Changelog Sankai Life
 
+## 1.50.0 - 2 aout 2026
+
+- **Deux nouveaux batiments.** Le Port (3x2) doit toucher l'eau et ajoute 25 %
+  au prix de vente, en plus du bonus de la Boutique. L'Atelier Mimo (2x2) fait
+  travailler tes Mimos deux fois plus longtemps pendant ton absence.
+- Le panneau de vente dit lequel des deux te manque encore.
+
 ## 1.49.0 - 2 aout 2026
 
 - **Toucher un batiment ouvre sa fiche**, plus celle de l'herbe restee dessous.

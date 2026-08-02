@@ -25,6 +25,14 @@ object IslandStockEngine {
     /** Majoration de prix quand la Boutique est bâtie. */
     const val BONUS_BOUTIQUE = 0.35f
 
+    /**
+     * Majoration supplémentaire apportée par le Port.
+     *
+     * Elle s'ajoute à celle de la Boutique au lieu de la remplacer : deux
+     * bâtiments coûteux dont l'un annulerait l'autre seraient un piège.
+     */
+    const val BONUS_PORT = 0.25f
+
     fun capacite(aDepot: Boolean): Int =
         CAPACITE_BASE + if (aDepot) CAPACITE_DEPOT else 0
 
@@ -35,14 +43,20 @@ object IslandStockEngine {
      * on vend mieux — c'est ce qui rend le bâtiment utile sans le rendre
      * obligatoire.
      */
-    fun prixUnitaire(graine: Seed, aBoutique: Boolean): Int {
+    fun prixUnitaire(graine: Seed, aBoutique: Boolean, aPort: Boolean = false): Int {
         val base = graine.rendementPieces.coerceAtLeast(0)
-        if (!aBoutique) return base
-        return (base * (1f + BONUS_BOUTIQUE)).toInt()
+        var facteur = 1f
+        if (aBoutique) facteur += BONUS_BOUTIQUE
+        if (aPort) facteur += BONUS_PORT
+        return (base * facteur).toInt()
     }
 
-    fun valeurTotale(graine: Seed, quantite: Int, aBoutique: Boolean): Int =
-        prixUnitaire(graine, aBoutique) * quantite.coerceAtLeast(0)
+    fun valeurTotale(
+        graine: Seed,
+        quantite: Int,
+        aBoutique: Boolean,
+        aPort: Boolean = false
+    ): Int = prixUnitaire(graine, aBoutique, aPort) * quantite.coerceAtLeast(0)
 
     /** Ce qu'une récolte devient quand le stock est plein. */
     data class Depot(
