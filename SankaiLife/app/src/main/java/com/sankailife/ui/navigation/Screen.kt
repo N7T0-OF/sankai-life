@@ -17,6 +17,16 @@ sealed class Screen(val route: String) {
     object Flashcards  : Screen("flashcards/{profileId}") {
         fun createRoute(profileId: Long) = "flashcards/$profileId"
     }
+    /**
+     * Le parcours d'un module.
+     *
+     * Cle sur l'identifiant du profil Memo et non sur celui du module : le
+     * module peut ne pas encore exister en base, puisqu'il n'est cree qu'au
+     * moment ou l'on commence vraiment.
+     */
+    object Parcours    : Screen("parcours/{profileId}") {
+        fun createRoute(profileId: Long) = "parcours/$profileId"
+    }
     object Challenges  : Screen("challenges")
     object Shop        : Screen("shop")
     object Profile     : Screen("profile")

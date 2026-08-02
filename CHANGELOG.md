@@ -1,5 +1,16 @@
 # Changelog Sankai Life
 
+## 1.61.0 - 2 aout 2026
+
+- **L'Academie remplace le Mode Vie.** Une seule action est mise en avant :
+  quel module, quelle unite, combien de minutes, quels exercices. L'ecran
+  precedent affichait six portes de meme taille.
+- Le parcours d'un module se decoupe automatiquement en unites a partir du
+  contenu existant. Aucune donnee n'est copiee ni deplacee.
+- Chaque unite affiche son etat : terminee, en cours, disponible, verrouillee —
+  et un verrou explique sa condition au lieu d'un cadenas muet.
+- Focus et Objectifs restent accessibles depuis l'Academie.
+
 ## 1.60.0 - 2 aout 2026
 
 - **Les plantes se voient enfin pousser sur l'Ile.** Semer puis arroser ne

@@ -35,31 +35,39 @@ class LearningRepository(
     fun observerModules(): Flow<List<LearningModuleEntity>> = dao.observerModules()
 
     /**
-     * Récupère le module d'un profil Mémo, en le créant à la première demande.
+     * Le module d'un profil Mémo.
      *
-     * Aucune migration de masse au démarrage : un profil devient un module
-     * quand on l'ouvre dans l'Académie, pas avant. Transformer d'office les
-     * profils existants créerait des modules pour des listes de courses et des
-     * pense-bêtes, qui n'ont rien à faire dans un parcours.
+     * **Rien n'est écrit tant que [creer] vaut `false`.** Quand aucun module
+     * n'existe encore, on en rend un *provisoire*, non enregistré, qui suffit à
+     * calculer un parcours et à proposer une session — tout le contenu vient
+     * de toute façon des lignes Mémo.
+     *
+     * C'est ce qui évite la migration de masse : afficher l'Académie ne doit
+     * pas fabriquer un parcours pour chaque liste de courses et chaque
+     * pense-bête. La ligne n'est créée que le jour où l'on commence vraiment,
+     * parce que c'est ce jour-là qu'un niveau visé et un objectif quotidien
+     * commencent à vouloir dire quelque chose.
      *
      * Le profil d'origine n'est jamais supprimé ni modifié.
      */
-    suspend fun moduleDuProfil(profileId: Long): LearningModuleEntity? =
-        withContext(Dispatchers.IO) {
-            dao.moduleDuProfil(profileId)?.let { return@withContext it }
+    suspend fun moduleDuProfil(
+        profileId: Long,
+        creer: Boolean = false
+    ): LearningModuleEntity? = withContext(Dispatchers.IO) {
+        dao.moduleDuProfil(profileId)?.let { return@withContext it }
 
-            val profil = memo.getProfile(profileId) ?: return@withContext null
-            val id = dao.enregistrer(
-                LearningModuleEntity(
-                    memoProfileId = profileId,
-                    nom = profil.nom(),
-                    langue = profil.langue,
-                    creeMillis = System.currentTimeMillis(),
-                    ordre = dao.prochainOrdre()
-                )
-            )
-            dao.module(id)
-        }
+        val profil = memo.getProfile(profileId) ?: return@withContext null
+        val provisoire = LearningModuleEntity(
+            memoProfileId = profileId,
+            nom = profil.nom(),
+            langue = profil.langue,
+            creeMillis = System.currentTimeMillis()
+        )
+        if (!creer) return@withContext provisoire
+
+        val id = dao.enregistrer(provisoire.copy(ordre = dao.prochainOrdre()))
+        dao.module(id)
+    }
 
     /** Le nom affichable d'un profil, jamais vide. */
     private fun com.sankailife.core.data.db.entities.MemoProfileEntity.nom(): String =

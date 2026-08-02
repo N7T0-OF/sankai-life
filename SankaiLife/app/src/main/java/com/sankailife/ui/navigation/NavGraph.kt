@@ -25,8 +25,10 @@ import com.sankailife.ui.screens.profile.AllStatsScreen
 import com.sankailife.ui.screens.challenges.ChallengesViewModel
 import com.sankailife.ui.screens.home.HomeScreen
 import com.sankailife.ui.screens.home.HomeViewModel
-import com.sankailife.ui.screens.life.LifeScreen
-import com.sankailife.ui.screens.life.LifeViewModel
+import com.sankailife.ui.screens.academie.AcademieScreen
+import com.sankailife.ui.screens.academie.AcademieViewModel
+import com.sankailife.ui.screens.academie.ParcoursScreen
+import com.sankailife.ui.screens.academie.ParcoursViewModel
 import com.sankailife.ui.screens.life.focus.FocusScreen
 import com.sankailife.ui.screens.life.focus.FocusViewModel
 import com.sankailife.ui.screens.life.memo.MemoEditorScreen
@@ -87,7 +89,8 @@ fun SankaiNavGraph() {
         Screen.Customization.route, Screen.AllStats.route,
         // Le jardin masque la navigation de l'app : c'est un mode isolé, pas
         // un onglet de plus. L'île suivra la même règle.
-        Screen.Garden.route, Screen.Island.route
+        Screen.Garden.route, Screen.Island.route,
+        Screen.Parcours.route
     )
     val showBottom = currentRoute !in noBottomBarRoutes
 
@@ -134,9 +137,28 @@ fun SankaiNavGraph() {
             composable(Screen.Home.route) {
                 HomeScreen(viewModel = homeVm, onNavigate = { navController.navigate(it) })
             }
+            // L'Academie prend la place du Mode Vie. La route ne change pas :
+            // la barre de navigation, les raccourcis et l'historique y mènent
+            // deja, et les renommer casserait tout cela pour rien.
             composable(Screen.Life.route) {
-                val vm: LifeViewModel = viewModel(factory = LifeViewModel.factory(app))
-                LifeScreen(viewModel = vm, onNavigate = { navController.navigate(it) })
+                val vm: AcademieViewModel = viewModel(factory = AcademieViewModel.factory(app))
+                AcademieScreen(viewModel = vm, onNavigate = { navController.navigate(it) })
+            }
+            composable(Screen.Parcours.route) { backEntry ->
+                val profileId = backEntry.arguments?.getString("profileId")?.toLongOrNull() ?: -1L
+                val vm: ParcoursViewModel = viewModel(factory = ParcoursViewModel.factory(app))
+                ParcoursScreen(
+                    profileId = profileId,
+                    viewModel = vm,
+                    onBack = { navController.popBackStack() },
+                    // Une unite ouvre pour l'instant la session de flashcards
+                    // existante : les exercices varies arrivent a l'etape
+                    // suivante, et une unite qui ne s'ouvrirait sur rien serait
+                    // pire que celle qui s'ouvre sur ce qui marche deja.
+                    onOuvrirUnite = {
+                        navController.navigate(Screen.Flashcards.createRoute(profileId))
+                    }
+                )
             }
             composable(Screen.Island.route) {
                 val vm: IslandViewModel = viewModel(factory = IslandViewModel.factory(app))
