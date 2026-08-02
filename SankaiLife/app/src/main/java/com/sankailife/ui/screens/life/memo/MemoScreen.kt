@@ -77,6 +77,7 @@ import com.sankailife.core.domain.engine.FlashcardEngine
 import com.sankailife.ui.components.LiquidGlassChip
 import com.sankailife.ui.components.LiquidGlassSurface
 import com.sankailife.ui.components.SankaiButton
+import com.sankailife.ui.components.SankaiCard
 import com.sankailife.ui.components.SankaiFloatingButton
 import com.sankailife.ui.theme.AccentCyan
 import com.sankailife.ui.theme.AccentViolet
@@ -113,6 +114,8 @@ fun MemoScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val profiles by viewModel.profiles.collectAsState()
+    val groupes by viewModel.groupes.collectAsState()
+    val deplies by viewModel.deplies.collectAsState()
     val message by viewModel.message.collectAsState()
     val stats by viewModel.statsParModule.collectAsState()
     val colors = MaterialTheme.sankaiColors
@@ -167,37 +170,73 @@ fun MemoScreen(
                         }
                     }
                 } else {
-                    items(profiles, key = { it.id }) { profile ->
-                        MemoProfileListCard(
-                            profile = profile,
-                            stats = stats[profile.id],
-                            onEdit = { onEdit(profile.id) },
-                            onReviser = { onReviser(profile.id) },
-                            onToggle = { viewModel.toggleProfile(profile.id, !profile.isActive) },
-                            onDelete = { viewModel.deleteProfile(profile.id) },
-                            onCopy = {
-                                scope.launch {
-                                    val text = viewModel.texteAPartager(profile.id)
-                                    copyMemoText(context, profile.name, text)
-                                    snackbar.showSnackbar(copiedMessage)
-                                }
-                            },
-                            onShare = {
-                                scope.launch {
-                                    val text = viewModel.texteAPartager(profile.id)
-                                    // Le partage copie aussi le contenu : le
-                                    // texte reste disponible si la feuille est
-                                    // refermée sans choisir d'application.
-                                    copyMemoText(context, profile.name, text)
-                                    val sendIntent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "text/plain"
-                                        putExtra(Intent.EXTRA_SUBJECT, profile.name)
-                                        putExtra(Intent.EXTRA_TEXT, text)
-                                    }
-                                    context.startActivity(Intent.createChooser(sendIntent, chooserTitle))
+                    // Les modules d'un meme parcours vivent dans une carte
+                    // repliable.
+                    //
+                    // Six niveaux de portugais donnaient six lignes plates,
+                    // melangees a un module de raccourcis et a une liste de
+                    // courses : tout de la meme taille, sans hierarchie, et on
+                    // ne savait plus ce qui allait avec quoi.
+                    if (groupes.any { it.estParcours }) {
+                        item(key = "controles_groupes") {
+                            Row(
+                                Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                SankaiButton(
+                                    "Tout développer",
+                                    onClick = { viewModel.toutDeplier() },
+                                    secondary = true, small = true,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                SankaiButton(
+                                    "Tout réduire",
+                                    onClick = { viewModel.toutReplier() },
+                                    secondary = true, small = true,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+
+                    groupes.forEach { groupe ->
+                        val membres = groupe.modules.mapNotNull { m ->
+                            profiles.firstOrNull { it.id == m.profileId }
+                        }
+                        if (!groupe.estParcours) {
+                            // Un module seul garde exactement la carte d'avant :
+                            // l'envelopper ajouterait un chevron qui n'ouvre rien.
+                            membres.forEach { profil ->
+                                item(key = "seul_${profil.id}") {
+                                    CarteProfilMemo(
+                                        profil, stats[profil.id], viewModel,
+                                        onEdit, onReviser, scope, context, snackbar,
+                                        copiedMessage, chooserTitle
+                                    )
                                 }
                             }
-                        )
+                        } else {
+                            item(key = "parcours_${groupe.id}") {
+                                EnteteParcours(
+                                    groupe = groupe,
+                                    ouvert = groupe.id in deplies,
+                                    onBasculer = { viewModel.basculerGroupe(groupe.id) }
+                                )
+                            }
+                            if (groupe.id in deplies) {
+                                membres.forEach { profil ->
+                                    item(key = "niveau_${profil.id}") {
+                                        Box(Modifier.padding(start = 14.dp)) {
+                                            CarteProfilMemo(
+                                                profil, stats[profil.id], viewModel,
+                                                onEdit, onReviser, scope, context, snackbar,
+                                                copiedMessage, chooserTitle
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     item {
@@ -794,4 +833,107 @@ private fun nextNotificationLabel(profile: MemoProfileEntity): String {
 private fun copyMemoText(context: Context, label: String, text: String) {
     val clipboard = context.getSystemService(ClipboardManager::class.java)
     clipboard?.setPrimaryClip(ClipData.newPlainText(label.ifBlank { "Sankai Life" }, text))
+}
+
+/**
+ * En-tete repliable d'un parcours.
+ *
+ * Elle porte ce qu'on veut savoir sans ouvrir : combien de niveaux, ou l'on en
+ * est, et la progression d'ensemble. Ouvrir ne doit pas etre necessaire pour
+ * savoir s'il y a quelque chose a y faire.
+ */
+@Composable
+private fun EnteteParcours(
+    groupe: com.sankailife.core.learning.domain.GroupementEngine.Groupe,
+    ouvert: Boolean,
+    onBasculer: () -> Unit
+) {
+    val c = MaterialTheme.sankaiColors
+    SankaiCard(
+        modifier = Modifier.padding(vertical = 4.dp),
+        onClick = onBasculer
+    ) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.fillMaxWidth(0.82f)) {
+                Text(
+                    groupe.titre, color = c.textPrimary,
+                    fontSize = 16.sp, fontWeight = FontWeight.Bold
+                )
+                Text(groupe.resume, color = c.textSecondary, fontSize = 12.sp)
+                Spacer(Modifier.height(8.dp))
+                LinearProgressIndicator(
+                    progress = { groupe.progression },
+                    modifier = Modifier.fillMaxWidth(),
+                    color = c.accent,
+                    trackColor = c.surface3
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "${(groupe.progression * 100).toInt()} % maîtrisé",
+                    color = c.textSecondary, fontSize = 11.sp
+                )
+            }
+            // Le chevron dit dans quel sens ca va s'ouvrir, ce qu'un simple
+            // triangle fixe ne dirait pas.
+            Text(
+                if (ouvert) "⌃" else "⌄",
+                color = c.textSecondary, fontSize = 20.sp
+            )
+        }
+    }
+}
+
+/**
+ * La carte d'un module, dans la liste ou repliee sous son parcours.
+ *
+ * Extraite du corps de la liste : elle s'affiche desormais a deux endroits — au
+ * premier niveau pour un module seul, en retrait sous un parcours — et la
+ * dupliquer aurait garanti que les deux copies divergent.
+ */
+@Composable
+private fun CarteProfilMemo(
+    profile: MemoProfileEntity,
+    stats: com.sankailife.core.data.db.dao.StatsModule?,
+    viewModel: MemoViewModel,
+    onEdit: (Long) -> Unit,
+    onReviser: (Long) -> Unit,
+    scope: kotlinx.coroutines.CoroutineScope,
+    context: android.content.Context,
+    snackbar: SnackbarHostState,
+    copiedMessage: String,
+    chooserTitle: String
+) {
+    MemoProfileListCard(
+        profile = profile,
+        stats = stats,
+        onEdit = { onEdit(profile.id) },
+        onReviser = { onReviser(profile.id) },
+        onToggle = { viewModel.toggleProfile(profile.id, !profile.isActive) },
+        onDelete = { viewModel.deleteProfile(profile.id) },
+        onCopy = {
+            scope.launch {
+                val text = viewModel.texteAPartager(profile.id)
+                copyMemoText(context, profile.name, text)
+                snackbar.showSnackbar(copiedMessage)
+            }
+        },
+        onShare = {
+            scope.launch {
+                val text = viewModel.texteAPartager(profile.id)
+                // Le partage copie aussi le contenu : le texte reste disponible
+                // si la feuille est refermee sans choisir d'application.
+                copyMemoText(context, profile.name, text)
+                val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_SUBJECT, profile.name)
+                    putExtra(Intent.EXTRA_TEXT, text)
+                }
+                context.startActivity(Intent.createChooser(sendIntent, chooserTitle))
+            }
+        }
+    )
 }

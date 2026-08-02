@@ -49,6 +49,77 @@ class MemoViewModel(application: Application) : AndroidViewModel(application) {
             .map { liste -> liste.associateBy { it.profileId } }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
+    /**
+     * Les modules regroupes par parcours.
+     *
+     * Six niveaux de portugais donnaient six lignes plates, melangees a un
+     * module de raccourcis et a une liste de courses. Le regroupement vient de
+     * la table learning_module, qui retient a quel parcours appartient chaque
+     * module depuis son installation.
+     */
+    val groupes: StateFlow<List<com.sankailife.core.learning.domain.GroupementEngine.Groupe>> =
+        kotlinx.coroutines.flow.combine(profiles, statsParModule) { liste, stats ->
+            val parProfil = app.database.learningDao().modules()
+                .associateBy { it.memoProfileId }
+            com.sankailife.core.learning.domain.GroupementEngine.grouper(
+                liste.map { profil ->
+                    val module = parProfil[profil.id]
+                    val stat = stats[profil.id]
+                    com.sankailife.core.learning.domain.GroupementEngine.Module(
+                        profileId = profil.id,
+                        nom = profil.name,
+                        collection = module?.collection.orEmpty(),
+                        niveau = module?.niveau.orEmpty(),
+                        cartes = stat?.total ?: 0,
+                        // masteryPoints cumule les boites de Leitner de toutes
+                        // les cartes ; le maximum vaut donc total x 4. C'est la
+                        // seule mesure de maitrise deja calculee, et en inventer
+                        // une seconde la ferait diverger.
+                        progression = stat?.let { st ->
+                            if (st.total == 0) 0f
+                            else (st.masteryPoints.toFloat() / (st.total * 4f))
+                                .coerceIn(0f, 1f)
+                        } ?: 0f,
+                        notificationsActives = profil.isActive
+                    )
+                }
+            )
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /**
+     * Groupes deplies.
+     *
+     * En memoire seulement : c'est un confort d'affichage, pas une progression.
+     * Le persister ferait entrer un detail d'interface dans la sauvegarde du
+     * joueur, ou il n'a rien a faire.
+     */
+    private val _deplies = MutableStateFlow<Set<String>>(emptySet())
+    val deplies: StateFlow<Set<String>> = _deplies
+
+    private var ouvertureFaite = false
+
+    fun basculerGroupe(id: String) {
+        _deplies.value = if (id in _deplies.value) _deplies.value - id else _deplies.value + id
+    }
+
+    fun toutDeplier() {
+        _deplies.value = groupes.value.map { it.id }.toSet()
+        ouvertureFaite = true
+    }
+
+    fun toutReplier() {
+        _deplies.value = emptySet()
+        ouvertureFaite = true
+    }
+
+    /** Ouvre le parcours en cours, une seule fois par ecran. */
+    fun ouvertureInitiale() {
+        if (ouvertureFaite) return
+        ouvertureFaite = true
+        _deplies.value =
+            com.sankailife.core.learning.domain.GroupementEngine.ouvertsParDefaut(groupes.value)
+    }
+
     private val _currentProfileId = MutableStateFlow(-1L)
     val currentProfileId: StateFlow<Long> = _currentProfileId
 

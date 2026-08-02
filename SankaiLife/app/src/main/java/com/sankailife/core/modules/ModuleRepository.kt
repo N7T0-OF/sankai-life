@@ -77,7 +77,11 @@ class ModuleRepository(
      */
     suspend fun installer(
         manifeste: ModuleEngine.Manifeste,
-        cartes: List<String>
+        cartes: List<String>,
+        /** Parcours d'origine, pour que les niveaux restent groupes ensuite. */
+        collection: String = "",
+        /** Niveau europeen declare par la collection, vide sinon. */
+        niveau: String = ""
     ): String = withContext(Dispatchers.IO) {
         db.withTransaction {
             val dao = db.memoDao()
@@ -99,6 +103,24 @@ class ModuleRepository(
             cartes.forEachIndexed { index, texte ->
                 dao.insertLine(
                     MemoLineEntity(profileId = id, text = texte, orderIndex = index)
+                )
+            }
+
+            // Le module d'apprentissage est cree ici, et non a la premiere
+            // ouverture de l'Academie : c'est maintenant qu'on sait a quel
+            // parcours il appartient, et cette information ne se retrouve pas
+            // apres coup.
+            if (collection.isNotBlank() || niveau.isNotBlank()) {
+                db.learningDao().enregistrer(
+                    com.sankailife.core.learning.data.LearningModuleEntity(
+                        memoProfileId = id,
+                        nom = nom,
+                        collection = collection,
+                        langue = manifeste.langue,
+                        niveau = niveau,
+                        creeMillis = System.currentTimeMillis(),
+                        ordre = db.learningDao().prochainOrdre()
+                    )
                 )
             }
             nom

@@ -1,5 +1,15 @@
 # Changelog Sankai Life
 
+## 1.71.0 - 2 aout 2026
+
+- **Les niveaux d'un meme parcours sont regroupes dans une carte repliable.**
+  Six lignes de portugais deviennent une carte « Portugais », avec sa
+  progression d'ensemble et le niveau en cours.
+- Boutons Tout developper et Tout reduire ; le parcours commence s'ouvre seul
+  a l'arrivee.
+- La progression d'un parcours est ponderee par le nombre de cartes : terminer
+  le plus petit niveau ne fait plus bondir le pourcentage.
+
 ## 1.70.0 - 2 aout 2026
 
 - **Chaque nouveau mot est lu automatiquement**, une seule fois. Reglable dans

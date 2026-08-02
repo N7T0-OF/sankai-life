@@ -28,6 +28,17 @@ data class LearningModuleEntity(
 
     val nom: String = "",
 
+    /**
+     * Parcours auquel ce module appartient, vide s'il est seul.
+     *
+     * **Sans elle, six niveaux de portugais restaient six lignes plates.**
+     * L'information existait dans le paquet installé — la collection déclare
+     * ses modules — et se perdait à l'installation. La retrouver après coup en
+     * comparant les noms aurait marché jusqu'au jour où quelqu'un renomme un
+     * module.
+     */
+    val collection: String = "",
+
     /** Langue du contenu au format BCP-47, vide si ce n'est pas une langue. */
     val langue: String = "",
 

@@ -151,9 +151,16 @@ class BibliothequeLocale(
                 if (trouves.isEmpty()) {
                     return@withContext Issue.Echec("Aucun module lisible dans cette collection.")
                 }
+                // Le niveau vient de l'ordre declare par la collection : c'est
+                // elle qui sait que le troisieme module est le B1.
+                val niveauxParId = fiche.contenus.zip(fiche.niveaux).toMap()
                 var cartes = 0
                 trouves.forEach { (manifeste, lignes) ->
-                    modules.installer(manifeste, lignes)
+                    modules.installer(
+                        manifeste, lignes,
+                        collection = fiche.id,
+                        niveau = niveauxParId[manifeste.id].orEmpty()
+                    )
                     cartes += lignes.size
                 }
                 Issue.Ok(
@@ -164,7 +171,10 @@ class BibliothequeLocale(
                 when (verdict) {
                     is ModuleEngine.Verdict.Refuse -> Issue.Echec(verdict.raison)
                     is ModuleEngine.Verdict.Utilisable -> {
-                        val nom = modules.installer(verdict.apercu.manifeste, cartes)
+                        val nom = modules.installer(
+                            verdict.apercu.manifeste, cartes,
+                            collection = fiche.collection, niveau = fiche.niveau
+                        )
                         Issue.Ok("« $nom » installé — ${cartes.size} cartes.")
                     }
                 }
@@ -199,9 +209,14 @@ class BibliothequeLocale(
             if (trouves.isEmpty()) {
                 return@withContext Issue.Echec("Ces niveaux sont introuvables dans le paquet.")
             }
+            val niveauxParId = collection.contenus.zip(collection.niveaux).toMap()
             var cartes = 0
             trouves.forEach { (manifeste, lignes) ->
-                modules.installer(manifeste, lignes)
+                modules.installer(
+                    manifeste, lignes,
+                    collection = collection.id,
+                    niveau = niveauxParId[manifeste.id].orEmpty()
+                )
                 cartes += lignes.size
             }
             Issue.Ok("${trouves.size} niveau(x) installé(s) — $cartes cartes.")

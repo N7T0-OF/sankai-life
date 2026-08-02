@@ -36,7 +36,7 @@ import com.sankailife.core.learning.data.LearningSessionEntity
                 IslandStockEntity::class,
                 LearningModuleEntity::class, LearningErrorEntity::class,
                 LearningSessionEntity::class],
-    version = 19,
+    version = 20,
     exportSchema = false
 )
 abstract class SankaiDatabase : RoomDatabase() {
@@ -465,13 +465,29 @@ abstract class SankaiDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Le module retient son parcours.
+         *
+         * ALTER simple avec valeur par defaut : les modules deja installes
+         * restent seuls, ce qui est exact — on ne sait pas retrouver apres coup
+         * a quelle collection ils appartenaient.
+         */
+        private val MIGRATION_19_20 = object : Migration(19, 20) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE `learning_module` ADD COLUMN `collection` " +
+                        "TEXT NOT NULL DEFAULT ''"
+                )
+            }
+        }
+
         val MIGRATIONS = arrayOf(
             MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
             MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
             MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
             MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
             MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18,
-            MIGRATION_18_19
+            MIGRATION_18_19, MIGRATION_19_20
         )
 
         fun getDatabase(context: Context): SankaiDatabase {
