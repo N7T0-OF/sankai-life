@@ -19,6 +19,10 @@ import com.sankailife.core.garden.data.GardenMimoEntity
 import com.sankailife.core.garden.data.GardenPlotEntity
 import com.sankailife.core.garden.data.GardenStateEntity
 import com.sankailife.core.garden.data.MemoChallengeEntity
+import com.sankailife.core.learning.data.LearningDao
+import com.sankailife.core.learning.data.LearningErrorEntity
+import com.sankailife.core.learning.data.LearningModuleEntity
+import com.sankailife.core.learning.data.LearningSessionEntity
 
 @Database(
     entities = [UserEntity::class, MemoProfileEntity::class, MemoLineEntity::class,
@@ -29,8 +33,10 @@ import com.sankailife.core.garden.data.MemoChallengeEntity
                 GardenCrateEntity::class, GardenInventoryEntity::class,
                 GardenMimoEntity::class,
                 IslandEntity::class, IslandSlotEntity::class, IslandBuildingEntity::class,
-                IslandStockEntity::class],
-    version = 18,
+                IslandStockEntity::class,
+                LearningModuleEntity::class, LearningErrorEntity::class,
+                LearningSessionEntity::class],
+    version = 19,
     exportSchema = false
 )
 abstract class SankaiDatabase : RoomDatabase() {
@@ -44,6 +50,7 @@ abstract class SankaiDatabase : RoomDatabase() {
     abstract fun challengeDao(): ChallengeDao
     abstract fun statsDao(): StatsDao
     abstract fun islandDao(): IslandDao
+    abstract fun learningDao(): LearningDao
 
     companion object {
         @Volatile private var INSTANCE: SankaiDatabase? = null
@@ -400,12 +407,71 @@ abstract class SankaiDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Academie : modules, erreurs datees, sessions.
+         *
+         * Purement additive. Aucun ALTER, aucune suppression, aucune copie de
+         * contenu : les cartes restent dans memo_line, qui demeure la seule
+         * source du contenu. Une migration qui ne touche a rien d'existant ne
+         * peut rien perdre.
+         */
+        /**
+         * Academie : modules, erreurs datees, sessions.
+         *
+         * Purement additive. Aucun ALTER, aucune suppression, aucune copie de
+         * contenu : les cartes restent dans memo_line, qui demeure la seule
+         * source du contenu. Une migration qui ne touche a rien d'existant ne
+         * peut rien perdre.
+         *
+         * Le SQL est **copie de celui que Room genere** dans
+         * SankaiDatabase_Impl, et pas seulement equivalent. Room compare le
+         * schema reel a celui qu'il attend a chaque ouverture : le moindre
+         * ecart bloque le demarrage de tous ceux qui mettent a jour, et c'est
+         * la chose la plus risquee de tout ce fichier.
+         */
+        private val MIGRATION_18_19 = object : Migration(18, 19) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                listOf(
+                    "CREATE TABLE IF NOT EXISTS `learning_module` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`memoProfileId` INTEGER NOT NULL, `nom` TEXT NOT NULL, " +
+                        "`langue` TEXT NOT NULL, `niveau` TEXT NOT NULL, " +
+                        "`minutesParJour` INTEGER NOT NULL, `planteLiee` TEXT NOT NULL, " +
+                        "`creeMillis` INTEGER NOT NULL, `ordre` INTEGER NOT NULL)",
+                    "CREATE INDEX IF NOT EXISTS `index_learning_module_memoProfileId` " +
+                        "ON `learning_module` (`memoProfileId`)",
+
+                    "CREATE TABLE IF NOT EXISTS `learning_error` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`carteId` INTEGER NOT NULL, `moduleId` INTEGER NOT NULL, " +
+                        "`typeExercice` TEXT NOT NULL, `reponseDonnee` TEXT NOT NULL, " +
+                        "`momentMillis` INTEGER NOT NULL)",
+                    "CREATE INDEX IF NOT EXISTS `index_learning_error_carteId` " +
+                        "ON `learning_error` (`carteId`)",
+                    "CREATE INDEX IF NOT EXISTS `index_learning_error_momentMillis` " +
+                        "ON `learning_error` (`momentMillis`)",
+
+                    "CREATE TABLE IF NOT EXISTS `learning_session` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`moduleId` INTEGER NOT NULL, `uniteId` TEXT NOT NULL, " +
+                        "`typesJoues` TEXT NOT NULL, `exercicesFaits` INTEGER NOT NULL, " +
+                        "`exercicesReussis` INTEGER NOT NULL, " +
+                        "`debutMillis` INTEGER NOT NULL, `finMillis` INTEGER NOT NULL)",
+                    "CREATE INDEX IF NOT EXISTS `index_learning_session_moduleId` " +
+                        "ON `learning_session` (`moduleId`)",
+                    "CREATE INDEX IF NOT EXISTS `index_learning_session_finMillis` " +
+                        "ON `learning_session` (`finMillis`)"
+                ).forEach(db::execSQL)
+            }
+        }
+
         val MIGRATIONS = arrayOf(
             MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
             MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
             MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
             MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
-            MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18
+            MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18,
+            MIGRATION_18_19
         )
 
         fun getDatabase(context: Context): SankaiDatabase {
