@@ -50,6 +50,17 @@ class AcademieViewModel(application: Application) : AndroidViewModel(application
         val suite: Suite? = null,
         /** Profils Mémo qui peuvent servir de module, avec leur nombre de cartes. */
         val modulesDisponibles: List<Pair<MemoProfileEntity, Int>> = emptyList(),
+        /**
+         * Les mêmes, regroupés par parcours.
+         *
+         * Six niveaux de portugais donnaient six cartes identiques dans « Mes
+         * modules » : une liste où l'on ne distingue plus un parcours complet
+         * d'un pense-bête. Le regroupement réutilise le moteur déjà écrit pour
+         * l'écran Mémo — deux classements séparés finiraient par ne plus
+         * ranger pareil.
+         */
+        val groupes: List<com.sankailife.core.learning.domain.GroupementEngine.Groupe> =
+            emptyList(),
         val cartesDues: Int = 0,
         val joursActifs: Int = 0
     ) {
@@ -59,6 +70,20 @@ class AcademieViewModel(application: Application) : AndroidViewModel(application
 
     private val _etat = MutableStateFlow(Etat())
     val etat: StateFlow<Etat> = _etat.asStateFlow()
+
+    /**
+     * Parcours dépliés.
+     *
+     * En mémoire seulement : c'est un confort d'affichage, pas une
+     * progression. Le persister ferait entrer un détail d'interface dans la
+     * sauvegarde du joueur, où il n'a rien à faire.
+     */
+    private val _deplies = MutableStateFlow<Set<String>>(emptySet())
+    val deplies: StateFlow<Set<String>> = _deplies.asStateFlow()
+
+    fun basculerGroupe(id: String) {
+        _deplies.value = if (id in _deplies.value) _deplies.value - id else _deplies.value + id
+    }
 
     private val _message = MutableStateFlow("")
     val message: StateFlow<String> = _message.asStateFlow()
@@ -92,6 +117,9 @@ class AcademieViewModel(application: Application) : AndroidViewModel(application
                 val avecCartes = profils.map { it to memoDao.getLinesOnce(it.id) }
                     .filter { (_, lignes) -> lignes.isNotEmpty() }
 
+                val modulesParProfil = app.database.learningDao().modules()
+                    .associateBy { it.memoProfileId }
+
                 val dues = avecCartes.sumOf { (_, lignes) ->
                     lignes.count { it.nextReviewAtMillis <= maintenant }
                 }
@@ -109,6 +137,23 @@ class AcademieViewModel(application: Application) : AndroidViewModel(application
                     chargement = false,
                     suite = suite,
                     modulesDisponibles = avecCartes.map { (p, l) -> p to l.size },
+                    groupes = com.sankailife.core.learning.domain.GroupementEngine.grouper(
+                        avecCartes.map { (profil, lignes) ->
+                            val module = modulesParProfil[profil.id]
+                            com.sankailife.core.learning.domain.GroupementEngine.Module(
+                                profileId = profil.id,
+                                nom = profil.name,
+                                collection = module?.collection.orEmpty(),
+                                niveau = module?.niveau.orEmpty(),
+                                cartes = lignes.size,
+                                progression = lignes.count {
+                                    it.box >= com.sankailife.core.learning.domain
+                                        .AcademieEngine.BOITE_MAITRISEE
+                                }.toFloat() / lignes.size.coerceAtLeast(1),
+                                notificationsActives = profil.isActive
+                            )
+                        }
+                    ),
                     cartesDues = dues,
                     joursActifs = depot.joursActifs(semaine).first()
                 )

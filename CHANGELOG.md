@@ -1,5 +1,11 @@
 # Changelog Sankai Life
 
+## 1.78.0 - 2 aout 2026
+
+- **Mes modules affiche un dossier par parcours.** Les six niveaux de portugais
+  ne remplissent plus la liste : une carte « Portugais » qui se deplie.
+- Un module seul garde sa ligne, sans chevron qui n'ouvrirait rien.
+
 ## 1.77.0 - 2 aout 2026
 
 - **Recolte en un appui.** Une bulle apparait au-dessus des plantes mures ;

@@ -56,6 +56,7 @@ fun AcademieScreen(
     val etat by viewModel.etat.collectAsState()
     val utilisateur by viewModel.utilisateur.collectAsState()
     val message by viewModel.message.collectAsState()
+    val deplies by viewModel.deplies.collectAsState()
     val c = MaterialTheme.sankaiColors
     val snackbar = remember { SnackbarHostState() }
 
@@ -148,31 +149,73 @@ fun AcademieScreen(
                     Spacer(Modifier.height(20.dp))
                     SectionTitle("Mes modules")
                     Spacer(Modifier.height(8.dp))
-                    etat.modulesDisponibles.forEach { (profil, cartes) ->
-                        SankaiCard(
-                            modifier = Modifier.padding(bottom = 8.dp),
-                            onClick = { onNavigate(Screen.Parcours.createRoute(profil.id)) }
-                        ) {
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                    // Un dossier par parcours, pas six cartes identiques.
+                    //
+                    // « Mes modules » affichait A1 a C2 comme six entrees de
+                    // meme poids, melangees aux pense-betes : on ne distinguait
+                    // plus un parcours complet d'une liste de courses.
+                    etat.groupes.forEach { groupe ->
+                        val ouvert = groupe.id in deplies
+                        if (!groupe.estParcours) {
+                            val membre = groupe.modules.first()
+                            LigneModule(
+                                titre = membre.nom.ifBlank { "Module sans nom" },
+                                details = "${membre.cartes} carte(s)",
+                                onClick = {
+                                    onNavigate(Screen.Parcours.createRoute(membre.profileId))
+                                }
+                            )
+                        } else {
+                            SankaiCard(
+                                modifier = Modifier.padding(bottom = 8.dp),
+                                onClick = { viewModel.basculerGroupe(groupe.id) }
                             ) {
-                                Column {
+                                Row(
+                                    Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(Modifier.fillMaxWidth(0.84f)) {
+                                        Text(
+                                            groupe.titre, color = c.textPrimary,
+                                            fontSize = 16.sp, fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            groupe.resume,
+                                            color = c.textSecondary, fontSize = 12.sp
+                                        )
+                                        Spacer(Modifier.height(6.dp))
+                                        LinearProgressIndicator(
+                                            progress = { groupe.progression },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            color = c.accent,
+                                            trackColor = c.surface3
+                                        )
+                                    }
                                     Text(
-                                        profil.name.ifBlank { "Module sans nom" },
-                                        color = c.textPrimary, fontSize = 15.sp,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                    Text(
-                                        "$cartes carte(s)" +
-                                            if (profil.langue.isNotBlank()) {
-                                                " · ${profil.langue}"
-                                            } else "",
-                                        color = c.textSecondary, fontSize = 12.sp
+                                        if (ouvert) "⌃" else "⌄",
+                                        color = c.textSecondary, fontSize = 20.sp
                                     )
                                 }
-                                Text("›", color = c.textSecondary, fontSize = 22.sp)
+                            }
+                            if (ouvert) {
+                                groupe.modules.forEach { membre ->
+                                    Box(Modifier.padding(start = 14.dp)) {
+                                        LigneModule(
+                                            titre = membre.nom,
+                                            details = buildList {
+                                                if (membre.niveau.isNotBlank()) add(membre.niveau)
+                                                add("${membre.cartes} carte(s)")
+                                                add("${(membre.progression * 100).toInt()} %")
+                                            }.joinToString(" · "),
+                                            onClick = {
+                                                onNavigate(
+                                                    Screen.Parcours.createRoute(membre.profileId)
+                                                )
+                                            }
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -318,5 +361,29 @@ private fun PremierPas(onNavigate: (String) -> Unit) {
             onClick = { onNavigate(Screen.Memo.route) },
             modifier = Modifier.fillMaxWidth()
         )
+    }
+}
+
+/** Une ligne de module, au premier niveau ou sous son parcours. */
+@Composable
+private fun LigneModule(
+    titre: String,
+    details: String,
+    onClick: () -> Unit
+) {
+    val c = MaterialTheme.sankaiColors
+    SankaiCard(modifier = Modifier.padding(bottom = 8.dp), onClick = onClick) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(titre, color = c.textPrimary, fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold)
+                Text(details, color = c.textSecondary, fontSize = 12.sp)
+            }
+            Text("›", color = c.textSecondary, fontSize = 22.sp)
+        }
     }
 }
