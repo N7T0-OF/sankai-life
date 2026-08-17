@@ -19,3 +19,6 @@ SankaiLife/app/build/
 .idea/
 *.iml
 .DS_Store
+
+# Métadonnées d'outillage local
+.freebuff/

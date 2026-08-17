@@ -1,8 +1,6 @@
 package com.sankailife.core.domain.engine
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FlashcardRewardPolicyTest {
@@ -16,7 +14,6 @@ class FlashcardRewardPolicyTest {
         assertEquals(FlashcardEngine.XP_PAR_CARTE, recompense.xpParCarte)
         assertEquals(FlashcardEngine.XP_SESSION_TERMINEE, recompense.xpFin)
         assertEquals(FlashcardEngine.PIECES_SESSION_TERMINEE, recompense.piecesFin)
-        assertTrue(recompense.alimenteJardin)
     }
 
     @Test
@@ -28,6 +25,5 @@ class FlashcardRewardPolicyTest {
         assertEquals(0, recompense.xpParCarte)
         assertEquals(0, recompense.xpFin)
         assertEquals(0, recompense.piecesFin)
-        assertFalse(recompense.alimenteJardin)
     }
 }

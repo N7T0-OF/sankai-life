@@ -16,13 +16,8 @@ class OnboardingEngineTest {
     }
 
     @Test
-    fun `chaque page est complete`() {
-        OnboardingEngine.pages.forEach { p ->
-            assertTrue(p.titre.isNotBlank())
-            assertTrue(p.texte.isNotBlank())
-            assertTrue("un bouton sans libelle bloque le tutoriel", p.action.isNotBlank())
-            assertTrue(p.emoji.isNotBlank())
-        }
+    fun `chaque sujet apparait une seule fois`() {
+        assertEquals(OnboardingEngine.pages.distinct(), OnboardingEngine.pages)
     }
 
     @Test
@@ -35,6 +30,23 @@ class OnboardingEngineTest {
 
         repeat(20) { i = OnboardingEngine.precedente(i) }
         assertEquals(0, i)
+    }
+
+    @Test
+    fun `les indices negatifs sont ramenes au debut`() {
+        assertEquals(0, OnboardingEngine.borner(-1))
+        assertEquals(0, OnboardingEngine.borner(Int.MIN_VALUE))
+        assertEquals(0, OnboardingEngine.suivante(Int.MIN_VALUE))
+        assertEquals(0, OnboardingEngine.precedente(-1))
+        assertFalse(OnboardingEngine.estDerniere(Int.MIN_VALUE))
+    }
+
+    @Test
+    fun `Int MAX VALUE reste sur la derniere page sans debordement`() {
+        assertEquals(OnboardingEngine.derniere, OnboardingEngine.borner(Int.MAX_VALUE))
+        assertEquals(OnboardingEngine.derniere, OnboardingEngine.suivante(Int.MAX_VALUE))
+        assertEquals(OnboardingEngine.derniere, OnboardingEngine.precedente(Int.MAX_VALUE))
+        assertTrue(OnboardingEngine.estDerniere(Int.MAX_VALUE))
     }
 
     @Test
@@ -57,12 +69,12 @@ class OnboardingEngineTest {
     }
 
     @Test
-    fun `le lien entre reviser et jardiner est explique`() {
-        // C'est la seule chose qu'on ne peut pas deviner en touchant l'écran,
-        // et donc la seule qui justifie vraiment un tutoriel.
-        val texte = OnboardingEngine.pages.joinToString(" ") { it.titre + " " + it.texte }
-            .lowercase()
-        assertTrue(texte.contains("eau"))
-        assertTrue(texte.contains("révis"))
+    fun `le temps quotidien est un choix explicite`() {
+        assertTrue(OnboardingEngine.Topic.DAILY_TIME in OnboardingEngine.pages)
+    }
+
+    @Test
+    fun `le jardin ne fait pas partie du parcours obligatoire`() {
+        assertTrue(OnboardingEngine.pages.none { it.name.contains("GARDEN") })
     }
 }

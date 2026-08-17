@@ -1,77 +1,91 @@
 package com.sankailife.ui.screens.home
 
 import android.app.Application
-import androidx.lifecycle.*
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.sankailife.SankaiApplication
-import com.sankailife.core.data.db.entities.ChestEntity
-import com.sankailife.core.data.repository.GameRepository
+import com.sankailife.core.data.db.entities.MemoProfileEntity
 import com.sankailife.core.data.repository.UserRepository
-import com.sankailife.core.domain.engine.ArenaEngine
-import com.sankailife.core.domain.engine.ChestEngine
 import com.sankailife.core.domain.model.UserState
-import kotlinx.coroutines.flow.*
+import com.sankailife.core.time.observedMinutes
+import java.time.LocalDate
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val app = application as SankaiApplication
-    val userRepo  = UserRepository(app.database)
-    val gameRepo  = GameRepository(app.database, app)
+    private val userRepository = UserRepository(app.database)
+    private val observedTime = observedMinutes().shareIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(
+            stopTimeoutMillis = 5_000,
+            replayExpirationMillis = 0
+        ),
+        replay = 1
+    )
+    private val observedDay = observedTime
+        .map { it.localDate }
+        .distinctUntilChanged()
 
-    val user: StateFlow<UserState> = userRepo.userFlow
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UserState())
+    val user: StateFlow<UserState> = userRepository.userFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UserState())
 
-    val chests: StateFlow<List<ChestEntity>> = gameRepo.activeChests
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    /** Travail réellement utile disponible aujourd'hui, sans urgence fabriquée. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val dueCards: StateFlow<Int> = observedTime
+        .flatMapLatest { tick ->
+            // Le paramètre temporel d'une requête Room est immuable : la
+            // réabonner chaque minute rend visibles les cartes qui arrivent à
+            // échéance même si aucune ligne de la base n'a changé.
+            app.database.memoDao().compterToutesCartesDues(tick.epochMillis)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
-    private val _showLevelUp    = MutableStateFlow(false)
-    val showLevelUp: StateFlow<Boolean> = _showLevelUp
+    val nextMemo: StateFlow<MemoProfileEntity?> = combine(
+        app.database.memoDao().getAllProfiles(),
+        observedTime
+    ) { profiles, tick ->
+        // Un horaire expiré n'est jamais présenté comme le « prochain »
+        // rappel. Le planificateur pourra publier sa nouvelle échéance via
+        // Room ; entre-temps l'accueil affiche qu'aucun rappel n'est prévu.
+        profiles.asSequence()
+            .filter { it.isActive && it.nextTriggerAtMillis > tick.epochMillis }
+            .minByOrNull { it.nextTriggerAtMillis }
+    }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    private val _levelUpLevel   = MutableStateFlow(0)
-    val levelUpLevel: StateFlow<Int> = _levelUpLevel
+    val minimalMode: StateFlow<Boolean> = app.preferences.minimalMode
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
-    private val _chestReward    = MutableStateFlow<ChestEngine.ChestReward?>(null)
-    val chestReward: StateFlow<ChestEngine.ChestReward?> = _chestReward
+    val dailyMinutes: StateFlow<Int> = app.preferences.dailyMinutes
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 5)
 
-    /** Coffres prêts à ouvrir, pour le badge de l'onglet Accueil. */
-    val coffresPrets: StateFlow<Int> = chests
-        .map { liste -> liste.count { it.isReady } }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
-
-    /** Pastille de la carte de progression : récompenses d'arène en attente. */
-    val arenesAReclamer: StateFlow<Int> =
-        combine(user, app.database.arenaRewardDao().getReclamees()) { u, prises ->
-            ArenaEngine.recompensesAReclamer(u.level, prises.toSet()).size
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+    val todayCompleted: StateFlow<Boolean> = combine(
+        app.preferences.todayCompletedDate,
+        observedDay
+    ) { completedDate, today -> completedDate == today.toString() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     init {
-        viewModelScope.launch {
-            userRepo.ensureUser()
-            userRepo.checkStreak()
-            gameRepo.ensureDailyChallenges()
-            gameRepo.ensureWeeklyChallenges()
-            gameRepo.addDailyChest()
-            // Update today's stats from db
-        }
+        // L'accueil initialise seulement le profil. Il ne crée plus en
+        // arrière-plan de coffre, défi ou récompense à réclamer.
+        viewModelScope.launch { userRepository.ensureUser() }
     }
 
-    fun openChest(chestId: Long) = viewModelScope.launch {
-        val ouverture = gameRepo.openChest(chestId) ?: return@launch
-        _chestReward.value = ouverture.recompense
-        if (ouverture.niveauGagne) {
-            _levelUpLevel.value = ouverture.nouveauNiveau
-            _showLevelUp.value = true
-        }
-    }
-
-    fun dismissChestReward() { _chestReward.value = null }
-    fun dismissLevelUp()     { _showLevelUp.value = false }
-
-    fun formatChestTimer(chest: ChestEntity): String {
-        val remaining = chest.unlocksAtMillis - System.currentTimeMillis()
-        return ChestEngine.formatTimer(remaining.coerceAtLeast(0))
+    fun finishToday(onSaved: () -> Unit = {}) = viewModelScope.launch {
+        app.preferences.setTodayCompletedDate(LocalDate.now().toString())
+        onSaved()
     }
 
     companion object {

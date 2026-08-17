@@ -7,11 +7,9 @@ import android.os.Build
 import com.sankailife.core.connectivity.ConnectivityObserver
 import com.sankailife.core.data.db.SankaiDatabase
 import com.sankailife.core.data.preferences.AppPreferences
-import com.sankailife.core.notifications.RevisionAlarmReceiver
-import com.sankailife.core.notifications.MemoAlarmScheduler
-import com.sankailife.core.notifications.NotificationScheduler
+import com.sankailife.core.notifications.NotificationCoordinator
 import com.sankailife.core.notifications.SankaiNotifications
-import com.sankailife.core.notifications.CoffreAlarmReceiver
+import com.sankailife.ui.widgets.AujourdhuiWidgetProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -29,19 +27,17 @@ class SankaiApplication : Application() {
         super.onCreate()
         createNotificationChannels()
 
-        // Les mémos partent via AlarmManager, à l'heure exacte. On reprogramme
-        // à chaque lancement : c'est ce qui rattrape une alarme perdue après un
-        // force stop ou un nettoyage agressif du constructeur.
-        scope.launch { runCatching { MemoAlarmScheduler.replanifierTout(this@SankaiApplication) } }
-        scope.launch { runCatching { CoffreAlarmReceiver.replanifierTous(this@SankaiApplication) } }
+        // Une seule réconciliation respecte le commutateur maître, les
+        // catégories et les pauses, tout en réparant les alarmes perdues.
+        scope.launch {
+            runCatching { NotificationCoordinator.reconcile(this@SankaiApplication) }
+        }
 
-        // Filet de sécurité périodique, qui replanifie sans jamais notifier.
-        NotificationScheduler.programmer(this)
-
-        // Rappel quotidien de révision. Reprogrammé à chaque lancement pour la
-        // même raison que les mémos : une alarme perdue après un force stop ne
-        // se rétablit pas toute seule.
-        RevisionAlarmReceiver.programmerProchaine(this)
+        // Le widget se met à jour à chaque ouverture de l'app ; le rafraîchissement
+        // périodique ne couvre que les jours où elle n'est pas lancée.
+        scope.launch {
+            runCatching { AujourdhuiWidgetProvider.rafraichirTous(this@SankaiApplication) }
+        }
 
         // AdMob est volontairement absent d'ici : il ne sera initialisé par
         // MainActivity qu'après validation de `canRequestAds()` par UMP.

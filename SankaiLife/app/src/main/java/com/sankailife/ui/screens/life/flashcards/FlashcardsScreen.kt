@@ -41,7 +41,9 @@ import com.sankailife.ui.theme.AccentCyan
 import com.sankailife.ui.theme.AccentGold
 import com.sankailife.ui.theme.AccentViolet
 import com.sankailife.ui.theme.DangerRed
+import com.sankailife.ui.theme.InfoBlue
 import com.sankailife.ui.theme.SuccessGreen
+import com.sankailife.ui.theme.WarningAmber
 import com.sankailife.ui.theme.sankaiColors
 
 @Composable
@@ -421,17 +423,48 @@ fun FlashcardsScreen(
                                 Column {
                                     AideGestes()
                                     Spacer(Modifier.height(10.dp))
-                                    Row(
-                                        Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                    ) {
-                                        BoutonReponse(stringResource(R.string.cards_judge_again), DangerRed, Modifier.weight(1f)) {
-                                            haptics.error()
-                                            viewModel.repondre(FlashcardEngine.Jugement.A_REVOIR)
+                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Row(
+                                            Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            BoutonReponse(
+                                                stringResource(R.string.cards_judge_again),
+                                                DangerRed,
+                                                Modifier.weight(1f)
+                                            ) {
+                                                haptics.error()
+                                                viewModel.repondre(FlashcardEngine.Jugement.A_REVOIR)
+                                            }
+                                            BoutonReponse(
+                                                stringResource(R.string.cards_judge_hard),
+                                                WarningAmber,
+                                                Modifier.weight(1f)
+                                            ) {
+                                                haptics.click()
+                                                viewModel.repondre(FlashcardEngine.Jugement.DIFFICILE)
+                                            }
                                         }
-                                        BoutonReponse(stringResource(R.string.cards_knew_it), SuccessGreen, Modifier.weight(1f)) {
-                                            haptics.success()
-                                            viewModel.repondre(FlashcardEngine.Jugement.CORRECT)
+                                        Row(
+                                            Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            BoutonReponse(
+                                                stringResource(R.string.cards_judge_ok),
+                                                InfoBlue,
+                                                Modifier.weight(1f)
+                                            ) {
+                                                haptics.click()
+                                                viewModel.repondre(FlashcardEngine.Jugement.CORRECT)
+                                            }
+                                            BoutonReponse(
+                                                stringResource(R.string.cards_judge_easy),
+                                                SuccessGreen,
+                                                Modifier.weight(1f)
+                                            ) {
+                                                haptics.success()
+                                                viewModel.repondre(FlashcardEngine.Jugement.FACILE)
+                                            }
                                         }
                                     }
                                 }

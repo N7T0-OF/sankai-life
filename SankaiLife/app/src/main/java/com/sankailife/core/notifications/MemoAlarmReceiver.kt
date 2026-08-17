@@ -4,15 +4,11 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import com.sankailife.core.data.db.SankaiDatabase
-import com.sankailife.core.data.preferences.AppPreferences
 import com.sankailife.core.domain.engine.MemoEngine
-import com.sankailife.core.garden.data.MemoChallengeEntity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import java.time.LocalTime
 
 /**
  * Reçoit l'alarme d'un module mémo : envoie la phrase, puis reprogramme
@@ -42,25 +38,17 @@ class MemoAlarmReceiver : BroadcastReceiver() {
     }
 
     private suspend fun traiter(context: Context, profileId: Long) {
-        val prefs = AppPreferences(context)
         val dao = SankaiDatabase.getDatabase(context).memoDao()
         val profil = runCatching { dao.getProfile(profileId) }.getOrNull() ?: return
 
-        val heures = prefs.heuresSilencieuses.first()
-        val notificationsActives = prefs.notifications.first()
-
-        val maintenant = LocalTime.now()
-        val minuteDuJour = maintenant.hour * 60 + maintenant.minute
-        val enSilence = heures.contient(minuteDuJour)
-
         // Même en silence on reprogramme : c'est le silence qui saute, pas le module.
-        if (notificationsActives && !enSilence && profil.isActive &&
-            SankaiNotifications.peutNotifier(context)
-        ) {
+        if (profil.isActive) {
             envoyerPhrase(context, profileId, profil.name, profil.sentLineHistory)
         }
 
-        runCatching { MemoAlarmScheduler.planifier(context, dao.getProfile(profileId) ?: profil, heures) }
+        // Une alarme est à usage unique. La réconciliation centrale la repose
+        // seulement si les notifications Mémo sont encore autorisées.
+        runCatching { NotificationCoordinator.reconcile(context) }
     }
 
     private suspend fun envoyerPhrase(
@@ -75,23 +63,12 @@ class MemoAlarmReceiver : BroadcastReceiver() {
 
         val choisie = MemoEngine.getRandomLine(lignes.map { it.id }, historique) ?: return
         val texte = lignes.firstOrNull { it.id == choisie }?.text ?: return
+        // Le budget n'est consommé qu'après avoir établi qu'un contenu réel
+        // peut être envoyé.
+        if (!NotificationPolicy.tryAcquire(context, NotificationCategory.MEMO)) return
 
         SankaiNotifications.afficherMemo(context, profileId, nomModule, texte)
         dao.updateHistory(profileId, MemoEngine.updateHistory(historique, choisie))
         dao.updateLastNotified(profileId, System.currentTimeMillis())
-
-        // Trace pour le défi souvenir du jardin. Enregistrée seulement après
-        // l'envoi réel : un défi ne doit exister que si la phrase a été vue.
-        runCatching {
-            SankaiDatabase.getDatabase(context).gardenDao().enregistrerNotification(
-                MemoChallengeEntity(
-                    profileId = profileId,
-                    lineId = choisie,
-                    texte = texte,
-                    nomModule = nomModule,
-                    envoyeALeMillis = System.currentTimeMillis()
-                )
-            )
-        }
     }
 }

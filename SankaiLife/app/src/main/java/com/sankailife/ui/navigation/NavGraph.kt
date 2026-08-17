@@ -7,22 +7,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.*
 import com.sankailife.SankaiApplication
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import com.sankailife.ui.screens.onboarding.OnboardingScreen
-import com.sankailife.ui.screens.arenas.ArenasScreen
-import com.sankailife.ui.screens.arenas.ArenasViewModel
-import com.sankailife.ui.screens.challenges.ChallengesScreen
 import com.sankailife.ui.screens.customization.CustomizationScreen
-import com.sankailife.ui.screens.garden.GardenScreen
-import com.sankailife.ui.screens.garden.GardenViewModel
+import com.sankailife.ui.screens.capsules.CapsulesScreen
+import com.sankailife.ui.screens.capsules.CapsulesViewModel
 import com.sankailife.ui.screens.customization.CustomizationViewModel
-import com.sankailife.ui.screens.island.IslandScreen
-import com.sankailife.ui.screens.island.IslandViewModel
 import com.sankailife.ui.screens.profile.AllStatsScreen
-import com.sankailife.ui.screens.challenges.ChallengesViewModel
 import com.sankailife.ui.screens.home.HomeScreen
 import com.sankailife.ui.screens.home.HomeViewModel
 import com.sankailife.ui.screens.academie.AcademieScreen
@@ -31,6 +27,7 @@ import com.sankailife.ui.screens.academie.ParcoursScreen
 import com.sankailife.ui.screens.academie.ParcoursViewModel
 import com.sankailife.ui.screens.life.focus.FocusScreen
 import com.sankailife.ui.screens.life.focus.FocusViewModel
+import com.sankailife.ui.screens.life.ModeVieScreen
 import com.sankailife.ui.screens.life.memo.MemoEditorScreen
 import com.sankailife.ui.screens.life.memo.MemoScreen
 import com.sankailife.ui.screens.life.memo.MemoViewModel
@@ -42,47 +39,71 @@ import com.sankailife.ui.screens.profile.ProfileScreen
 import com.sankailife.ui.screens.profile.ProfileViewModel
 import com.sankailife.ui.screens.settings.SettingsScreen
 import com.sankailife.ui.screens.settings.SettingsViewModel
-import com.sankailife.ui.screens.shop.ShopScreen
-import com.sankailife.ui.screens.shop.ShopViewModel
 
 @Composable
-fun SankaiNavGraph() {
+fun SankaiNavGraph(
+    externalRoute: String? = null,
+    onExternalRouteConsumed: () -> Unit = {}
+) {
     val navController = rememberNavController()
     val context = LocalContext.current
     val app = context.applicationContext as SankaiApplication
     val currentBackStack by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStack?.destination?.route
 
-    val homeVm: HomeViewModel        = viewModel(factory = HomeViewModel.factory(app))
-    val challengesVm: ChallengesViewModel = viewModel(factory = ChallengesViewModel.factory(app))
-    val settingsVm: SettingsViewModel= viewModel(factory = SettingsViewModel.factory(app))
-
     // Le tutoriel occupe l'écran entier avant tout le reste : le montrer par
     // -dessus la navigation laisserait la barre du bas cliquable pendant qu'on
-    // explique ce qu'elle fait.
-    val tutorielVu by app.preferences.onboardingDone.collectAsState(initial = true)
-    if (!tutorielVu) {
-        val portee = rememberCoroutineScope()
-        OnboardingScreen(
-            onTermine = { portee.launch { app.preferences.setOnboardingDone(true) } }
-        )
-        return
+    // explique ce qu'elle fait. L'etat de chargement est distinct de « pas
+    // encore vu » : initialiser a false faisait clignoter le tutoriel chez les
+    // utilisateurs existants pendant la lecture de DataStore.
+    val tutorielStateFlow = remember(app.preferences) {
+        app.preferences.onboardingDone.map { done ->
+            if (done) OnboardingGateState.COMPLETE else OnboardingGateState.REQUIRED
+        }
+    }
+    val tutorielState by tutorielStateFlow.collectAsStateWithLifecycle(
+        initialValue = OnboardingGateState.LOADING
+    )
+    when (tutorielState) {
+        OnboardingGateState.LOADING -> {
+            androidx.compose.material3.Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = androidx.compose.material3.MaterialTheme.colorScheme.background
+            ) {}
+            return
+        }
+        OnboardingGateState.REQUIRED -> {
+            val portee = rememberCoroutineScope()
+            OnboardingScreen { dailyMinutes ->
+                portee.launch {
+                    app.preferences.setDailyMinutes(dailyMinutes)
+                    app.preferences.setOnboardingDone(true)
+                }
+            }
+            return
+        }
+        OnboardingGateState.COMPLETE -> Unit
     }
 
-    val showLabels by settingsVm.showNavLabels.collectAsState()
-    val claimableCount by challengesVm.claimableCount.collectAsState()
-    val coffresPrets by homeVm.coffresPrets.collectAsState()
-    val user by homeVm.user.collectAsState()
+    val homeVm: HomeViewModel = viewModel(factory = HomeViewModel.factory(app))
+    val settingsVm: SettingsViewModel = viewModel(factory = SettingsViewModel.factory(app))
 
-    // Le verrou qu'on vient de toucher, s'il y en a un.
-    var verrouAffiche by remember {
-        mutableStateOf<com.sankailife.core.domain.engine.DeblocageEngine.Verrou?>(null)
+    LaunchedEffect(externalRoute) {
+        val route = externalRoute?.takeIf {
+            it in setOf(
+                Screen.Memo.route,
+                Screen.Capsules.route,
+                Screen.Academy.route,
+                Screen.Focus.route
+            )
+        } ?: return@LaunchedEffect
+        if (currentRoute != route) {
+            navController.navigate(route) { launchSingleTop = true }
+        }
+        onExternalRouteConsumed()
     }
 
-    verrouAffiche?.let { v ->
-        FeuilleVerrou(verrou = v, onFermer = { verrouAffiche = null })
-    }
-
+    val showLabels by settingsVm.showNavLabels.collectAsStateWithLifecycle()
     // Ce qui arrive depuis le menu « Partager » d'une autre application.
     //
     // Monté à la racine, pas dans un écran : un partage peut arriver pendant
@@ -91,12 +112,9 @@ fun SankaiNavGraph() {
     com.sankailife.ui.screens.life.memo.FeuillePartageEntrant()
 
     val noBottomBarRoutes = setOf(
-        Screen.Settings.route, Screen.MemoEditor.route,
-        Screen.Objectives.route, Screen.Flashcards.route, Screen.Arenas.route,
+        Screen.Settings.route, Screen.MemoEditor.route, Screen.Focus.route,
+        Screen.Objectives.route, Screen.Flashcards.route,
         Screen.Customization.route, Screen.AllStats.route,
-        // Le jardin masque la navigation de l'app : c'est un mode isolé, pas
-        // un onglet de plus. L'île suivra la même règle.
-        Screen.Garden.route, Screen.Island.route,
         Screen.Parcours.route, Screen.Session.route
     )
     val showBottom = currentRoute !in noBottomBarRoutes
@@ -115,10 +133,6 @@ fun SankaiNavGraph() {
                 SankaiBottomNavBar(
                     currentRoute = currentRoute,
                     showLabels = showLabels,
-                    challengeBadge = claimableCount,
-                    homeBadge = coffresPrets,
-                    niveau = user.level,
-                    onVerrou = { verrouAffiche = it },
                     onNavigate = { route ->
                         navController.navigate(route) {
                             popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -144,23 +158,24 @@ fun SankaiNavGraph() {
             exitTransition = { androidx.compose.animation.ExitTransition.None },
             popEnterTransition = { androidx.compose.animation.EnterTransition.None },
             popExitTransition = { androidx.compose.animation.ExitTransition.None },
-            modifier = if (currentRoute == Screen.Garden.route ||
-                currentRoute == Screen.Island.route
-            ) {
-                Modifier
-            } else {
-                Modifier.padding(padding)
-            }
+            modifier = Modifier.padding(padding)
         ) {
             composable(Screen.Home.route) {
                 HomeScreen(viewModel = homeVm, onNavigate = { navController.navigate(it) })
             }
-            // L'Academie prend la place du Mode Vie. La route ne change pas :
-            // la barre de navigation, les raccourcis et l'historique y mènent
-            // deja, et les renommer casserait tout cela pour rien.
-            composable(Screen.Life.route) {
+            composable(Screen.Academy.route) {
                 val vm: AcademieViewModel = viewModel(factory = AcademieViewModel.factory(app))
                 AcademieScreen(viewModel = vm, onNavigate = { navController.navigate(it) })
+            }
+            composable(Screen.Life.route) {
+                ModeVieScreen(app = app, onNavigate = { navController.navigate(it) })
+            }
+            composable(Screen.Capsules.route) {
+                val vm: CapsulesViewModel = viewModel(factory = CapsulesViewModel.factory(app))
+                CapsulesScreen(
+                    viewModel = vm,
+                    onBack = { navController.popBackStack() }
+                )
             }
             composable(Screen.Parcours.route) { backEntry ->
                 val profileId = backEntry.arguments?.getString("profileId")?.toLongOrNull() ?: -1L
@@ -173,10 +188,6 @@ fun SankaiNavGraph() {
                         navController.navigate(Screen.Session.createRoute(profileId, uniteId))
                     }
                 )
-            }
-            composable(Screen.Island.route) {
-                val vm: IslandViewModel = viewModel(factory = IslandViewModel.factory(app))
-                IslandScreen(viewModel = vm, onBack = { navController.popBackStack() })
             }
             composable(Screen.Focus.route) {
                 val vm: FocusViewModel = viewModel(factory = FocusViewModel.factory(app))
@@ -230,28 +241,9 @@ fun SankaiNavGraph() {
                 val vm: ProfileViewModel = viewModel(factory = ProfileViewModel.factory(app))
                 AllStatsScreen(viewModel = vm, onBack = { navController.popBackStack() })
             }
-            composable(Screen.Garden.route) {
-                val vm: GardenViewModel = viewModel(factory = GardenViewModel.factory(app))
-                GardenScreen(
-                    viewModel = vm,
-                    onBack = { navController.popBackStack() },
-                    onNavigate = { navController.navigate(it) }
-                )
-            }
-            composable(Screen.Arenas.route) {
-                val vm: ArenasViewModel = viewModel(factory = ArenasViewModel.factory(app))
-                ArenasScreen(viewModel = vm, onBack = { navController.popBackStack() })
-            }
             composable(Screen.Objectives.route) {
                 val vm: ObjectivesViewModel = viewModel(factory = ObjectivesViewModel.factory(app))
                 ObjectivesScreen(viewModel = vm, onBack = { navController.popBackStack() })
-            }
-            composable(Screen.Challenges.route) {
-                ChallengesScreen(viewModel = challengesVm, onNavigate = { navController.navigate(it) })
-            }
-            composable(Screen.Shop.route) {
-                val vm: ShopViewModel = viewModel(factory = ShopViewModel.factory(app))
-                ShopScreen(viewModel = vm)
             }
             composable(Screen.Profile.route) {
                 val vm: ProfileViewModel = viewModel(factory = ProfileViewModel.factory(app))
@@ -266,4 +258,10 @@ fun SankaiNavGraph() {
             }
         }
     }
+}
+
+private enum class OnboardingGateState {
+    LOADING,
+    REQUIRED,
+    COMPLETE
 }

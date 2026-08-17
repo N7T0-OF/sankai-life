@@ -1,5 +1,36 @@
 # Changelog Sankai Life
 
+## 1.79.0 - 17 aout 2026
+
+**Le jeu est retiré de l'expérience. Sankai Life devient un compagnon
+d'apprentissage, de concentration et de culture — sans économie, sans coffres,
+sans arènes, sans jardin à entretenir.**
+
+- **Plus aucune porte vers le jeu.** Les routes Arènes, Jardin, Île, Boutique,
+  Défis et Extensions sont supprimées de la navigation, ainsi que leurs écrans.
+  La barre du bas tient en cinq destinations : Aujourd'hui, Académie, Capsules,
+  Mode Vie, Profil.
+- **L'économie ne s'affiche plus nulle part.** Plus de pièces, gemmes, XP,
+  niveau ou barre de ressources sur les écrans : l'app ne présente plus de
+  compteur à faire grossir.
+- **Les objectifs deviennent une simple checklist.** Cocher ne rapporte plus
+  ni XP, ni pièces, ni niveau ; on coche parce que c'est fait.
+- **Les thèmes se débloquent par niveau** au lieu de coffres — il n'y a plus
+  de coffres.
+- **Le code des moteurs de jeu reste dormant** (données et sauvegarde
+  conservées), mais les écrans et le code UI du jeu sont retirés de l'APK :
+  la release passe de 5,1 Mo à 4,4 Mo.
+- **Nouveau : importer des packs culturels locaux.** Dans Capsules, un bouton
+  « Importer un pack culturel » accepte un fichier `.culturepack` ; il est
+  entièrement validé (schéma, droits, empreintes) avant d'enrichir la
+  sélection quotidienne.
+- **Nouveau : widget « Aujourd'hui ».** L'écran d'accueil tient maintenant
+  aussi sur l'écran d'accueil du téléphone : révisions dues et prochain
+  rappel en un coup d'œil, rafraîchi automatiquement.
+- **Ménage de ressources.** 43 drawables et 246 chaînes du jeu supprimé sont
+  retirées des ressources (APK allégé d'environ 100 Ko supplémentaires,
+  strings nettoyés dans les trois langues).
+
 ## 1.78.0 - 2 aout 2026
 
 - **Mes modules affiche un dossier par parcours.** Les six niveaux de portugais

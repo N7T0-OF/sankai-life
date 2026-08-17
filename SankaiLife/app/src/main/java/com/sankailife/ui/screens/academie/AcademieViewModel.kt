@@ -7,7 +7,6 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.sankailife.SankaiApplication
 import com.sankailife.core.data.db.entities.MemoProfileEntity
-import com.sankailife.core.data.repository.UserRepository
 import com.sankailife.core.learning.data.LearningModuleEntity
 import com.sankailife.core.learning.data.LearningRepository
 import com.sankailife.core.learning.domain.AcademieEngine
@@ -32,7 +31,6 @@ import java.util.concurrent.TimeUnit
 class AcademieViewModel(application: Application) : AndroidViewModel(application) {
 
     private val app = application as SankaiApplication
-    private val userRepo = UserRepository(app.database)
     private val depot = LearningRepository(app.database)
     private val memoDao = app.database.memoDao()
 
@@ -89,12 +87,6 @@ class AcademieViewModel(application: Application) : AndroidViewModel(application
     val message: StateFlow<String> = _message.asStateFlow()
 
     fun messageAffiche() { _message.value = "" }
-
-    val utilisateur = userRepo.userFlow
-        .stateIn(
-            viewModelScope, SharingStarted.WhileSubscribed(5_000),
-            com.sankailife.core.domain.model.UserState()
-        )
 
     init {
         charger()

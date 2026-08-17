@@ -2,7 +2,7 @@ package com.sankailife.core.data.repository
 
 import androidx.room.withTransaction
 import com.sankailife.core.data.db.SankaiDatabase
-import com.sankailife.core.notifications.CoffreAlarmReceiver
+import com.sankailife.core.notifications.NotificationCoordinator
 import com.sankailife.core.data.db.entities.*
 import com.sankailife.core.domain.engine.ChestEngine
 import com.sankailife.core.domain.engine.XpEngine
@@ -41,7 +41,7 @@ class GameRepository(
         // Rappel à l'heure d'ouverture. Un coffre met des heures à mûrir ;
         // sans rappel, il reste prêt pendant des jours et bloque son
         // emplacement, donc toute la progression derrière.
-        contexte?.let { CoffreAlarmReceiver.programmer(it, cree.first, cree.second) }
+        contexte?.let { NotificationCoordinator.reconcile(it) }
         return true
     }
 
@@ -97,8 +97,6 @@ class GameRepository(
             CoffreOuvert(recompense, niveauGagne, niveau)
         } ?: return null
 
-        // Le rappel n'a plus lieu d'être : le coffre est ouvert.
-        contexte?.let { CoffreAlarmReceiver.annuler(it, chestId) }
         return ouverture
     }
 
@@ -222,8 +220,8 @@ class GameRepository(
             )
         }
 
-        alarmeCoffre?.let { (coffreId, pretALe) ->
-            contexte?.let { CoffreAlarmReceiver.programmer(it, coffreId, pretALe) }
+        alarmeCoffre?.let {
+            contexte?.let { context -> NotificationCoordinator.reconcile(context) }
         }
         return resultat
     }
@@ -283,8 +281,8 @@ class GameRepository(
             ReclamationArene.Reussie
         }
 
-        alarmeCoffre?.let { (coffreId, pretALe) ->
-            contexte?.let { CoffreAlarmReceiver.programmer(it, coffreId, pretALe) }
+        alarmeCoffre?.let {
+            contexte?.let { context -> NotificationCoordinator.reconcile(context) }
         }
         return resultat
     }

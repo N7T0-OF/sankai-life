@@ -1,6 +1,5 @@
 package com.sankailife.ui.screens.life.objectives
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,15 +19,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sankailife.core.data.db.entities.ObjectiveEntity
-import com.sankailife.ui.components.LevelUpDialog
-import com.sankailife.ui.components.ResourceBar
 import com.sankailife.ui.components.SankaiButton
 import com.sankailife.ui.components.SectionTitle
 import com.sankailife.ui.theme.AccentGold
@@ -38,10 +34,7 @@ import com.sankailife.ui.theme.sankaiColors
 
 @Composable
 fun ObjectivesScreen(viewModel: ObjectivesViewModel, onBack: () -> Unit) {
-    val user by viewModel.user.collectAsState()
     val objectifs by viewModel.objectives.collectAsState()
-    val toast by viewModel.toast.collectAsState()
-    val showLevelUp by viewModel.showLevelUp.collectAsState()
     val c = MaterialTheme.sankaiColors
 
     var saisie by remember { mutableStateOf("") }
@@ -49,18 +42,8 @@ fun ObjectivesScreen(viewModel: ObjectivesViewModel, onBack: () -> Unit) {
     val enCours = objectifs.filter { !it.isDone }
     val termines = objectifs.filter { it.isDone }
 
-    if (showLevelUp) {
-        LevelUpDialog(
-            level = user.level,
-            coins = user.level * 50,
-            onDismiss = { viewModel.masquerLevelUp() }
-        )
-    }
-
     Box(Modifier.fillMaxSize().background(c.background)) {
         Column(Modifier.fillMaxSize()) {
-            ResourceBar(user.level, user.xp, user.xpNext, user.coins, user.gems)
-
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -130,7 +113,7 @@ fun ObjectivesScreen(viewModel: ObjectivesViewModel, onBack: () -> Unit) {
                             Text("Aucun objectif pour l'instant", color = c.textSecondary, fontSize = 14.sp)
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                "Chaque objectif validé rapporte 30 XP et 25 pièces.",
+                                "Ajoute ce que tu veux accomplir, coche quand c'est fait.",
                                 color = c.textDisabled, fontSize = 12.sp
                             )
                         }
@@ -169,19 +152,6 @@ fun ObjectivesScreen(viewModel: ObjectivesViewModel, onBack: () -> Unit) {
                 }
 
                 item { Spacer(Modifier.height(24.dp)) }
-            }
-        }
-
-        AnimatedVisibility(
-            visible = toast.isNotBlank(),
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp)
-        ) {
-            Box(
-                Modifier.clip(RoundedCornerShape(12.dp))
-                    .background(SuccessGreen.copy(alpha = 0.9f))
-                    .padding(horizontal = 20.dp, vertical = 12.dp)
-            ) {
-                Text(toast, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
             }
         }
     }

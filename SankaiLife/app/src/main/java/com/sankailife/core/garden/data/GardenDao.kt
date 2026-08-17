@@ -29,6 +29,17 @@ interface GardenDao {
     @Query("UPDATE garden_state SET eau = eau + :quantite WHERE id = 1 AND :quantite > 0")
     suspend fun crediterEau(quantite: Int): Int
 
+    /** Le compost est credite sans relire puis remplacer tout l'etat global. */
+    @Query("UPDATE garden_state SET compost = compost + :quantite WHERE id = 1 AND :quantite > 0")
+    suspend fun crediterCompost(quantite: Int): Int
+
+    /** Debit conditionnel partage par tous les Mimos d'une meme ouverture. */
+    @Query(
+        "UPDATE garden_state SET compost = compost - :quantite " +
+            "WHERE id = 1 AND :quantite > 0 AND compost >= :quantite"
+    )
+    suspend fun depenserCompostSiAssez(quantite: Int): Int
+
     @Query("SELECT IFNULL((SELECT eau FROM garden_state WHERE id = 1), 0)")
     fun observerEau(): Flow<Int>
 
@@ -40,6 +51,9 @@ interface GardenDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun sauverEtat(state: GardenStateEntity)
+
+    @Query("DELETE FROM garden_state")
+    suspend fun effacerEtat()
 
     // --- Parcelles --------------------------------------------------------
 
@@ -60,6 +74,45 @@ interface GardenDao {
 
     @Query("UPDATE garden_plot SET etat = :etat WHERE id = :id")
     suspend fun majEtatParcelle(id: Int, etat: String)
+
+    /** Reserve une parcelle vide pour une plantation, une seule fois. */
+    @Query(
+        "UPDATE garden_plot SET etat = 'GROWING' " +
+            "WHERE id = :id AND etat = 'EMPTY' AND deblocage = 'DEBLOQUEE' " +
+            "AND NOT EXISTS (" +
+            "SELECT 1 FROM garden_crop WHERE plotId = :id AND recoltee = 0)"
+    )
+    suspend fun commencerPlantationSiVide(id: Int): Int
+
+    /** Annule uniquement une reservation qui n'a encore produit aucune culture. */
+    @Query(
+        "UPDATE garden_plot SET etat = 'EMPTY' " +
+            "WHERE id = :id AND etat = 'GROWING' AND NOT EXISTS (" +
+            "SELECT 1 FROM garden_crop WHERE plotId = :id AND recoltee = 0)"
+    )
+    suspend fun annulerPlantationSansCulture(id: Int): Int
+
+    /** Lance le chantier uniquement si la parcelle est encore disponible. */
+    @Query(
+        "UPDATE garden_plot SET deblocage = 'EN_CHANTIER', chantierFinMillis = :fin " +
+            "WHERE id = :id AND deblocage = 'DECOUVERTE'"
+    )
+    suspend fun lancerChantierSiDecouverte(id: Int, fin: Long): Int
+
+    /** Rend une reservation de chantier qui n'a finalement pas pu etre payee. */
+    @Query(
+        "UPDATE garden_plot SET deblocage = 'DECOUVERTE', chantierFinMillis = 0 " +
+            "WHERE id = :id AND deblocage = 'EN_CHANTIER' AND chantierFinMillis = :fin"
+    )
+    suspend fun annulerChantierSiIdentique(id: Int, fin: Long): Int
+
+    /** Termine un chantier arrive a echeance, sans ecraser un etat plus recent. */
+    @Query(
+        "UPDATE garden_plot SET deblocage = 'DEBLOQUEE', chantierFinMillis = 0 " +
+            "WHERE id = :id AND deblocage = 'EN_CHANTIER' " +
+            "AND chantierFinMillis > 0 AND chantierFinMillis <= :maintenant"
+    )
+    suspend fun acheverChantierSiArrive(id: Int, maintenant: Long): Int
 
     @Query("UPDATE garden_plot SET solId = :solId WHERE id = :id")
     suspend fun majSol(id: Int, solId: String)
@@ -102,8 +155,22 @@ interface GardenDao {
     @Update
     suspend fun majCulture(crop: GardenCropEntity)
 
-    @Query("UPDATE garden_crop SET recoltee = 1 WHERE id = :id")
-    suspend fun marquerRecoltee(id: Long)
+    @Query("UPDATE garden_crop SET recoltee = 1 WHERE id = :id AND recoltee = 0")
+    suspend fun marquerRecolteeSiActive(id: Long): Int
+
+    /** Compte l'arrosage sans recopier une ancienne version de la culture. */
+    @Query(
+        "UPDATE garden_crop SET dernierArrosageMillis = :maintenant, " +
+            "arrosages = arrosages + 1 WHERE plotId = :plotId AND recoltee = 0"
+    )
+    suspend fun enregistrerArrosage(plotId: Int, maintenant: Long): Int
+
+    /** Rend la terre a labourer seulement si la culture occupait encore la case. */
+    @Query(
+        "UPDATE garden_plot SET etat = 'UNCLEARED' " +
+            "WHERE id = :id AND etat IN ('GROWING', 'READY_TO_HARVEST')"
+    )
+    suspend fun terminerRecolteSiEnCroissance(id: Int): Int
 
     /** Compte les récoltes, pour l'Herbier et les statistiques. */
     @Query("SELECT COUNT(*) FROM garden_crop WHERE recoltee = 1")

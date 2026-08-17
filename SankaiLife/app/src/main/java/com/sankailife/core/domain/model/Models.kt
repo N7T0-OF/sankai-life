@@ -51,9 +51,9 @@ val ALL_THEMES = listOf(
     Theme("purple",  "Purple",           "🟣", "#A78BFA", 20, "level"),
     Theme("red",     "Red Energy",       "🔴", "#F87171", 25, "level"),
     Theme("green",   "Nature",           "🌿", "#4ADE80", 15, "level"),
-    Theme("cyan",    "Cyan Storm",       "⚡", "#67E8F9", 0,  "chest_rare"),
-    Theme("gold",    "Legendary Gold",   "👑", "#FCD34D", 0,  "chest_epic"),
-    Theme("pink",    "Pink Glitch",      "💗", "#F472B6", 0,  "chest_epic")
+    Theme("cyan",    "Cyan Storm",       "⚡", "#67E8F9", 10, "level"),
+    Theme("gold",    "Legendary Gold",   "👑", "#FCD34D", 20, "level"),
+    Theme("pink",    "Pink Glitch",      "💗", "#F472B6", 28, "level")
 )
 
 /**

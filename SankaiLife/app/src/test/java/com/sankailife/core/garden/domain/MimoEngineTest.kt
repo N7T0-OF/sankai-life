@@ -84,6 +84,31 @@ class MimoEngineTest {
         assertEquals(MimoEngine.ACTIONS_MAX_PAR_OUVERTURE, actions)
     }
 
+    @Test
+    fun `le compost borne toute l'equipe apres multiplication`() {
+        val type = MimoEngine.Type.ARROSEUR
+
+        // Regression : l'ancien calcul bornait un Mimo a une action puis
+        // multipliait par cinq, ce qui depensait cinq compost quand il n'y en
+        // avait qu'un.
+        assertEquals(1, MimoEngine.actionsEquipe(type, 10_000, effectif = 5, compostDisponible = 1))
+        assertEquals(3, MimoEngine.actionsEquipe(type, 10_000, effectif = 5, compostDisponible = 3))
+    }
+
+    @Test
+    fun `chaque Mimo conserve son plafond dans le budget d'equipe`() {
+        val max = MimoEngine.ACTIONS_MAX_PAR_OUVERTURE
+        assertEquals(
+            max * 2,
+            MimoEngine.actionsEquipe(
+                MimoEngine.Type.RECOLTEUR,
+                minutesOuvrees = 100_000,
+                effectif = 2,
+                compostDisponible = 10_000
+            )
+        )
+    }
+
     // --- Rapport -----------------------------------------------------------
 
     @Test

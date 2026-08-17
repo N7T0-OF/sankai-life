@@ -2,120 +2,159 @@ package com.sankailife.ui.screens.profile
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sankailife.R
 import com.sankailife.core.domain.engine.MemorisationEngine
 import com.sankailife.ui.components.SectionTitle
 import com.sankailife.ui.theme.sankaiColors
 
-/**
- * Statistiques complètes, sorties du profil.
- *
- * Le profil doit répondre à « qui suis-je et où j'en suis » ; une dizaine de
- * compteurs empilés répondent à une autre question et noyaient la première.
- */
+/** Statistiques pédagogiques sobres, sans streak ni économie de jeu. */
 @Composable
 fun AllStatsScreen(viewModel: ProfileViewModel, onBack: () -> Unit) {
-    val user by viewModel.user.collectAsState()
-    val brut by viewModel.rawUser.collectAsState()
-    val memo by viewModel.memorisation.collectAsState()
-    val c = MaterialTheme.sankaiColors
+    val user by viewModel.user.collectAsStateWithLifecycle()
+    val memo by viewModel.memorisation.collectAsStateWithLifecycle()
+    val rhythm by viewModel.regularite.collectAsStateWithLifecycle()
+    val dailyMinutes by viewModel.dailyMinutes.collectAsStateWithLifecycle()
+    val colors = MaterialTheme.sankaiColors
 
-    Column(Modifier.fillMaxSize().background(c.background)) {
+    Column(Modifier.fillMaxSize().background(colors.background)) {
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Retour", tint = c.textPrimary)
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = stringResource(R.string.action_back),
+                    tint = colors.textPrimary
+                )
             }
-            Text("Statistiques", color = c.textPrimary,
-                fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Text(
+                stringResource(R.string.stats_title),
+                color = colors.textPrimary,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
         }
 
         Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp)
         ) {
-            SectionTitle("Progression")
-            LigneStat("Niveau actuel", "${user.level}")
-            LigneStat("XP dans le niveau", "${user.xp} / ${user.xpNext}")
-            LigneStat("Série actuelle", "${user.streakDays} jours")
-
-            // Mémorisation avant l'économie : c'est ce que l'application sert
-            // à faire. Les pièces et les coffres n'en sont que le moteur.
-            SectionTitle("Mémorisation")
-            Text(MemorisationEngine.resume(memo), color = c.textSecondary,
-                fontSize = 13.sp, modifier = Modifier.padding(bottom = 4.dp))
-            LigneStat("Phrases enregistrées", "${memo.total}")
-            LigneStat(
-                "En dernière boîte",
-                "${memo.maitrisees}" +
-                    if (memo.total > 0)
-                        " (${MemorisationEngine.pourcentage(
-                            MemorisationEngine.partMaitrisee(memo.total, memo.maitrisees))})"
-                    else ""
-            )
-            if (memo.jamaisVues > 0) LigneStat("Jamais présentées", "${memo.jamaisVues}")
-            LigneStat("Réponses données", "${memo.revisions}")
-            // Le taux reste muet tant qu'il ne veut rien dire : afficher
-            // « 100 % » après une seule bonne réponse féliciterait quelqu'un
-            // qui n'a encore rien appris.
-            val taux = MemorisationEngine.tauxReussite(memo.revisions, memo.reussites)
-            LigneStat(
-                "Taux de bonnes réponses",
-                taux?.let { MemorisationEngine.pourcentage(it) }
-                    ?: "après ${MemorisationEngine.REVISIONS_POUR_UN_TAUX} réponses"
+            SectionTitle(stringResource(R.string.stats_personal_rhythm))
+            StatRow(stringResource(R.string.stats_last_7_days), "${rhythm.sept} %")
+            StatRow(stringResource(R.string.stats_last_30_days), "${rhythm.trente} %")
+            StatRow(stringResource(R.string.stats_last_90_days), "${rhythm.quatreVingtDix} %")
+            Text(
+                stringResource(R.string.stats_no_streak),
+                color = colors.textSecondary,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(vertical = 6.dp)
             )
 
-            SectionTitle("Activité")
-            LigneStat("Temps de focus total",
-                "${user.totalFocusMinutes / 60} h ${user.totalFocusMinutes % 60} min")
-            LigneStat("Coffres ouverts", "${user.totalChestsOpened}")
-            LigneStat("Publicités vues", "${user.totalAdsWatched}")
+            SectionTitle(stringResource(R.string.stats_learning))
+            StatRow(stringResource(R.string.stats_saved_cards), memo.total.toString())
+            StatRow(stringResource(R.string.stats_mastered_cards), memo.maitrisees.toString())
+            if (memo.jamaisVues > 0) {
+                StatRow(stringResource(R.string.stats_unseen_cards), memo.jamaisVues.toString())
+            }
+            StatRow(stringResource(R.string.stats_answers), memo.revisions.toString())
+            val successRate = MemorisationEngine.tauxReussite(memo.revisions, memo.reussites)
+            StatRow(
+                stringResource(R.string.stats_success_rate),
+                successRate?.let(MemorisationEngine::pourcentage)
+                    ?: stringResource(
+                        R.string.stats_after_answers,
+                        MemorisationEngine.REVISIONS_POUR_UN_TAUX
+                    )
+            )
 
-            SectionTitle("Économie")
-            LigneStat("Pièces actuelles", "${user.coins} 🪙")
-            LigneStat("Gemmes actuelles", "${user.gems} 💎")
-            LigneStat("Pièces gagnées au total", "${brut?.totalCoinsEarned ?: 0} 🪙")
-            // Indicateur d'engagement le plus parlant : ce qui a été dépensé
-            // dit mieux que le solde si l'économie du jeu tourne vraiment.
-            LigneStat("Pièces dépensées au total", "${brut?.totalCoinsSpent ?: 0} 🪙")
+            SectionTitle(stringResource(R.string.stats_activity))
+            StatRow(
+                stringResource(R.string.stats_focus_time),
+                stringResource(
+                    R.string.stats_hours_minutes,
+                    user.totalFocusMinutes / 60,
+                    user.totalFocusMinutes % 60
+                )
+            )
 
-            SectionTitle("Capacités")
-            LigneStat("Slots de modules", "${user.moduleSlots}")
-            LigneStat("Slots de focus", "${user.focusSlots}")
-
+            SectionTitle(stringResource(R.string.stats_life_time))
+            Text(
+                if (dailyMinutes == 0) stringResource(R.string.stats_no_time_target)
+                else pluralStringResource(
+                    R.plurals.stats_chosen_session,
+                    dailyMinutes,
+                    dailyMinutes
+                ),
+                color = colors.textSecondary,
+                fontSize = 13.sp
+            )
+            Text(
+                stringResource(R.string.stats_life_time_disclaimer),
+                color = colors.textSecondary,
+                fontSize = 11.sp,
+                modifier = Modifier.padding(top = 6.dp)
+            )
             Spacer(Modifier.height(32.dp))
         }
     }
 }
 
 @Composable
-private fun LigneStat(libelle: String, valeur: String) {
-    val c = MaterialTheme.sankaiColors
+private fun StatRow(label: String, value: String) {
+    val colors = MaterialTheme.sankaiColors
     Row(
-        Modifier.fillMaxWidth().padding(bottom = 6.dp)
-            .clip(RoundedCornerShape(10.dp)).background(c.surface2)
-            .border(0.5.dp, c.border, RoundedCornerShape(10.dp))
+        Modifier
+            .fillMaxWidth()
+            .padding(bottom = 6.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(colors.surface2)
+            .border(0.5.dp, colors.border, RoundedCornerShape(10.dp))
             .padding(horizontal = 12.dp, vertical = 11.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(libelle, color = c.textSecondary, fontSize = 13.sp)
-        Text(valeur, color = c.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        Text(
+            label,
+            color = colors.textSecondary,
+            fontSize = 13.sp,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            value,
+            color = colors.textPrimary,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(start = 12.dp)
+        )
     }
 }

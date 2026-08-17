@@ -103,29 +103,31 @@ class GardenRepository(
      * L'adjacence est revérifiée ici et pas seulement à l'affichage : c'est la
      * règle du jeu, elle doit tenir même si un écran se trompe.
      */
-    suspend fun lancerChantier(cle: Int): Boolean {
-        val parcelle = dao.parcelle(cle) ?: return false
-        if (parcelle.deblocage != ExpansionEngine.Deblocage.DECOUVERTE.name) return false
+    suspend fun lancerChantier(cle: Int): Boolean = db.withTransaction {
+        val parcelle = dao.parcelle(cle) ?: return@withTransaction false
+        if (parcelle.deblocage != ExpansionEngine.Deblocage.DECOUVERTE.name) {
+            return@withTransaction false
+        }
 
         val possedees = dao.parcelles()
             .filter { it.deblocage == ExpansionEngine.Deblocage.DEBLOQUEE.name }
             .map { it.id }.toSet()
-        if (!ExpansionEngine.estAchetable(cle, possedees)) return false
+        if (!ExpansionEngine.estAchetable(cle, possedees)) return@withTransaction false
 
         val terrain = ExpansionEngine.Terrain.parNom(parcelle.terrain)
-        if (!userRepo.spendCoins(ExpansionEngine.cout(cle, terrain))) return false
-
+        val cout = ExpansionEngine.cout(cle, terrain)
         val fin = clock.now().toEpochMilli() +
             ExpansionEngine.dureeChantierMinutes(cle, terrain) * 60_000
-        dao.sauverParcelles(
-            listOf(
-                parcelle.copy(
-                    deblocage = ExpansionEngine.Deblocage.EN_CHANTIER.name,
-                    chantierFinMillis = fin
-                )
-            )
-        )
-        return true
+
+        // La reservation conditionnelle vient avant le debit. Dans cette
+        // transaction, un second appui ne peut donc ni relancer ni repayer le
+        // meme chantier.
+        if (dao.lancerChantierSiDecouverte(cle, fin) == 0) return@withTransaction false
+        if (!userRepo.spendCoins(cout)) {
+            dao.annulerChantierSiIdentique(cle, fin)
+            return@withTransaction false
+        }
+        true
     }
 
     /** Termine les chantiers arrivés à échéance. @return le nombre livré. */
@@ -137,16 +139,10 @@ class GardenRepository(
         }
         if (finis.isEmpty()) return 0
 
-        dao.sauverParcelles(
-            finis.map {
-                it.copy(
-                    deblocage = ExpansionEngine.Deblocage.DEBLOQUEE.name,
-                    chantierFinMillis = 0L
-                )
-            }
-        )
+        val acheves = finis.count { dao.acheverChantierSiArrive(it.id, maintenant) > 0 }
+        if (acheves == 0) return 0
         revelerFrontiere()
-        return finis.size
+        return acheves
     }
 
     /**
@@ -268,12 +264,12 @@ class GardenRepository(
     private suspend fun appliquerTravailMimos(
         debutMillis: Long,
         finMillis: Long
-    ): MimoEngine.Rapport {
+    ): MimoEngine.Rapport = db.withTransaction {
         val mimos = dao.mimos()
-        if (mimos.isEmpty()) return MimoEngine.Rapport()
+        if (mimos.isEmpty()) return@withTransaction MimoEngine.Rapport()
 
         val minutes = MimoEngine.minutesOuvrees(debutMillis, finMillis)
-        if (minutes <= 0) return MimoEngine.Rapport()
+        if (minutes <= 0) return@withTransaction MimoEngine.Rapport()
 
         var rapport = MimoEngine.Rapport()
         var manqueCompost = false
@@ -285,7 +281,7 @@ class GardenRepository(
             if (effectif == 0) continue
 
             val compost = dao.etat()?.compost ?: 0
-            val budget = MimoEngine.actions(type, minutes, compost) * effectif
+            val budget = MimoEngine.actionsEquipe(type, minutes, effectif, compost)
             if (budget == 0) {
                 if (compost <= 0) manqueCompost = true
                 continue
@@ -300,7 +296,9 @@ class GardenRepository(
             }
             if (bilan.actions == 0) continue
 
-            depenserCompost(bilan.actions * MimoEngine.COMPOST_PAR_ACTION)
+            check(depenserCompost(bilan.actions * MimoEngine.COMPOST_PAR_ACTION)) {
+                "Le budget compost des Mimos a change pendant la transaction."
+            }
             rapport = when (type) {
                 MimoEngine.Type.ARROSEUR -> rapport.copy(arrosages = bilan.actions)
                 MimoEngine.Type.RECOLTEUR -> rapport.copy(recoltes = bilan.actions)
@@ -310,7 +308,7 @@ class GardenRepository(
                 MimoEngine.Type.PLANTEUR -> rapport.copy(plantations = bilan.actions)
             }
         }
-        return rapport.copy(compostManquant = manqueCompost)
+        rapport.copy(compostManquant = manqueCompost)
     }
 
     /**
@@ -329,11 +327,8 @@ class GardenRepository(
         return if (rangees == 0) Bilan(0) else Bilan(actions = 1, effet = rangees)
     }
 
-    private suspend fun depenserCompost(quantite: Int) {
-        dao.etat()?.let {
-            dao.sauverEtat(it.copy(compost = (it.compost - quantite).coerceAtLeast(0)))
-        }
-    }
+    private suspend fun depenserCompost(quantite: Int): Boolean =
+        quantite > 0 && dao.depenserCompostSiAssez(quantite) > 0
 
     /**
      * Arrose ce qui a soif, et seulement ça.
@@ -480,12 +475,16 @@ class GardenRepository(
      * pas d'inventaire de graines dans le prototype, une transaction de moins
      * à réconcilier.
      */
-    suspend fun planter(plotId: Int, seedId: String): Boolean {
-        val parcelle = dao.parcelle(plotId) ?: return false
-        if (parcelle.etat != PlotState.EMPTY.name) return false
-        val graine = seedParId(seedId) ?: return false
-        if (dao.cultureSurParcelle(plotId) != null) return false
-        if (!userRepo.spendCoins(graine.prixPieces)) return false
+    suspend fun planter(plotId: Int, seedId: String): Boolean = db.withTransaction {
+        val graine = seedParId(seedId) ?: return@withTransaction false
+        if (dao.commencerPlantationSiVide(plotId) == 0) return@withTransaction false
+
+        // La parcelle est reservee dans la meme transaction. Si le solde ne
+        // suffit pas, on rend uniquement cette reservation encore vide.
+        if (!userRepo.spendCoins(graine.prixPieces)) {
+            dao.annulerPlantationSansCulture(plotId)
+            return@withTransaction false
+        }
 
         val maintenant = clock.now().toEpochMilli()
         dao.insererCulture(
@@ -497,8 +496,7 @@ class GardenRepository(
                 arrosages = 1
             )
         )
-        dao.majEtatParcelle(plotId, PlotState.GROWING.name)
-        return true
+        true
     }
 
     /**
@@ -511,27 +509,29 @@ class GardenRepository(
      * Une parcelle vide peut être arrosée — préparer la terre avant de semer
      * est un geste légitime, l'interdire n'apprendrait rien à personne.
      */
-    suspend fun arroser(plotId: Int, assiste: Boolean = false): Boolean {
-        val etat = dao.etat() ?: return false
-        if (etat.eau < 1) return false
-        val parcelle = dao.parcelle(plotId) ?: return false
-        if (parcelle.deblocage != ExpansionEngine.Deblocage.DEBLOQUEE.name) return false
+    suspend fun arroser(plotId: Int, assiste: Boolean = false): Boolean = db.withTransaction {
+        val parcelle = dao.parcelle(plotId) ?: return@withTransaction false
+        if (parcelle.deblocage != ExpansionEngine.Deblocage.DEBLOQUEE.name) {
+            return@withTransaction false
+        }
 
         val culture = dao.cultureSurParcelle(plotId)
         val graine = culture?.let { seedParId(it.seedId) }
 
         // L'assistance évite le gaspillage et, pour un cactus, le dégât.
-        if (assiste && !MoistureEngine.aBesoinDEau(parcelle.humidite, graine)) return false
-        if (parcelle.humidite >= 0.99f) return false
+        if (assiste && !MoistureEngine.aBesoinDEau(parcelle.humidite, graine)) {
+            return@withTransaction false
+        }
+        if (parcelle.humidite >= 0.99f) return@withTransaction false
 
+        // Le debit conditionnel et l'effet vivent dans la meme transaction :
+        // deux appels ne peuvent partager la meme unite d'eau ni ecraser le
+        // compteur d'arrosages de l'autre.
+        if (dao.depenserEauSiAssez(1) == 0) return@withTransaction false
         val maintenant = clock.now().toEpochMilli()
         dao.majHumidite(plotId, MoistureEngine.apresArrosage(parcelle.humidite), maintenant)
-
-        culture?.let {
-            dao.majCulture(it.copy(dernierArrosageMillis = maintenant, arrosages = it.arrosages + 1))
-        }
-        dao.sauverEtat(etat.copy(eau = etat.eau - 1))
-        return true
+        if (culture != null) dao.enregistrerArrosage(plotId, maintenant)
+        true
     }
 
     /** Ce qu'une récolte a produit, pour que l'écran puisse la nommer. */
@@ -579,7 +579,7 @@ class GardenRepository(
 
     /** Crédite du compost acheté. Il n'a pas de plafond. */
     suspend fun ajouterCompost(quantite: Int) {
-        dao.etat()?.let { dao.sauverEtat(it.copy(compost = it.compost + quantite)) }
+        if (quantite > 0) dao.crediterCompost(quantite)
     }
 
     /** Améliore l'arrosoir d'un niveau. */
@@ -621,12 +621,12 @@ class GardenRepository(
      * @return la récolte produite, ou null si la plante n'est pas prête ou si
      *         le terrain est saturé de caisses.
      */
-    suspend fun recolter(plotId: Int): Recolte? {
-        if (DepotEngine.terrainSature(dao.nombreCaisses())) return null
+    suspend fun recolter(plotId: Int): Recolte? = db.withTransaction {
+        if (DepotEngine.terrainSature(dao.nombreCaisses())) return@withTransaction null
 
-        val culture = dao.cultureSurParcelle(plotId) ?: return null
-        val graine = seedParId(culture.seedId) ?: return null
-        val parcelle = dao.parcelle(plotId) ?: return null
+        val culture = dao.cultureSurParcelle(plotId) ?: return@withTransaction null
+        val graine = seedParId(culture.seedId) ?: return@withTransaction null
+        val parcelle = dao.parcelle(plotId) ?: return@withTransaction null
         val sol = SoilType.parId(parcelle.solId)
 
         val maintenant = clock.now().toEpochMilli()
@@ -634,7 +634,7 @@ class GardenRepository(
         val etatCulture = CropGrowthEngine.etat(
             graine, sol, culture.minutesCumulees, minutesDepuisArrosage
         )
-        if (!etatCulture.prete) return null
+        if (!etatCulture.prete) return@withTransaction null
 
         val duree = CropGrowthEngine.dureeTotaleMinutes(graine, sol)
         val qualite = CropGrowthEngine.qualite(
@@ -643,11 +643,15 @@ class GardenRepository(
             revisionsPendantCulture = culture.revisionsPendantCulture
         )
 
-        dao.marquerRecoltee(culture.id)
+        // Le marqueur conditionnel est le verrou de la recolte. Une seconde
+        // transaction ne peut poser ni caisse ni compost pour la meme plante.
+        if (dao.marquerRecolteeSiActive(culture.id) == 0) return@withTransaction null
         // La terre sort usée d'une récolte : elle doit être labourée avant
         // d'accueillir une nouvelle graine. Sans cette étape, la houe n'aurait
         // aucun usage et le cycle se réduirait à semer-récolter en boucle.
-        dao.majEtatParcelle(plotId, PlotState.UNCLEARED.name)
+        check(dao.terminerRecolteSiEnCroissance(plotId) > 0) {
+            "La parcelle a change d'etat pendant la recolte."
+        }
         dao.poserCaisse(
             GardenCrateEntity(
                 seedId = graine.id,
@@ -657,8 +661,8 @@ class GardenRepository(
         )
 
         // Un peu de compost à chaque récolte, pour amorcer l'économie.
-        dao.etat()?.let { dao.sauverEtat(it.copy(compost = it.compost + 1)) }
-        return Recolte(graine, qualite)
+        dao.crediterCompost(1)
+        Recolte(graine, qualite)
     }
 
     // --- Dépôt central ----------------------------------------------------

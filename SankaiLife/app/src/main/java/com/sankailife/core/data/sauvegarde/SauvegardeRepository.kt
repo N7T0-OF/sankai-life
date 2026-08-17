@@ -8,7 +8,7 @@ import com.sankailife.core.data.archive.BoundedZipReader
 import com.sankailife.core.data.db.SankaiDatabase
 import com.sankailife.core.data.db.entities.*
 import com.sankailife.core.garden.data.*
-import com.sankailife.core.notifications.CoffreAlarmReceiver
+import com.sankailife.core.notifications.NotificationCoordinator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -279,7 +279,7 @@ class SauvegardeRepository(
             }
         }
         if (SauvegardeEngine.Section.COFFRES in aFaire) {
-            CoffreAlarmReceiver.replanifierTous(contexte)
+            NotificationCoordinator.reconcile(contexte)
         }
         aFaire
     }

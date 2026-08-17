@@ -12,25 +12,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sankailife.R
 import com.sankailife.ui.components.*
 import com.sankailife.ui.navigation.Screen
-import com.sankailife.ui.screens.arenas.CarteResumeArene
 import com.sankailife.ui.theme.*
 
 @Composable
 fun ProfileScreen(viewModel: ProfileViewModel, onNavigate: (String) -> Unit) {
-    val user    by viewModel.user.collectAsState()
-    val rawUser by viewModel.rawUser.collectAsState()
-    val arenesAReclamer by viewModel.arenesAReclamer.collectAsState()
-    val nomThemeEquipe by viewModel.nomThemeEquipe.collectAsState()
-    val regularite by viewModel.regularite.collectAsState()
+    val user    by viewModel.user.collectAsStateWithLifecycle()
+    val nomThemeEquipe by viewModel.nomThemeEquipe.collectAsStateWithLifecycle()
+    val regularite by viewModel.regularite.collectAsStateWithLifecycle()
+    val memorisation by viewModel.memorisation.collectAsStateWithLifecycle()
+    val minimalMode by viewModel.minimalMode.collectAsStateWithLifecycle()
     val c = MaterialTheme.sankaiColors
 
     Column(Modifier.fillMaxSize().background(c.background)) {
-        ResourceBar(user.level, user.xp, user.xpNext, user.coins, user.gems)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
 
             // Avatar + header
@@ -44,65 +45,51 @@ fun ProfileScreen(viewModel: ProfileViewModel, onNavigate: (String) -> Unit) {
                     Spacer(Modifier.height(12.dp))
                     Text(user.pseudo, color = c.textPrimary, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(8.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Box(Modifier.clip(RoundedCornerShape(8.dp)).background(AccentViolet).padding(horizontal = 10.dp, vertical = 4.dp)) {
-                            Text("LVL ${user.level}", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    if (minimalMode) {
+                        Text(
+                            stringResource(R.string.profile_rhythm_summary, regularite.sept),
+                            color = c.textSecondary,
+                            fontSize = 12.sp
+                        )
+                    } else {
+                        Box(Modifier.clip(RoundedCornerShape(8.dp)).background(AccentViolet)
+                            .padding(horizontal = 10.dp, vertical = 4.dp)) {
+                            Text(stringResource(R.string.profile_level, user.level), color = Color.White, fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold)
                         }
-                        StreakBadge(user.streakDays)
+                        Spacer(Modifier.height(12.dp))
+                        XpBar(user.xp, user.xpNext, Modifier.fillMaxWidth())
                     }
-                    Spacer(Modifier.height(12.dp))
-                    XpBar(user.xp, user.xpNext, Modifier.fillMaxWidth())
-                    Spacer(Modifier.height(4.dp))
-                    Text("${user.xp} / ${user.xpNext} XP — Level ${user.level + 1} dans ${user.xpNext - user.xp} XP",
-                        color = c.textSecondary, fontSize = 11.sp)
                 }
             }
-
-            SectionTitle("Progression")
-            CarteResumeArene(
-                niveau = user.level,
-                nombreAReclamer = arenesAReclamer,
-                onVoirParcours = { onNavigate(Screen.Arenas.route) }
-            )
 
             // Régularité : trois indicateurs plutôt qu'un compteur unique.
             // Un jour manqué casse la série mais laisse la régularité et le
             // record intacts — le sentiment de progression survit à l'accident.
-            SectionTitle("Régularité")
+            SectionTitle(stringResource(R.string.stats_personal_rhythm))
             Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(c.surface2)
                 .border(1.dp, c.border, RoundedCornerShape(16.dp)).padding(14.dp)) {
                 Column {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Série actuelle", color = c.textSecondary, fontSize = 13.sp)
-                        Text("🔥 ${user.streakDays} jours", color = WarningAmber,
+                        Text(stringResource(R.string.stats_last_7_days), color = c.textSecondary, fontSize = 13.sp)
+                        Text("${regularite.sept} %", color = SuccessGreen,
                             fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                     Spacer(Modifier.height(6.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Meilleure série", color = c.textSecondary, fontSize = 13.sp)
-                        Text("${user.bestStreak} jours", color = c.textPrimary,
+                        Text(stringResource(R.string.stats_last_30_days), color = c.textSecondary, fontSize = 13.sp)
+                        Text("${regularite.trente} %", color = c.textPrimary,
                             fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     }
                     Spacer(Modifier.height(6.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Régularité 30 jours", color = c.textSecondary, fontSize = 13.sp)
-                        Text("${regularite.trente} %", color = SuccessGreen,
+                        Text(stringResource(R.string.stats_last_90_days), color = c.textSecondary, fontSize = 13.sp)
+                        Text("${regularite.quatreVingtDix} %", color = c.textPrimary,
                             fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                    }
-                    Spacer(Modifier.height(6.dp))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Boucliers", color = c.textSecondary, fontSize = 13.sp)
-                        Text(
-                            if (user.streakShields > 0) "🛡️ ".repeat(user.streakShields).trim()
-                            else "aucun",
-                            color = if (user.streakShields > 0) AccentViolet else c.textDisabled,
-                            fontSize = 13.sp, fontWeight = FontWeight.SemiBold
-                        )
                     }
                     Spacer(Modifier.height(10.dp))
                     Text(
-                        "Un bouclier absorbe une journée manquée sans casser ta série. " +
-                        "Tu en gagnes un tous les 7 jours consécutifs.",
+                        stringResource(R.string.stats_no_streak),
                         color = c.textDisabled, fontSize = 11.sp
                     )
                 }
@@ -110,12 +97,28 @@ fun ProfileScreen(viewModel: ProfileViewModel, onNavigate: (String) -> Unit) {
 
             // Quatre statistiques seulement : au-delà, l'écran devient un
             // tableau de bord et on ne lit plus rien. Le reste est à un clic.
-            SectionTitle("Statistiques")
+            SectionTitle(stringResource(R.string.stats_title))
             val principales = listOf(
-                Triple("${user.streakDays}j", "Série", WarningAmber),
-                Triple("${user.totalFocusMinutes / 60}h${user.totalFocusMinutes % 60}", "Focus", AccentViolet),
-                Triple("${user.totalChestsOpened}", "Coffres", CoinColor),
-                Triple("${user.totalAdsWatched}", "Pubs vues", SuccessGreen)
+                Triple("${regularite.sept}%", stringResource(R.string.profile_metric_rhythm), SuccessGreen),
+                Triple(
+                    stringResource(
+                        R.string.stats_hours_minutes,
+                        user.totalFocusMinutes / 60,
+                        user.totalFocusMinutes % 60
+                    ),
+                    stringResource(R.string.profile_metric_focus),
+                    AccentViolet
+                ),
+                Triple(
+                    "${memorisation.maitrisees}/${memorisation.total}",
+                    stringResource(R.string.stats_mastered_cards),
+                    c.accent
+                ),
+                Triple(
+                    "${memorisation.revisions}",
+                    stringResource(R.string.profile_metric_reviews),
+                    c.textPrimary
+                )
             )
             principales.chunked(2).forEach { ligne ->
                 Row(Modifier.fillMaxWidth().padding(bottom = 8.dp),
@@ -132,14 +135,16 @@ fun ProfileScreen(viewModel: ProfileViewModel, onNavigate: (String) -> Unit) {
                     }
                 }
             }
-            SankaiButton("Voir toutes les statistiques",
-                onClick = { onNavigate(Screen.AllStats.route) },
-                secondary = true, small = true, modifier = Modifier.fillMaxWidth())
+            if (!minimalMode) {
+                SankaiButton(stringResource(R.string.profile_all_stats),
+                    onClick = { onNavigate(Screen.AllStats.route) },
+                    secondary = true, small = true, modifier = Modifier.fillMaxWidth())
+            }
 
             // La collection complète vit dans son propre écran : l'afficher
             // ici transformait le profil en catalogue, majoritairement
             // composé d'éléments verrouillés.
-            SectionTitle("Personnalisation")
+            SectionTitle(stringResource(R.string.profile_customization))
             Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(c.surface2)
                 .border(1.dp, c.border, RoundedCornerShape(16.dp))
                 .clickable { onNavigate(Screen.Customization.route) }
@@ -148,17 +153,17 @@ fun ProfileScreen(viewModel: ProfileViewModel, onNavigate: (String) -> Unit) {
                     Text("🎨", fontSize = 26.sp)
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text("Thème équipé", color = c.textSecondary, fontSize = 11.sp)
+                        Text(stringResource(R.string.profile_equipped_theme), color = c.textSecondary, fontSize = 11.sp)
                         Text(nomThemeEquipe, color = c.textPrimary,
                             fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     }
-                    Text("Personnaliser", color = c.accent,
+                    Text(stringResource(R.string.profile_customize), color = c.accent,
                         fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
 
             Spacer(Modifier.height(12.dp))
-            SankaiButton("⚙️ Paramètres", onClick = { onNavigate(Screen.Settings.route) },
+            SankaiButton(stringResource(R.string.settings_title), onClick = { onNavigate(Screen.Settings.route) },
                 secondary = true, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(24.dp))
         }
@@ -179,16 +184,19 @@ fun ThemeRow(theme: com.sankailife.core.domain.model.Theme, isUnlocked: Boolean,
         Column(Modifier.weight(1f)) {
             Text(theme.name, color = if (isUnlocked) c.textPrimary else c.textSecondary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
             if (!isUnlocked) Text(
-                when(theme.unlockType) { "level" -> "Niveau ${theme.unlockLevel}"; "chest_rare" -> "Drop coffre rare"; else -> "Drop coffre épique" },
+                when(theme.unlockType) {
+                    "level" -> stringResource(R.string.profile_unlock_level, theme.unlockLevel)
+                    else -> ""
+                },
                 color = c.textDisabled, fontSize = 11.sp
             )
         }
         if (isEquipped) {
             Box(Modifier.clip(RoundedCornerShape(8.dp)).background(c.accent.copy(0.2f)).padding(horizontal = 10.dp, vertical = 4.dp)) {
-                Text("Équipé", color = c.accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.profile_equipped), color = c.accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             }
         } else if (isUnlocked) {
-            SankaiButton("Appliquer", onClick = onEquip, small = true, secondary = true)
+            SankaiButton(stringResource(R.string.profile_apply), onClick = onEquip, small = true, secondary = true)
         } else {
             Icon(Icons.Filled.Lock, null, tint = c.textDisabled, modifier = Modifier.size(18.dp))
         }

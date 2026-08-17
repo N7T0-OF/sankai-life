@@ -12,6 +12,7 @@ import com.sankailife.core.domain.engine.MemoEngine
 import com.sankailife.core.domain.engine.PartageMemoEngine
 import com.sankailife.core.data.repository.MemoActivationRepository
 import com.sankailife.core.notifications.MemoAlarmScheduler
+import com.sankailife.core.notifications.NotificationCoordinator
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
@@ -389,7 +390,7 @@ class MemoViewModel(application: Application) : AndroidViewModel(application) {
     fun messageAffiche() { _message.value = "" }
 
     private suspend fun replanifier() {
-        runCatching { MemoAlarmScheduler.replanifierTout(app) }
+        runCatching { NotificationCoordinator.reconcile(app) }
     }
 
     companion object {

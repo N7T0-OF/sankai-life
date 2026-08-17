@@ -30,12 +30,11 @@ class AtteignabiliteTest {
      *
      * Y ajouter une ligne est une décision, et c'est le but : on ne rend pas un
      * écran inaccessible par distraction, on l'assume par écrit.
+     *
+     * Vide depuis la refonte : les écrans de jeu (Île, Jardin, Arènes,
+     * Extensions) ont été retirés du produit, pas simplement cachés.
      */
-    private val orphelinsAssumes = mapOf(
-        "Garden" to
-            "Remplacé par l'Île. L'écran survit en attendant la suppression du " +
-                "Jardin, qui ne peut pas se faire tant que l'Île dépend de ses moteurs."
-    )
+    private val orphelinsAssumes = emptyMap<String, String>()
 
     private fun racineSources(): File {
         var dossier = File("").absoluteFile

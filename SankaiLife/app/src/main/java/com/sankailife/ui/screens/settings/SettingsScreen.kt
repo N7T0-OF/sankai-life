@@ -18,6 +18,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sankailife.R
 import com.sankailife.core.haptics.LocalHaptics
 import com.sankailife.core.ads.PrivacyConsentManager
 import com.sankailife.core.notifications.QuietHours
@@ -38,23 +41,30 @@ fun SettingsScreen(
      */
     @Suppress("UNUSED_PARAMETER") onGererThemes: () -> Unit = {}
 ) {
-    val themeMode   by viewModel.themeMode.collectAsState()
-    val showLabels  by viewModel.showNavLabels.collectAsState()
-    val vibrations  by viewModel.vibrations.collectAsState()
-    val notifs      by viewModel.notifications.collectAsState()
-    val battery     by viewModel.batterySaver.collectAsState()
-    val graphicsQuality by viewModel.graphicsQuality.collectAsState()
-    val lectureAuto by viewModel.lectureAuto.collectAsState()
-    val vitesseVoix by viewModel.vitesseVoix.collectAsState()
-    val repetitions by viewModel.repetitionsVoix.collectAsState()
-    val streak      by viewModel.streakReminder.collectAsState()
-    val quietOn     by viewModel.quietEnabled.collectAsState()
-    val quietStart  by viewModel.quietStart.collectAsState()
-    val quietEnd    by viewModel.quietEnd.collectAsState()
-    val diag        by viewModel.diagnostic.collectAsState()
-    val enLigne     by viewModel.isOnline.collectAsState()
-    val etatMaj     by viewModel.maj.collectAsState()
-    val optionsConfidentialite by PrivacyConsentManager.optionsRequises.collectAsState()
+    val themeMode   by viewModel.themeMode.collectAsStateWithLifecycle()
+    val showLabels  by viewModel.showNavLabels.collectAsStateWithLifecycle()
+    val vibrations  by viewModel.vibrations.collectAsStateWithLifecycle()
+    val notifs      by viewModel.notifications.collectAsStateWithLifecycle()
+    val battery     by viewModel.batterySaver.collectAsStateWithLifecycle()
+    val lectureAuto by viewModel.lectureAuto.collectAsStateWithLifecycle()
+    val vitesseVoix by viewModel.vitesseVoix.collectAsStateWithLifecycle()
+    val repetitions by viewModel.repetitionsVoix.collectAsStateWithLifecycle()
+    val quietOn     by viewModel.quietEnabled.collectAsStateWithLifecycle()
+    val quietStart  by viewModel.quietStart.collectAsStateWithLifecycle()
+    val quietEnd    by viewModel.quietEnd.collectAsStateWithLifecycle()
+    val minimalMode by viewModel.minimalMode.collectAsStateWithLifecycle()
+    val dailyMinutes by viewModel.dailyMinutes.collectAsStateWithLifecycle()
+    val notificationMax by viewModel.notificationDailyMax.collectAsStateWithLifecycle()
+    val notificationPauseUntil by viewModel.notificationPauseUntil.collectAsStateWithLifecycle()
+    val weekendQuiet by viewModel.weekendQuiet.collectAsStateWithLifecycle()
+    val notifyLearning by viewModel.notifyLearning.collectAsStateWithLifecycle()
+    val notifyMemo by viewModel.notifyMemo.collectAsStateWithLifecycle()
+    val notifyCulture by viewModel.notifyCulture.collectAsStateWithLifecycle()
+    val notifyFocus by viewModel.notifyFocus.collectAsStateWithLifecycle()
+    val diag        by viewModel.diagnostic.collectAsStateWithLifecycle()
+    val enLigne     by viewModel.isOnline.collectAsStateWithLifecycle()
+    val etatMaj     by viewModel.maj.collectAsStateWithLifecycle()
+    val optionsConfidentialite by PrivacyConsentManager.optionsRequises.collectAsStateWithLifecycle()
     val c = MaterialTheme.sankaiColors
     val contexte = LocalContext.current
 
@@ -68,15 +78,15 @@ fun SettingsScreen(
     if (showReset) {
         AlertDialog(
             onDismissRequest = { showReset = false; resetCount = 0 },
-            title = { Text("Réinitialiser ?", color = c.textPrimary, fontWeight = FontWeight.Bold) },
-            text  = { Text("Toute ta progression sera perdue. Cette action est irréversible. Appuie 3× pour confirmer.", color = c.textSecondary) },
+            title = { Text(stringResource(R.string.settings_reset_game_title), color = c.textPrimary, fontWeight = FontWeight.Bold) },
+            text  = { Text(stringResource(R.string.settings_reset_game_body), color = c.textSecondary) },
             confirmButton = {
                 TextButton(onClick = {
                     resetCount++
                     if (resetCount >= 3) { viewModel.resetProgress(); showReset = false; resetCount = 0 }
-                }) { Text("Confirmer (${3 - resetCount}×)", color = DangerRed, fontWeight = FontWeight.Bold) }
+                }) { Text(stringResource(R.string.settings_reset_confirm, 3 - resetCount), color = DangerRed, fontWeight = FontWeight.Bold) }
             },
-            dismissButton = { TextButton(onClick = { showReset = false; resetCount = 0 }) { Text("Annuler") } },
+            dismissButton = { TextButton(onClick = { showReset = false; resetCount = 0 }) { Text(stringResource(R.string.action_cancel)) } },
             containerColor = c.surface2
         )
     }
@@ -90,12 +100,52 @@ fun SettingsScreen(
 
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
 
+            SectionTitle(stringResource(R.string.wellbeing_title))
+            SettingsCard {
+                SettingToggle(
+                    stringResource(R.string.wellbeing_minimal_mode),
+                    minimalMode,
+                    viewModel::setMinimalMode
+                )
+                Text(
+                    stringResource(R.string.wellbeing_minimal_hint),
+                    color = c.textSecondary,
+                    fontSize = 11.sp
+                )
+                Spacer(Modifier.height(14.dp))
+                Text(
+                    stringResource(R.string.wellbeing_daily_time),
+                    color = c.textPrimary,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    listOf(2, 5, 10, 15).forEach { minutes ->
+                        FilterChip(
+                            selected = dailyMinutes == minutes,
+                            onClick = { viewModel.setDailyMinutes(minutes) },
+                            label = { Text("$minutes min", fontSize = 11.sp) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+                FilterChip(
+                    selected = dailyMinutes == 0,
+                    onClick = { viewModel.setDailyMinutes(0) },
+                    label = { Text(stringResource(R.string.wellbeing_no_goal)) }
+                )
+            }
+
             // Thème
             SectionTitle("Langue")
             SettingsCard { LangueSection() }
 
             SectionTitle("Apparence")
-            val palette by viewModel.palette.collectAsState()
+            val palette by viewModel.palette.collectAsStateWithLifecycle()
             val dynamiqueDispo = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
             // Les palettes sont parties dans Profil, Personnalisation.
@@ -187,61 +237,65 @@ fun SettingsScreen(
                 Spacer(Modifier.height(12.dp))
                 SettingToggle("Afficher labels navigation", showLabels) { viewModel.setShowNavLabels(it) }
                 SettingToggle("Mode économie batterie", battery) { viewModel.setBatterySaver(it) }
-                Spacer(Modifier.height(10.dp))
-                Text(
-                    "Qualité du Jardin",
-                    color = c.textPrimary,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(Modifier.height(8.dp))
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    listOf(
-                        "low" to "Faible",
-                        "normal" to "Normale",
-                        "high" to "Élevée"
-                    ).forEach { (id, label) ->
-                        val selected = graphicsQuality == id
-                        Box(
-                            Modifier.weight(1f)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(if (selected) c.accent.copy(0.15f) else c.surface3)
-                                .border(
-                                    1.dp,
-                                    if (selected) c.accent else c.border,
-                                    RoundedCornerShape(10.dp)
-                                )
-                                .clickable { viewModel.setGraphicsQuality(id) }
-                                .padding(vertical = 9.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                label,
-                                color = if (selected) c.accent else c.textSecondary,
-                                fontSize = 11.sp,
-                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
-                            )
-                        }
-                    }
-                }
-                if (battery) {
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        "L'économie batterie utilise temporairement la qualité faible.",
-                        color = c.textSecondary,
-                        fontSize = 11.sp
-                    )
-                }
             }
 
             SectionTitle("Notifications")
             SettingsCard {
-                SettingToggle("Notifications actives", notifs)   { viewModel.setNotifications(it) }
-                SettingToggle("Rappel streak",         streak)   { viewModel.setStreakReminder(it) }
-                SettingToggle("Vibrations interface",  vibrations) { viewModel.setVibrations(it) }
+                SettingToggle(stringResource(R.string.settings_notifications_active), notifs) { viewModel.setNotifications(it) }
+                SettingToggle(stringResource(R.string.settings_interface_vibrations), vibrations) { viewModel.setVibrations(it) }
+                if (notifs) {
+                    Spacer(Modifier.height(8.dp))
+                    SettingToggle(stringResource(R.string.wellbeing_notify_learning), notifyLearning) {
+                        viewModel.setNotifyLearning(it)
+                    }
+                    SettingToggle(stringResource(R.string.wellbeing_notify_memo), notifyMemo) {
+                        viewModel.setNotifyMemo(it)
+                    }
+                    SettingToggle(stringResource(R.string.wellbeing_notify_culture), notifyCulture) {
+                        viewModel.setNotifyCulture(it)
+                    }
+                    SettingToggle(stringResource(R.string.wellbeing_notify_focus), notifyFocus) {
+                        viewModel.setNotifyFocus(it)
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        stringResource(R.string.wellbeing_notification_limit),
+                        color = c.textPrimary,
+                        fontSize = 13.sp
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        (1..3).forEach { maximum ->
+                            FilterChip(
+                                selected = notificationMax == maximum,
+                                onClick = { viewModel.setNotificationDailyMax(maximum) },
+                                label = { Text(maximum.toString()) }
+                            )
+                        }
+                    }
+                    SettingToggle(
+                        stringResource(R.string.wellbeing_weekend_quiet),
+                        weekendQuiet,
+                        viewModel::setWeekendQuiet
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    SankaiButton(
+                        text = if (notificationPauseUntil >= java.time.LocalDate.now().toEpochDay()) {
+                            stringResource(R.string.wellbeing_resume)
+                        } else {
+                            stringResource(R.string.wellbeing_pause_7_days)
+                        },
+                        onClick = {
+                            if (notificationPauseUntil >= java.time.LocalDate.now().toEpochDay()) {
+                                viewModel.resumeNotifications()
+                            } else {
+                                viewModel.pauseNotifications(7)
+                            }
+                        },
+                        secondary = true,
+                        small = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
 
             SectionTitle("Heures silencieuses")
@@ -352,10 +406,10 @@ fun SettingsScreen(
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically) {
                     Column {
-                        Text("Réinitialiser progression", color = c.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                        Text("Efface XP, pièces, niveaux", color = c.textSecondary, fontSize = 11.sp)
+                        Text(stringResource(R.string.settings_reset_game_label), color = c.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.settings_reset_game_hint), color = c.textSecondary, fontSize = 11.sp)
                     }
-                    SankaiButton("Reset", onClick = { showReset = true; resetCount = 0 }, small = true,
+                    SankaiButton(stringResource(R.string.settings_reset_action), onClick = { showReset = true; resetCount = 0 }, small = true,
                         secondary = true)
                 }
             }

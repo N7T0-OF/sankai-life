@@ -72,6 +72,22 @@ object MemoAlarmScheduler {
     }
 
     /**
+     * Coupe réellement tous les rappels Mémo.
+     *
+     * Modifier seulement DataStore laissait auparavant les PendingIntent déjà
+     * posés réveiller l'application. Ils n'affichaient parfois rien, mais le
+     * téléphone était tout de même sollicité.
+     */
+    suspend fun annulerTout(context: Context) {
+        val dao = SankaiDatabase.getDatabase(context).memoDao()
+        val profils = runCatching { dao.getAllProfilesOnce() }.getOrElse { return }
+        profils.forEach { profil ->
+            annuler(context, profil.id)
+            runCatching { dao.updateNextTrigger(profil.id, 0L) }
+        }
+    }
+
+    /**
      * Recalcule et reprogramme l'alarme d'un module.
      * @return l'instant programmé, ou null si le module ne se déclenchera pas.
      */

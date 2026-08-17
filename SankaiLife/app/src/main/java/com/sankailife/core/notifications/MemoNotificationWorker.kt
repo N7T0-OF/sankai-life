@@ -26,7 +26,7 @@ class MemoNotificationWorker(
 
     override suspend fun doWork(): Result {
         return runCatching {
-            MemoAlarmScheduler.replanifierTout(applicationContext)
+            NotificationCoordinator.reconcile(applicationContext)
             Result.success()
         }.getOrElse { Result.retry() }
     }

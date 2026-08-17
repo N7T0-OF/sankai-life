@@ -121,6 +121,26 @@ object MimoEngine {
         return minOf(parLeTemps, parLeCompost, ACTIONS_MAX_PAR_OUVERTURE)
     }
 
+    /**
+     * Budget commun d'une equipe du meme metier.
+     *
+     * Le compost borne le groupe apres multiplication par l'effectif. Le
+     * borner Mimo par Mimo puis multiplier permettrait par exemple a cinq
+     * Mimos d'effectuer cinq actions avec une seule unite de compost.
+     */
+    fun actionsEquipe(
+        type: Type,
+        minutesOuvrees: Long,
+        effectif: Int,
+        compostDisponible: Int
+    ): Int {
+        if (effectif <= 0 || compostDisponible < COMPOST_PAR_ACTION) return 0
+        val parMimo = actions(type, minutesOuvrees, Int.MAX_VALUE)
+        val parLeTemps = parMimo.toLong() * effectif.toLong()
+        val parLeCompost = compostDisponible / COMPOST_PAR_ACTION
+        return minOf(parLeTemps, parLeCompost.toLong(), Int.MAX_VALUE.toLong()).toInt()
+    }
+
     /** Ce que les Mimos ont fait, pour le raconter au retour. */
     data class Rapport(
         val arrosages: Int = 0,

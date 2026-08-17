@@ -110,6 +110,21 @@
             android:exported="false" />
 
         <!--
+          Widget « Aujourd'hui » : la journée en un coup d'œil, sans ouvrir
+          l'application. Les données affichées restent locales.
+        -->
+        <receiver
+            android:name=".ui.widgets.AujourdhuiWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_aujourdhui_info" />
+        </receiver>
+
+        <!--
           Identifiant d'application AdMob. La valeur vient de admob.properties ;
           le build debug injecte toujours l'ID de TEST officiel de Google,
           tandis que la publication release exige les identifiants de production.
@@ -142,20 +157,14 @@
             </intent-filter>
         </receiver>
 
-        <!--
-          Annonce qu'un coffre est prêt.
-
-          Pas de filtre d'intention : l'alarme le vise directement par sa
-          classe. Un filtre le rendrait joignable par d'autres applications
-          sans rien apporter ici.
-        -->
-        <receiver
-            android:name=".core.notifications.CoffreAlarmReceiver"
-            android:exported="false" />
-
         <!-- Rappel quotidien de révision. -->
         <receiver
             android:name=".core.notifications.RevisionAlarmReceiver"
+            android:exported="false" />
+
+        <!-- Reprend les catégories locales après une pause choisie. -->
+        <receiver
+            android:name=".core.notifications.NotificationResumeReceiver"
             android:exported="false" />
 
         <!--

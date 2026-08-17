@@ -81,8 +81,7 @@ class CustomizationViewModel(application: Application) : AndroidViewModel(applic
                     conditionDeblocage = when {
                         ok -> ""
                         theme.unlockType == "level" -> "Niveau ${theme.unlockLevel}"
-                        theme.unlockType == "chest_rare" -> "Coffre rare"
-                        else -> "Coffre épique"
+                        else -> ""
                     }
                 )
             }

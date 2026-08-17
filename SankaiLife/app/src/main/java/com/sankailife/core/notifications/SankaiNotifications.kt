@@ -31,6 +31,11 @@ object SankaiNotifications {
     /** Extra posé sur l'intent quand l'app est ouverte depuis un mémo (donne de l'XP). */
     const val EXTRA_FROM_MEMO = "sankai.from_memo"
     const val EXTRA_MEMO_PROFILE_ID = "sankai.memo_profile_id"
+    const val EXTRA_DESTINATION = "sankai.destination"
+    const val DESTINATION_MEMO = "memo"
+    const val DESTINATION_CAPSULES = "capsules"
+    const val DESTINATION_ACADEMY = "academy"
+    const val DESTINATION_FOCUS = "focus"
 
     /**
      * Android 13+ exige une permission runtime. Sans elle on n'envoie rien :
@@ -48,6 +53,7 @@ object SankaiNotifications {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra(EXTRA_FROM_MEMO, true)
             putExtra(EXTRA_MEMO_PROFILE_ID, profileId)
+            putExtra(EXTRA_DESTINATION, DESTINATION_MEMO)
         }
         afficher(
             context = context,
@@ -59,21 +65,42 @@ object SankaiNotifications {
         )
     }
 
-    fun afficherRappel(context: Context, titre: String, texte: String, notificationId: Int = 2000) {
-        afficher(context, CHANNEL_REMINDER, notificationId, titre, texte)
+    fun afficherRappel(
+        context: Context,
+        titre: String,
+        texte: String,
+        notificationId: Int = 2000,
+        destination: String? = null
+    ) {
+        val intent = destination?.let { route ->
+            Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra(EXTRA_DESTINATION, route)
+            }
+        }
+        afficher(context, CHANNEL_REMINDER, notificationId, titre, texte, intent)
     }
 
     fun afficherRecompense(context: Context, titre: String, texte: String, notificationId: Int = 3000) {
         afficher(context, CHANNEL_REWARD, notificationId, titre, texte)
     }
 
-    fun afficherFinFocus(context: Context, minutes: Int, xpGagne: Int) {
+    fun afficherFinFocus(context: Context, minutes: Int) {
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra(EXTRA_DESTINATION, DESTINATION_FOCUS)
+        }
         afficher(
             context = context,
             canalId = CHANNEL_FOCUS,
             notificationId = 4000,
-            titre = "⏱️ Session terminée",
-            texte = "$minutes min de focus • +$xpGagne XP"
+            titre = context.getString(R.string.notif_focus_title),
+            texte = context.resources.getQuantityString(
+                R.plurals.notif_focus_body,
+                minutes,
+                minutes
+            ),
+            intent = intent
         )
     }
 

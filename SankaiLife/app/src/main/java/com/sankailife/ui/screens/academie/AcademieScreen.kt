@@ -20,7 +20,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -28,7 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.sankailife.ui.components.ResourceBar
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sankailife.ui.components.SankaiButton
 import com.sankailife.ui.components.SankaiCard
 import com.sankailife.ui.components.SectionTitle
@@ -53,10 +52,9 @@ fun AcademieScreen(
     viewModel: AcademieViewModel,
     onNavigate: (String) -> Unit
 ) {
-    val etat by viewModel.etat.collectAsState()
-    val utilisateur by viewModel.utilisateur.collectAsState()
-    val message by viewModel.message.collectAsState()
-    val deplies by viewModel.deplies.collectAsState()
+    val etat by viewModel.etat.collectAsStateWithLifecycle()
+    val message by viewModel.message.collectAsStateWithLifecycle()
+    val deplies by viewModel.deplies.collectAsStateWithLifecycle()
     val c = MaterialTheme.sankaiColors
     val snackbar = remember { SnackbarHostState() }
 
@@ -69,11 +67,6 @@ fun AcademieScreen(
 
     Box(Modifier.fillMaxSize().background(c.background)) {
         Column(Modifier.fillMaxSize()) {
-            ResourceBar(
-                utilisateur.level, utilisateur.xp, utilisateur.xpNext,
-                utilisateur.coins, utilisateur.gems
-            )
-
             if (etat.chargement) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = c.accent)
@@ -233,10 +226,9 @@ fun AcademieScreen(
                 SectionTitle("Outils")
                 Spacer(Modifier.height(8.dp))
 
-                val verrouFocus = com.sankailife.core.domain.engine.DeblocageEngine.verrou(
-                    com.sankailife.core.domain.engine.DeblocageEngine.Fonction.FOCUS,
-                    utilisateur.level
-                )
+                // Focus est un outil de base. Une progression de jeu ne peut
+                // plus bloquer une fonctionnalité éducative.
+                val verrouFocus: com.sankailife.core.domain.engine.DeblocageEngine.Verrou? = null
                 SankaiCard(
                     modifier = Modifier.padding(bottom = 8.dp),
                     onClick = if (verrouFocus == null) {

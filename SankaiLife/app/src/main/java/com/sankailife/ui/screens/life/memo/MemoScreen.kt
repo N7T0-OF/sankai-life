@@ -53,6 +53,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -448,7 +449,7 @@ private fun EmptyMemoLibrary(onCreate: () -> Unit) {
 @Composable
 fun CarteMesErreurs(viewModel: MemoViewModel, onReviser: () -> Unit) {
     val colors = MaterialTheme.sankaiColors
-    var count by remember { mutableStateOf(0) }
+    var count by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(Unit) { count = viewModel.nombreCartesDifficiles() }
     val summary = ErreursEngine.resume(count) ?: return

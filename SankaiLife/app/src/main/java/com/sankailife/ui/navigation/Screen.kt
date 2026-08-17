@@ -2,6 +2,8 @@ package com.sankailife.ui.navigation
 
 sealed class Screen(val route: String) {
     object Home        : Screen("home")
+    object Academy     : Screen("academy")
+    object Capsules    : Screen("capsules")
     object Life        : Screen("life")
     object Focus       : Screen("focus")
     object Memo        : Screen("memo")
@@ -9,11 +11,8 @@ sealed class Screen(val route: String) {
         fun createRoute(profileId: Long) = "memo_editor/$profileId"
     }
     object Objectives  : Screen("objectives")
-    object Arenas        : Screen("arenas")
     object Customization : Screen("customization")
     object AllStats      : Screen("stats")
-    object Garden        : Screen("garden")
-    object Island        : Screen("island")
     object Flashcards  : Screen("flashcards/{profileId}") {
         fun createRoute(profileId: Long) = "flashcards/$profileId"
     }
@@ -37,8 +36,6 @@ sealed class Screen(val route: String) {
     object Session     : Screen("session/{profileId}/{uniteId}") {
         fun createRoute(profileId: Long, uniteId: String) = "session/$profileId/$uniteId"
     }
-    object Challenges  : Screen("challenges")
-    object Shop        : Screen("shop")
     object Profile     : Screen("profile")
     object Settings    : Screen("settings")
 }

@@ -6,13 +6,13 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.sankailife.SankaiApplication
+import com.sankailife.R
 import com.sankailife.core.data.repository.UserRepository
 import com.sankailife.core.domain.engine.ExerciceEngine
 import com.sankailife.core.domain.engine.ErreursEngine
 import com.sankailife.core.domain.engine.FlashcardEngine
 import com.sankailife.core.learning.domain.AssociationEngine
 import com.sankailife.core.learning.domain.SessionPlanEngine.Type as TypeSession
-import com.sankailife.core.garden.data.GardenRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,7 +30,6 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
     private val app = application as SankaiApplication
     private val memoDao = app.database.memoDao()
     private val userRepo = UserRepository(app.database)
-    private val gardenRepo = GardenRepository(app.database, userRepo)
 
     data class EtatSession(
         val chargement: Boolean = true,
@@ -512,32 +511,19 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
         if (recompense.xpFin > 0) userRepo.addXp(recompense.xpFin)
         if (recompense.piecesFin > 0) userRepo.addCoins(recompense.piecesFin)
 
-        // Boucle éducative : les révisions alimentent réellement le jardin.
-        // Le nombre de cartes de la session sert de plafond aux gouttes, ce
-        // qui empêche de convertir des révisions anticipées en eau infinie.
-        val gain = if (recompense.alimenteJardin) runCatching {
-            gardenRepo.crediterRevisions(
-                bonnesReponses = reussies,
-                cartesDues = _etat.value.total
-            )
-        }.getOrNull() else null
-
-        val mentionEau = when {
-            gain == null -> ""
-            gain.eauCreditee > 0 -> " • +${gain.eauCreditee} 💧"
-            gain.plafondAtteint -> " • réserve d'eau du jour complète"
-            else -> ""
-        }
-
         _etat.value = _etat.value.copy(
             terminee = true,
             reussies = reussies,
             ratees = ratees,
             reponseEnCours = false,
             messageFin = if (profileId == PROFIL_ERREURS) {
-                "Entraînement terminé • progression mémorisée"
+                app.getString(R.string.flashcards_training_complete)
             } else {
-                "+${recompense.xpFin} XP • +${recompense.piecesFin} 🪙$mentionEau"
+                app.resources.getQuantityString(
+                    R.plurals.flashcards_session_complete,
+                    reussies + ratees,
+                    reussies + ratees
+                )
             }
         )
     }

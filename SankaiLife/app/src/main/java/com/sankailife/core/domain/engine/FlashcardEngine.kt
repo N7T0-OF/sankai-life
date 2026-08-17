@@ -37,8 +37,7 @@ object FlashcardEngine {
     data class RecompenseSession(
         val xpParCarte: Int,
         val xpFin: Int,
-        val piecesFin: Int,
-        val alimenteJardin: Boolean
+        val piecesFin: Int
     )
 
     /** Politique économique centrale, indépendante de l'écran. */
@@ -46,14 +45,12 @@ object FlashcardEngine {
         ModeSession.REVISION_ECHEANCES -> RecompenseSession(
             xpParCarte = XP_PAR_CARTE,
             xpFin = XP_SESSION_TERMINEE,
-            piecesFin = PIECES_SESSION_TERMINEE,
-            alimenteJardin = true
+            piecesFin = PIECES_SESSION_TERMINEE
         )
         ModeSession.ENTRAINEMENT_ERREURS -> RecompenseSession(
             xpParCarte = 0,
             xpFin = 0,
-            piecesFin = 0,
-            alimenteJardin = false
+            piecesFin = 0
         )
     }
 

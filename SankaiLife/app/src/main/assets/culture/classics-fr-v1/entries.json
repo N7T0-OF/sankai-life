@@ -1,0 +1,65 @@
+{
+  "entries": [
+    {
+      "id": "hugo-demain-des-aube",
+      "type": "POEM",
+      "title": "Demain, dès l'aube…",
+      "body": "Demain, dès l'aube, à l'heure où blanchit la campagne,\nJe partirai. Vois-tu, je sais que tu m'attends.\nJ'irai par la forêt, j'irai par la montagne.\nJe ne puis demeurer loin de toi plus longtemps.\n\nJe marcherai les yeux fixés sur mes pensées,\nSans rien voir au dehors, sans entendre aucun bruit,\nSeul, inconnu, le dos courbé, les mains croisées,\nTriste, et le jour pour moi sera comme la nuit.\n\nJe ne regarderai ni l'or du soir qui tombe,\nNi les voiles au loin descendant vers Harfleur,\nEt quand j'arriverai, je mettrai sur ta tombe\nUn bouquet de houx vert et de bruyère en fleur.",
+      "author": "Victor Hugo",
+      "authorBirthYear": 1802,
+      "authorDeathYear": 1885,
+      "workDate": "3 septembre 1847",
+      "publicationDate": "1856",
+      "countryCode": "FR",
+      "languageCode": "fr",
+      "context": "Le poème appartient au livre IV, « Pauca meæ », des Contemplations. Le texte évoque la marche de Victor Hugo vers la tombe de sa fille Léopoldine.",
+      "sourceLabel": "Victor Hugo, Les Contemplations, Wikisource",
+      "sourceUrl": "https://fr.wikisource.org/wiki/Les_Contemplations/Demain,_dès_l’aube…",
+      "rightsStatus": "PUBLIC_DOMAIN",
+      "license": "Domaine public",
+      "tags": ["poésie", "deuil", "marche", "mémoire", "romantisme"],
+      "difficulty": "STANDARD"
+    },
+    {
+      "id": "du-bellay-heureux-ulysse",
+      "type": "POEM",
+      "title": "Heureux qui, comme Ulysse…",
+      "body": "Heureux qui, comme Ulysse, a fait un beau voyage,\nOu comme cestuy-là qui conquit la toison,\nEt puis est retourné, plein d'usage et raison,\nVivre entre ses parents le reste de son âge !\n\nQuand reverrai-je, hélas, de mon petit village\nFumer la cheminée, et en quelle saison\nReverrai-je le clos de ma pauvre maison,\nQui m'est une province, et beaucoup davantage ?\n\nPlus me plaît le séjour qu'ont bâti mes aïeux,\nQue des palais Romains le front audacieux,\nPlus que le marbre dur me plaît l'ardoise fine,\n\nPlus mon Loir gaulois, que le Tibre latin,\nPlus mon petit Liré, que le mont Palatin,\nEt plus que l'air marin la douceur angevine.",
+      "author": "Joachim du Bellay",
+      "authorBirthYear": 1522,
+      "authorDeathYear": 1560,
+      "workDate": "vers 1553-1557",
+      "publicationDate": "1558",
+      "countryCode": "FR",
+      "languageCode": "fr",
+      "context": "Ce sonnet des Regrets oppose le prestige de Rome au désir de retrouver la maison et les paysages familiers d'Anjou.",
+      "sourceLabel": "Joachim du Bellay, Les Regrets, Wikisource",
+      "sourceUrl": "https://fr.wikisource.org/wiki/Les_Regrets_(1902)/Heureux_qui,_comme_Ulysse,_a_fait_un_beau_voyage",
+      "rightsStatus": "PUBLIC_DOMAIN",
+      "license": "Domaine public",
+      "tags": ["poésie", "voyage", "foyer", "renaissance"],
+      "difficulty": "STANDARD"
+    },
+    {
+      "id": "pascal-coeur-raisons",
+      "type": "QUOTE",
+      "title": "Le cœur et la raison",
+      "body": "Le cœur a ses raisons que la raison ne connaît point.",
+      "author": "Blaise Pascal",
+      "authorBirthYear": 1623,
+      "authorDeathYear": 1662,
+      "workDate": "XVIIe siècle",
+      "publicationDate": "1670",
+      "countryCode": "FR",
+      "languageCode": "fr",
+      "context": "Cette phrase des Pensées appartient à une réflexion religieuse sur les formes de connaissance. Elle est souvent isolée de ce contexte dans l'usage courant.",
+      "sourceLabel": "Blaise Pascal, Pensées, fragment 277 (édition Brunschvicg), Wikisource",
+      "sourceUrl": "https://fr.wikisource.org/wiki/Pensées/Édition_de_Port-Royal/XXVIII",
+      "rightsStatus": "PUBLIC_DOMAIN",
+      "license": "Domaine public",
+      "tags": ["citation", "philosophie", "raison", "contexte"],
+      "difficulty": "LIGHT"
+    }
+  ]
+}
+

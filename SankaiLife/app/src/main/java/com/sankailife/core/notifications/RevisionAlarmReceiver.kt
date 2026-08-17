@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.LocalTime
 import java.time.ZoneId
 
 /**
@@ -35,34 +34,48 @@ class RevisionAlarmReceiver : BroadcastReceiver() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val app = context.applicationContext as? SankaiApplication ?: return@launch
-                val prefs = app.preferences
-
-                if (!prefs.notifications.first()) return@launch
 
                 // Heures silencieuses : on ne reporte pas, on saute. Réveiller
                 // quelqu'un à 7 h pour un rappel de 23 h serait pire que de ne
                 // rien envoyer.
-                val heures = prefs.heuresSilencieuses.first()
-                val maintenant = LocalTime.now()
-                if (heures.contient(maintenant.hour * 60 + maintenant.minute)) return@launch
 
                 val dues = app.database.memoDao()
                     .compterToutesCartesDues(System.currentTimeMillis())
                     .first()
-                if (dues <= 0) return@launch
+                val learningReady = dues > 0 && app.preferences.notifyLearning.first()
+                val cultureReady = app.preferences.notifyCulture.first()
+                if (!learningReady && !cultureReady) return@launch
+                if (!NotificationPolicy.tryAcquire(
+                        context,
+                        if (learningReady) NotificationCategory.LEARNING
+                        else NotificationCategory.CULTURE
+                    )
+                ) return@launch
 
                 SankaiNotifications.afficherRappel(
                     context = context,
-                    titre = context.getString(R.string.notif_review_title),
-                    texte = if (dues == 1) context.getString(R.string.notif_review_one)
-                    else context.getString(R.string.notif_review_many, dues),
-                    notificationId = ID
+                    titre = context.getString(
+                        if (cultureReady && !learningReady) R.string.notif_culture_title
+                        else R.string.notif_review_title
+                    ),
+                    texte = when {
+                        cultureReady && learningReady -> context.getString(R.string.notif_daily_combined)
+                        cultureReady -> context.getString(R.string.notif_culture_body)
+                        dues == 1 -> context.getString(R.string.notif_review_one)
+                        else -> context.getString(R.string.notif_review_many, dues)
+                    },
+                    notificationId = ID,
+                    destination = if (cultureReady) {
+                        SankaiNotifications.DESTINATION_CAPSULES
+                    } else {
+                        SankaiNotifications.DESTINATION_ACADEMY
+                    }
                 )
             } finally {
                 // L'alarme du lendemain est reprogrammée quoi qu'il arrive :
                 // même sautée, la chaîne ne doit pas s'interrompre, sinon un
                 // seul jour sans carte due arrêterait les rappels pour de bon.
-                programmerProchaine(context)
+                runCatching { NotificationCoordinator.reconcile(context) }
                 resultat.finish()
             }
         }

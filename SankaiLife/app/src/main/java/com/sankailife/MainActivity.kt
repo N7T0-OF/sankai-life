@@ -25,8 +25,11 @@ import com.sankailife.ui.navigation.SankaiNavGraph
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import com.sankailife.ui.theme.SankaiTheme
+import kotlinx.coroutines.flow.MutableStateFlow
 
 class MainActivity : ComponentActivity() {
+
+    private val navigationRequest = MutableStateFlow<String?>(null)
 
     private val demandeNotifications =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* refus = pas de mémos, l'app marche quand même */ }
@@ -62,10 +65,12 @@ class MainActivity : ComponentActivity() {
         val haptics = AndroidHapticManager(this)
 
         lirePartage(intent)
+        lireDestination(intent)
 
         setContent {
             val themeMode by app.preferences.themeMode.collectAsState(initial = "dark")
             val vibrations by app.preferences.vibrations.collectAsState(initial = true)
+            val requestedRoute by navigationRequest.collectAsState()
 
             // Le réglage est relu à chaque changement : couper les vibrations
             // prend effet immédiatement, sans relancer l'application.
@@ -105,7 +110,10 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.background
                     ) {
-                        SankaiNavGraph()
+                        SankaiNavGraph(
+                            externalRoute = requestedRoute,
+                            onExternalRouteConsumed = { navigationRequest.value = null }
+                        )
                     }
                 }
             }
@@ -143,6 +151,7 @@ class MainActivity : ComponentActivity() {
         // faudrait la fermer avant de pouvoir importer quoi que ce soit.
         setIntent(intent)
         lirePartage(intent)
+        lireDestination(intent)
     }
 
     /**
@@ -185,6 +194,19 @@ class MainActivity : ComponentActivity() {
                     valeur = texte,
                     titre = intent.getStringExtra(android.content.Intent.EXTRA_SUBJECT).orEmpty()
                 )
+            )
+        }
+    }
+
+    private fun lireDestination(intent: android.content.Intent?) {
+        val route = intent?.getStringExtra(
+            com.sankailife.core.notifications.SankaiNotifications.EXTRA_DESTINATION
+        ) ?: return
+        if (route in setOf("memo", "capsules", "academy", "focus")) {
+            navigationRequest.value = route
+            // Une rotation ne doit pas rejouer une navigation déjà consommée.
+            intent.removeExtra(
+                com.sankailife.core.notifications.SankaiNotifications.EXTRA_DESTINATION
             )
         }
     }

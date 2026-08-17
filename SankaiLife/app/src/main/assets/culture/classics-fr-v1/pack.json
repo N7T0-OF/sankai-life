@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "classics-fr-sample",
+  "version": "1.0.0",
+  "title": "Classiques français — exemple",
+  "description": "Trois capsules sourcées du domaine public pour valider le format hors ligne.",
+  "languages": ["fr"],
+  "license": "Domaine public + métadonnées CC0-1.0",
+  "sourceLabel": "Œuvres originales et transcriptions Wikisource ; détails dans README.md",
+  "minAppVersionCode": 80,
+  "entryCount": 3,
+  "payloadBytes": 5533,
+  "files": {
+    "entries.json": "caf727b816050387255d83ef26d024b98b0b0fbb4fff846ad5bf3354c5e1c1c0",
+    "README.md": "becba72d3dd129c2f4f7250428e91dcea5732c3ef3fbfb13d0d414b281f05f9a",
+    "LICENSE": "ed1e1a9ddd06a6e85623438461f366359bc5053d9a256a767c8b18c6fade439a"
+  }
+}

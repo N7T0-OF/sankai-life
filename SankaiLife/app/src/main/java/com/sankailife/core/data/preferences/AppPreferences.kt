@@ -40,6 +40,25 @@ class AppPreferences(private val context: Context) {
         val QUIET_ENABLED    = booleanPreferencesKey("quiet_enabled")
         val QUIET_START      = intPreferencesKey("quiet_start_minutes")
         val QUIET_END        = intPreferencesKey("quiet_end_minutes")
+
+        // Bien-etre numerique : une limite choisie, jamais un objectif qui
+        // pousse a rester dans l'application.
+        val MINIMAL_MODE           = booleanPreferencesKey("minimal_mode")
+        val DAILY_MINUTES          = intPreferencesKey("daily_minutes")
+        val TODAY_COMPLETED_DATE   = stringPreferencesKey("today_completed_date")
+        val NOTIFICATION_DAILY_MAX = intPreferencesKey("notification_daily_max")
+        val NOTIFICATION_PAUSE_UNTIL = longPreferencesKey("notification_pause_until_epoch_day")
+        val WEEKEND_QUIET          = booleanPreferencesKey("weekend_quiet")
+
+        // Categories independantes. Le Jardin reste silencieux par defaut.
+        val NOTIFY_LEARNING = booleanPreferencesKey("notify_learning")
+        val NOTIFY_MEMO     = booleanPreferencesKey("notify_memo")
+        val NOTIFY_CULTURE  = booleanPreferencesKey("notify_culture")
+        val NOTIFY_FOCUS    = booleanPreferencesKey("notify_focus")
+        val NOTIFY_GARDEN   = booleanPreferencesKey("notify_garden")
+
+        val CULTURE_ORIENTATION = stringPreferencesKey("culture_orientation")
+        val CULTURE_STYLE       = stringPreferencesKey("culture_style")
     }
 
     val themeMode: Flow<String>       = pref(Keys.THEME_MODE, "dark")
@@ -77,12 +96,28 @@ class AppPreferences(private val context: Context) {
     val notifications: Flow<Boolean>  = pref(Keys.NOTIFICATIONS, true)
     val batterySaver: Flow<Boolean>   = pref(Keys.BATTERY_SAVER, false)
     val graphicsQuality: Flow<String> = pref(Keys.GRAPHICS_QUALITY, "normal")
-    val streakReminder: Flow<Boolean> = pref(Keys.STREAK_REMINDER, true)
+    val streakReminder: Flow<Boolean> = pref(Keys.STREAK_REMINDER, false)
     val focusKeepScreen: Flow<Boolean> = pref(Keys.FOCUS_KEEP_SCREEN, true)
 
-    val quietEnabled: Flow<Boolean> = pref(Keys.QUIET_ENABLED, false)
-    val quietStartMinutes: Flow<Int> = pref(Keys.QUIET_START, 23 * 60)
-    val quietEndMinutes: Flow<Int> = pref(Keys.QUIET_END, 8 * 60)
+    val quietEnabled: Flow<Boolean> = pref(Keys.QUIET_ENABLED, true)
+    val quietStartMinutes: Flow<Int> = pref(Keys.QUIET_START, 21 * 60)
+    val quietEndMinutes: Flow<Int> = pref(Keys.QUIET_END, 9 * 60)
+
+    val minimalMode: Flow<Boolean> = pref(Keys.MINIMAL_MODE, false)
+    /** 0 signifie « sans objectif ». */
+    val dailyMinutes: Flow<Int> = pref(Keys.DAILY_MINUTES, 5)
+    val todayCompletedDate: Flow<String> = pref(Keys.TODAY_COMPLETED_DATE, "")
+    val notificationDailyMax: Flow<Int> = pref(Keys.NOTIFICATION_DAILY_MAX, 1)
+    val notificationPauseUntilEpochDay: Flow<Long> =
+        pref(Keys.NOTIFICATION_PAUSE_UNTIL, 0L)
+    val weekendQuiet: Flow<Boolean> = pref(Keys.WEEKEND_QUIET, false)
+    val notifyLearning: Flow<Boolean> = pref(Keys.NOTIFY_LEARNING, true)
+    val notifyMemo: Flow<Boolean> = pref(Keys.NOTIFY_MEMO, true)
+    val notifyCulture: Flow<Boolean> = pref(Keys.NOTIFY_CULTURE, false)
+    val notifyFocus: Flow<Boolean> = pref(Keys.NOTIFY_FOCUS, true)
+    val notifyGarden: Flow<Boolean> = pref(Keys.NOTIFY_GARDEN, false)
+    val cultureOrientation: Flow<String> = pref(Keys.CULTURE_ORIENTATION, "mixed")
+    val cultureStyle: Flow<String> = pref(Keys.CULTURE_STYLE, "mixed")
 
     /** Les trois réglages ci-dessus regroupés, tels que les consomme le planificateur. */
     val heuresSilencieuses: Flow<QuietHours> =
@@ -90,9 +125,9 @@ class AppPreferences(private val context: Context) {
             if (erreur is IOException) emit(emptyPreferences()) else throw erreur
         }.map { p ->
             QuietHours(
-                enabled = p[Keys.QUIET_ENABLED] ?: false,
-                startMinute = p[Keys.QUIET_START] ?: (23 * 60),
-                endMinute = p[Keys.QUIET_END] ?: (8 * 60)
+                enabled = p[Keys.QUIET_ENABLED] ?: true,
+                startMinute = p[Keys.QUIET_START] ?: (21 * 60),
+                endMinute = p[Keys.QUIET_END] ?: (9 * 60)
             )
         }
 
@@ -144,4 +179,39 @@ class AppPreferences(private val context: Context) {
         context.dataStore.edit { it[Keys.QUIET_START] = minutes.coerceIn(0, 24 * 60 - 1) }
     suspend fun setQuietEnd(minutes: Int) =
         context.dataStore.edit { it[Keys.QUIET_END] = minutes.coerceIn(0, 24 * 60 - 1) }
+
+    suspend fun setMinimalMode(enabled: Boolean) =
+        context.dataStore.edit { it[Keys.MINIMAL_MODE] = enabled }
+
+    suspend fun setDailyMinutes(minutes: Int) = context.dataStore.edit {
+        it[Keys.DAILY_MINUTES] = minutes.takeIf { value -> value in setOf(2, 5, 10, 15) } ?: 0
+    }
+
+    suspend fun setTodayCompletedDate(date: String) =
+        context.dataStore.edit { it[Keys.TODAY_COMPLETED_DATE] = date }
+
+    suspend fun setNotificationDailyMax(maximum: Int) =
+        context.dataStore.edit { it[Keys.NOTIFICATION_DAILY_MAX] = maximum.coerceIn(1, 3) }
+
+    suspend fun setNotificationPauseUntilEpochDay(epochDay: Long) =
+        context.dataStore.edit { it[Keys.NOTIFICATION_PAUSE_UNTIL] = epochDay.coerceAtLeast(0L) }
+
+    suspend fun setWeekendQuiet(enabled: Boolean) =
+        context.dataStore.edit { it[Keys.WEEKEND_QUIET] = enabled }
+
+    suspend fun setNotifyLearning(enabled: Boolean) =
+        context.dataStore.edit { it[Keys.NOTIFY_LEARNING] = enabled }
+    suspend fun setNotifyMemo(enabled: Boolean) =
+        context.dataStore.edit { it[Keys.NOTIFY_MEMO] = enabled }
+    suspend fun setNotifyCulture(enabled: Boolean) =
+        context.dataStore.edit { it[Keys.NOTIFY_CULTURE] = enabled }
+    suspend fun setNotifyFocus(enabled: Boolean) =
+        context.dataStore.edit { it[Keys.NOTIFY_FOCUS] = enabled }
+    suspend fun setNotifyGarden(enabled: Boolean) =
+        context.dataStore.edit { it[Keys.NOTIFY_GARDEN] = enabled }
+
+    suspend fun setCultureOrientation(value: String) =
+        context.dataStore.edit { it[Keys.CULTURE_ORIENTATION] = value }
+    suspend fun setCultureStyle(value: String) =
+        context.dataStore.edit { it[Keys.CULTURE_STYLE] = value }
 }
