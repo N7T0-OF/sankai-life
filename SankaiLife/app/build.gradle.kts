@@ -8,74 +8,6 @@ plugins {
 }
 
 // ---------------------------------------------------------------------------
-// AdMob.
-//
-// Les builds DEBUG utilisent toujours les identifiants de TEST officiels de
-// Google. Ce n'est pas une commodité, c'est une protection : cliquer sur ses
-// propres publicités de production fait bannir le compte AdMob, définitivement
-// et sans recours.
-//
-// Les builds RELEASE utilisent les identifiants de production. Ce ne sont pas
-// des secrets — ils sont extractibles de n'importe quel APK distribué — mais
-// admob.properties permet de les surcharger sans toucher au code.
-// ---------------------------------------------------------------------------
-val admobProps = Properties().apply {
-    val f = rootProject.file("admob.properties")
-    if (f.exists()) f.inputStream().use { load(it) }
-}
-
-val admobTestAppId = "ca-app-pub-3940256099942544~3347511713"
-val admobTestRewardedId = "ca-app-pub-3940256099942544/5224354917"
-
-// Identifiants de production.
-//
-// Ils vivent ici en clair, et c'est assume : ils sont extractibles de
-// n'importe quel APK distribue, donc les traiter comme des secrets ne
-// protegerait rien. admob.properties permet de les surcharger sans toucher au
-// code — c'est ce que fait la chaine de publication quand les secrets GitHub
-// existent.
-//
-// Le repli sur les identifiants de TEST reste possible mais doit rester
-// visible : hasProdAdmob compare les valeurs resolues aux identifiants de
-// test, et l'application le signale via ADMOB_IS_REAL. Une release qui
-// partirait avec des pubs de test ne rapporterait rien et passerait pour
-// cassee ; ce drapeau est ce qui permet de s'en apercevoir.
-val admobProdAppId: String = admobProps.getProperty("ADMOB_APP_ID")
-    ?: "ca-app-pub-9004438844977083~6279544832"
-val admobProdRewardedId: String = admobProps.getProperty("ADMOB_REWARDED_UNIT_ID")
-    ?: "ca-app-pub-9004438844977083/8842249130"
-
-// Une simple comparaison avec les deux valeurs de test laissait passer une
-// faute de frappe, deux éditeurs différents ou n'importe quelle chaîne non
-// vide. Une release ainsi construite compile, mais ne peut jamais afficher de
-// récompense. Les formats et l'éditeur sont donc validés avant tout build
-// release ; le compte de démonstration Google reste explicitement refusé.
-val admobAppPattern = Regex("^ca-app-pub-(\\d{16})~\\d{10}$")
-val admobRewardedPattern = Regex("^ca-app-pub-(\\d{16})/\\d{10}$")
-val admobAppMatch = admobAppPattern.matchEntire(admobProdAppId)
-val admobRewardedMatch = admobRewardedPattern.matchEntire(admobProdRewardedId)
-val admobTestPublisher = "3940256099942544"
-val hasProdAdmob = admobAppMatch != null &&
-    admobRewardedMatch != null &&
-    admobAppMatch.groupValues[1] == admobRewardedMatch.groupValues[1] &&
-    admobAppMatch.groupValues[1] != admobTestPublisher
-
-val verifyReleaseAdmob = tasks.register("verifyReleaseAdmob") {
-    group = "verification"
-    description = "Vérifie les identifiants AdMob avant une compilation release."
-    doLast {
-        check(hasProdAdmob) {
-            "Identifiants AdMob release invalides : formats app/unité attendus, " +
-                "même éditeur et compte de test Google interdit."
-        }
-    }
-}
-
-tasks.matching { it.name == "preReleaseBuild" }.configureEach {
-    dependsOn(verifyReleaseAdmob)
-}
-
-// ---------------------------------------------------------------------------
 // Signature release : keystore.properties (non versionné). Sans ce fichier,
 // Gradle peut compiler un APK release non signé pour le contrôle local, mais
 // ne retombe jamais sur une clé debug trompeuse.
@@ -116,10 +48,6 @@ android {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
             isMinifyEnabled = false
-
-            manifestPlaceholders["admobAppId"] = admobTestAppId
-            buildConfigField("String", "ADMOB_REWARDED_UNIT_ID", "\"$admobTestRewardedId\"")
-            buildConfigField("boolean", "ADMOB_IS_REAL", "false")
         }
         release {
             // R8 : obscurcit le code (une décompilation ne donne plus des noms
@@ -127,10 +55,6 @@ android {
             // réduit nettement la taille de l'APK.
             isMinifyEnabled = true
             isShrinkResources = true
-
-            manifestPlaceholders["admobAppId"] = admobProdAppId
-            buildConfigField("String", "ADMOB_REWARDED_UNIT_ID", "\"$admobProdRewardedId\"")
-            buildConfigField("boolean", "ADMOB_IS_REAL", hasProdAdmob.toString())
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             if (hasReleaseKeystore) signingConfig = signingConfigs.getByName("release")
         }
@@ -187,11 +111,6 @@ dependencies {
 
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("androidx.work:work-runtime-ktx:2.10.0")
-
-    // Monétisation — pubs récompensées uniquement. L'app reste 100% utilisable
-    // sans réseau : voir AdsManager / AdsAvailability.
-    implementation("com.google.android.gms:play-services-ads:23.6.0")
-    implementation("com.google.android.ump:user-messaging-platform:4.0.0")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

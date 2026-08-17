@@ -116,9 +116,8 @@ taguer.
 ```
 SankaiLife/app/src/main/java/com/sankailife/
 ├── MainActivity.kt          point d'entrée, thème, écran de démarrage
-├── SankaiApplication.kt     canaux de notification, WorkManager, AdMob
+├── SankaiApplication.kt     canaux de notification, WorkManager
 ├── core/
-│   ├── ads/                 publicités récompensées et logique de gain
 │   ├── connectivity/        détection en ligne / hors ligne
 │   ├── notifications/       canaux, tâche mémo, planification
 │   ├── data/                Room, DataStore, dépôts
@@ -140,7 +139,7 @@ MVVM sans Hilt : les ViewModels sont créés par des factories manuelles dans
 | Base de données | Room |
 | Préférences | DataStore |
 | Tâches de fond | WorkManager |
-| Publicité | Google AdMob, récompensée uniquement |
+| Publicité | Aucune — 100 % hors ligne |
 | Android | 8.0 minimum, cible 15 |
 | Build | Gradle 8.9, AGP 8.7.3, JDK 17 |
 
@@ -155,7 +154,6 @@ prix, gains, temps de recharge, minuteurs de coffres, courbe d'expérience.
 | Guide | Sujet |
 |---|---|
 | [Ressources à fournir](exemple/RESSOURCES-A-FOURNIR.md) | Ce qu'il reste à créer : comptes, visuels, textes |
-| [Brancher Google AdMob](exemple/guides/BRANCHER-GOOGLE-ADMOB.md) | Monétisation, de A à Z |
 | [Publier sur le Play Store](exemple/guides/PUBLIER-SUR-PLAY-STORE.md) | Compte, fiche, questionnaires, test fermé |
 | [Récupérer l'APK depuis GitHub](exemple/guides/GITHUB-RECUPERER-APK.md) | Artefacts, Releases, secrets de signature |
 | [Android Studio et Cursor](exemple/guides/ANDROID-STUDIO-ET-CURSOR.md) | Modifier le code |
@@ -173,10 +171,6 @@ Volontairement exclus par [`.gitignore`](.gitignore) :
 |---|---|
 | `cles/`, `*.jks` | La clé de signature ne doit jamais être versionnée |
 | `keystore.properties` | Contient le mot de passe de la clé |
-| `admob.properties` | Contient les identifiants de monétisation |
 | `outils/` | Toolchain d'environ 1 Go, réinstallable en une commande |
 | `dist/` | Les APK sont régénérables |
 
-Sans `admob.properties`, l'application compile avec les identifiants de **test**
-officiels de Google : de vraies publicités s'affichent, elles ne rapportent
-simplement rien.

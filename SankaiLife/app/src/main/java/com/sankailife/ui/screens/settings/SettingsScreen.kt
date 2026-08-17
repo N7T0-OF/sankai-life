@@ -22,7 +22,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sankailife.R
 import com.sankailife.core.haptics.LocalHaptics
-import com.sankailife.core.ads.PrivacyConsentManager
 import com.sankailife.core.notifications.QuietHours
 import com.sankailife.ui.components.SankaiButton
 import com.sankailife.ui.components.SectionTitle
@@ -64,7 +63,6 @@ fun SettingsScreen(
     val diag        by viewModel.diagnostic.collectAsStateWithLifecycle()
     val enLigne     by viewModel.isOnline.collectAsStateWithLifecycle()
     val etatMaj     by viewModel.maj.collectAsStateWithLifecycle()
-    val optionsConfidentialite by PrivacyConsentManager.optionsRequises.collectAsStateWithLifecycle()
     val c = MaterialTheme.sankaiColors
     val contexte = LocalContext.current
 
@@ -369,29 +367,6 @@ fun SettingsScreen(
                         "Ces liens sont les seules parties de l'app qui ont besoin " +
                         "d'internet. Tout le reste fonctionne hors ligne.",
                         color = c.textSecondary, fontSize = 11.sp
-                    )
-                }
-            }
-
-            if (optionsConfidentialite) {
-                SectionTitle("Confidentialité")
-                SettingsCard {
-                    Text(
-                        "Gérer le choix de confidentialité utilisé uniquement " +
-                            "pour les publicités récompensées facultatives.",
-                        color = c.textSecondary,
-                        fontSize = 12.sp
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    SankaiButton(
-                        "Options de confidentialité",
-                        onClick = {
-                            (contexte as? Activity)?.let { activity ->
-                                PrivacyConsentManager.afficherOptions(activity)
-                            }
-                        },
-                        secondary = true,
-                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }

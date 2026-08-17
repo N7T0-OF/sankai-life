@@ -87,7 +87,7 @@ pièces. La progression est lente et honnête : l'expérience ne s'achète pas e
 ne se booste pas.
 
 🔌 100 % HORS LIGNE
-Tout fonctionne en mode avion : mémos, focus, défis, coffres, niveaux. Aucune
+Tout fonctionne en mode avion : mémos, révisions, focus, capsules. Aucune
 donnée n'est envoyée sur un serveur. Rien n'est stocké ailleurs que sur ton
 téléphone.
 
@@ -95,8 +95,8 @@ téléphone.
 Thème sombre AMOLED, thème clair, ou automatique selon ton téléphone. Interface
 légère, animations discrètes, mode économie de batterie.
 
-Les publicités sont facultatives et récompensées : les regarder rapporte des
-pièces, ne pas les regarder ne bloque strictement rien.
+Aucune publicité : l'application est entièrement gratuite et ne contient aucun
+SDK publicitaire.
 ```
 
 ---
@@ -112,7 +112,7 @@ URL publique obligatoire. Générateur : https://app-privacy-policy-generator.fi
 > « Toutes les fonctionnalités sont disponibles sans identifiants particuliers »
 
 ### Publicités
-> **Oui**, l'application contient des annonces.
+> **Non**, l'application ne contient aucune annonce (SDK AdMob retiré).
 
 ### Classification du contenu
 Questionnaire à remplir. Réponses attendues pour Sankai Life : pas de violence,
@@ -132,15 +132,17 @@ C'est la section la plus scrutée. Pour Sankai Life :
 
 | Question | Réponse |
 |---|---|
-| Collecte de données ? | **Oui** (AdMob collecte l'identifiant publicitaire) |
-| Partage avec des tiers ? | **Oui** (Google AdMob) |
-| Type de données | *Identifiants* → identifiant publicitaire |
-| Finalité | Publicité ou marketing |
-| Chiffrement en transit | Oui |
-| Suppression possible | Oui |
+| Collecte de données ? | **Non** |
+| Partage avec des tiers ? | **Non** |
+| Type de données | Aucune |
+| Finalité | — |
+| Chiffrement en transit | Sans objet |
+| Suppression possible | Sans objet |
 
-Toutes les données de jeu (niveau, mémos, statistiques) restent sur l'appareil
-et **ne sont pas** à déclarer comme collectées.
+Toutes les données (mémos, révisions, statistiques) restent sur l'appareil et
+**ne sont pas** à déclarer comme collectées. Les seules connexions réseau de
+l'app sont les liens externes (site, Ko-fi) et la vérification de mises à jour
+— elles ne collectent rien.
 
 ---
 
@@ -174,7 +176,7 @@ Examen final : de quelques heures à une semaine.
 | Message | Cause | Correction |
 |---|---|---|
 | *Privacy policy not accessible* | URL morte ou privée | Vérifier l'URL en navigation privée |
-| *Data safety mismatch* | AdMob non déclaré | Cocher « identifiant publicitaire » |
+| *Data safety mismatch* | Fiche Play Store et comportement de l'app différents | Relire les questionnaires Étape 4 |
 | *Broken functionality* | Crash au lancement | Tester l'APK release, pas seulement le debug |
 | *Target API level* | targetSdk trop bas | Déjà en 35 ici, rien à faire |
 

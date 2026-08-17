@@ -25,15 +25,13 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!--
-      INTERNET et ACCESS_NETWORK_STATE ne servent QU'AUX PUBS et aux liens
-      externes (Ko-fi, site). Toute la progression, les mémos, le focus, les
-      coffres et l'économie fonctionnent hors ligne.
+      INTERNET et ACCESS_NETWORK_STATE ne servent qu'aux mises à jour depuis
+      les Releases GitHub et aux liens externes (Ko-fi, site). Toute la
+      progression, les mémos, le focus et l'apprentissage fonctionnent hors
+      ligne.
     -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-
-    <!-- Publicité personnalisée : optionnelle, l'app tourne sans. -->
-    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
 
     <!--
       Synthèse vocale. Depuis Android 11, une application ne voit les autres
@@ -123,16 +121,6 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_aujourdhui_info" />
         </receiver>
-
-        <!--
-          Identifiant d'application AdMob. La valeur vient de admob.properties ;
-          le build debug injecte toujours l'ID de TEST officiel de Google,
-          tandis que la publication release exige les identifiants de production.
-          Voir exemple/guides/BRANCHER-GOOGLE-ADMOB.md
-        -->
-        <meta-data
-            android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="${admobAppId}" />
 
         <!--
           Permet à l'installateur Android de lire l'APK téléchargé dans le

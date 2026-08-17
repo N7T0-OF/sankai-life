@@ -17,8 +17,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import com.sankailife.core.ads.AdsManager
-import com.sankailife.core.ads.PrivacyConsentManager
 import com.sankailife.core.haptics.AndroidHapticManager
 import com.sankailife.core.haptics.LocalHaptics
 import com.sankailife.ui.navigation.SankaiNavGraph
@@ -119,15 +117,6 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // UMP met à jour le choix à chaque lancement et n'autorise AdMob
-        // qu'une fois la collecte terminée (ou jugée non nécessaire).
-        PrivacyConsentManager.recueillir(this)
-    }
-
-    override fun onResume() {
-        super.onResume()
-        // Garde une pub prête d'avance pour que le bouton soit instantané.
-        AdsManager.preload(this)
     }
 
     /**
@@ -202,7 +191,12 @@ class MainActivity : ComponentActivity() {
         val route = intent?.getStringExtra(
             com.sankailife.core.notifications.SankaiNotifications.EXTRA_DESTINATION
         ) ?: return
-        if (route in setOf("memo", "capsules", "academy", "focus")) {
+        if (route in setOf(
+                "memo", "capsules", "academy", "focus",
+                // Route de la révision libre, utilisée par le widget.
+                "flashcards/${com.sankailife.ui.screens.life.flashcards.FlashcardsViewModel.PROFIL_ERREURS}"
+            )
+        ) {
             navigationRequest.value = route
             // Une rotation ne doit pas rejouer une navigation déjà consommée.
             intent.removeExtra(

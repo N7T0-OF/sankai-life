@@ -86,14 +86,6 @@ Dans l'ordre :
 4. Le premier envoi peut prendre jusqu'à 15 minutes : c'est l'intervalle
    minimum imposé par WorkManager.
 
-### Aucune pub ne s'affiche
-
-- **Hors ligne** : normal et voulu. Le bouton est grisé, le reste fonctionne.
-- **Bloc AdMob neuf** : compter jusqu'à 1 heure avant les premières pubs.
-- **Compte AdMob non validé** : aucune pub tant que la validation n'est pas faite.
-- **`admob.properties` absent** : ce sont les IDs de test, les pubs s'affichent
-  mais ne rapportent rien. C'est le comportement par défaut.
-
 ### L'app plante au lancement
 
 Branche le téléphone et lis la vraie erreur :

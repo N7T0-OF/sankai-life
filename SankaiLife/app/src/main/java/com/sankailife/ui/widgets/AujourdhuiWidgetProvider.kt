@@ -85,18 +85,6 @@ class AujourdhuiWidgetProvider : AppWidgetProvider() {
             vues.setTextColor(R.id.widget_memo, secondaire)
             vues.setInt(R.id.widget_racine, "setBackgroundColor", fond)
 
-            // Ouvrir l'app sur l'écran Aujourd'hui au toucher.
-            val intent = Intent(context, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            }
-            val pending = PendingIntent.getActivity(
-                context,
-                0,
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            vues.setOnClickPendingIntent(R.id.widget_racine, pending)
-
             // Lecture locale : le widget ne quitte jamais l'appareil.
             CoroutineScope(Dispatchers.IO).launch {
                 val base = SankaiDatabase.getDatabase(context)
@@ -109,6 +97,25 @@ class AujourdhuiWidgetProvider : AppWidgetProvider() {
                     .asSequence()
                     .filter { it.isActive && it.nextTriggerAtMillis > maintenant }
                     .minByOrNull { it.nextTriggerAtMillis }
+
+                // Un appui ouvre directement la révision quand des cartes sont
+                // dues ; sinon, l'écran Aujourd'hui.
+                val intent = Intent(context, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    if (dues > 0) {
+                        putExtra(
+                            com.sankailife.core.notifications.SankaiNotifications.EXTRA_DESTINATION,
+                            "flashcards/${com.sankailife.ui.screens.life.flashcards.FlashcardsViewModel.PROFIL_ERREURS}"
+                        )
+                    }
+                }
+                val pending = PendingIntent.getActivity(
+                    context,
+                    0,
+                    intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                vues.setOnClickPendingIntent(R.id.widget_racine, pending)
 
                 val libelleCartes = when {
                     dues <= 0 -> context.getString(R.string.widget_no_due)

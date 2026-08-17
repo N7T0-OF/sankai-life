@@ -8,53 +8,9 @@ déjà fonctionnel avec des valeurs de test.
 
 ---
 
-## 🔴 PRIORITÉ 1 — Pour gagner de l'argent (AdMob)
+## 🟠 PRIORITÉ 1 — Pour publier sur le Play Store
 
-### 1.1 Compte Google AdMob
-
-| Info | Détail |
-|---|---|
-| À quoi ça sert | Afficher les pubs récompensées et toucher les revenus |
-| Où | https://admob.google.com |
-| Coût | Gratuit |
-| Délai | Validation du compte : 24 h à 2 semaines |
-| Prérequis | Un compte Google + une adresse postale réelle + un RIB/IBAN |
-
-### 1.2 Les 2 identifiants à me donner
-
-Une fois l'app déclarée dans AdMob, tu obtiens :
-
-```
-ID d'application AdMob   →  ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY
-ID de bloc « Récompensé » →  ca-app-pub-XXXXXXXXXXXXXXXX/ZZZZZZZZZZ
-```
-
-> Le premier contient un **tilde `~`**, le second une **barre `/`**. C'est le
-> moyen le plus simple de ne pas les confondre.
-
-**Où les coller :** crée le fichier `SankaiLife/admob.properties` :
-
-```properties
-ADMOB_APP_ID=ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY
-ADMOB_REWARDED_UNIT_ID=ca-app-pub-XXXXXXXXXXXXXXXX/ZZZZZZZZZZ
-```
-
-Tant que ce fichier n'existe pas, l'app utilise les **identifiants de test
-officiels de Google** : les pubs s'affichent réellement, elles ne rapportent
-simplement rien. C'est voulu — ça permet de tout tester sans compte.
-
-Guide détaillé : [`guides/BRANCHER-GOOGLE-ADMOB.md`](guides/BRANCHER-GOOGLE-ADMOB.md)
-
-### 1.3 Seuil de paiement
-
-AdMob ne verse rien avant **70 € cumulés**. Prévois plusieurs mois avant le
-premier virement, sauf grosse audience.
-
----
-
-## 🟠 PRIORITÉ 2 — Pour publier sur le Play Store
-
-### 2.1 Compte développeur Google Play
+### 1.1 Compte développeur Google Play
 
 | Info | Détail |
 |---|---|
@@ -68,7 +24,7 @@ premier virement, sauf grosse audience.
 publiquement. Anticipe : prépare une liste de 12 adresses Gmail.
 Un compte **organisation** (avec numéro SIRET/DUNS) n'a pas cette contrainte.
 
-### 2.2 Éléments graphiques à fournir
+### 1.2 Éléments graphiques à fournir
 
 | Élément | Format exact | Statut |
 |---|---|---|
@@ -79,7 +35,7 @@ Un compte **organisation** (avec numéro SIRET/DUNS) n'a pas cette contrainte.
 Outils gratuits : [Canva](https://canva.com), [Figma](https://figma.com),
 [GIMP](https://gimp.org).
 
-### 2.3 Textes à rédiger
+### 1.3 Textes à rédiger
 
 | Texte | Limite | Statut |
 |---|---|---|
@@ -95,19 +51,19 @@ Outils gratuits : [Canva](https://canva.com), [Figma](https://figma.com),
 [`guides/PUBLIER-SUR-PLAY-STORE.md`](guides/PUBLIER-SUR-PLAY-STORE.md), section
 « Fiche Play Store », prêt à copier-coller.
 
-### 2.4 Politique de confidentialité
+### 1.4 Politique de confidentialité
 
-Obligatoire dès qu'il y a de la pub. Elle doit être en ligne à une URL stable.
+Le Play Store la demande. Elle doit être en ligne à une URL stable.
 
 - Générateur gratuit : https://app-privacy-policy-generator.firebaseapp.com
 - Hébergement gratuit : GitHub Pages, Notion (page publique), Google Sites
 
-Le texte doit mentionner : Google AdMob, l'identifiant publicitaire, et le fait
-qu'aucune donnée personnelle ne quitte l'appareil (c'est le cas ici).
+Le texte doit mentionner qu'aucune donnée personnelle ne quitte l'appareil
+(c'est le cas ici), et que l'application est utilisable entièrement hors ligne.
 
 ---
 
-## 🟡 PRIORITÉ 3 — Liens de l'app
+## 🟡 PRIORITÉ 2 — Liens de l'app
 
 Ces liens apparaissent dans l'écran Paramètres. Ils sont grisés hors connexion.
 
@@ -153,8 +109,6 @@ clé de signature en secrets chiffrés :
 | `KEYSTORE_BASE64` | généré par `scripts/05-preparer-secrets-github.ps1` |
 | `KEYSTORE_PASSWORD` | dans `SankaiLife/keystore.properties` |
 | `KEY_ALIAS` | `sankai` |
-| `ADMOB_APP_ID` | ta console AdMob (optionnel) |
-| `ADMOB_REWARDED_UNIT_ID` | ta console AdMob (optionnel) |
 
 Sans ces secrets, rien ne casse : le job signé se termine en vert sans produire
 de fichier.
@@ -167,12 +121,10 @@ Guide : [`guides/GITHUB-RECUPERER-APK.md`](guides/GITHUB-RECUPERER-APK.md)
 
 - ✅ Chaîne de compilation complète (JDK, Android SDK, Gradle) dans `outils/`
 - ✅ Projet Android Kotlin + Jetpack Compose fonctionnel
-- ✅ Économie, XP, coffres, défis, streak, boutique équilibrés
 - ✅ Mémos avec notifications locales et tirage anti-répétition
-- ✅ Focus timer, thèmes clair / sombre / auto
-- ✅ Mode hors ligne intégral
+- ✅ Révisions espacées, focus timer, thèmes clair / sombre / auto
+- ✅ Mode hors ligne intégral, aucune publicité
 - ✅ Génération d'APK et d'AAB en un double-clic
-- ✅ Intégration AdMob prête, en mode test
 - ✅ Dépôt GitHub privé + compilation automatique de l'APK à chaque envoi
 
 ---
@@ -182,12 +134,11 @@ Guide : [`guides/GITHUB-RECUPERER-APK.md`](guides/GITHUB-RECUPERER-APK.md)
 1. Compiler l'APK et l'installer sur ton téléphone → double-clic sur
    `COMPILER-APK.bat`, puis `INSTALLER-SUR-TELEPHONE.bat`
 2. Utiliser l'app une semaine, noter ce qui te déplaît
-3. Créer le compte AdMob (le délai de validation court en parallèle)
-4. Faire l'icône et les visuels
-5. Payer les 25 $ Play Console
-6. Rédiger la politique de confidentialité
-7. Publier en test fermé avec 12 testeurs
-8. Attendre 14 jours, puis passer en production
+3. Faire l'icône et les visuels
+4. Payer les 25 $ Play Console
+5. Rédiger la politique de confidentialité
+6. Publier en test fermé avec 12 testeurs
+7. Attendre 14 jours, puis passer en production
 
 ---
 

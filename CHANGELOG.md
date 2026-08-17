@@ -1,5 +1,26 @@
 # Changelog Sankai Life
 
+## 1.80.0 - 17 aout 2026
+
+**La publicité disparaît définitivement. Sankai Life ne contient plus aucun
+SDK publicitaire : tout le trafic réseau tiers est retiré, l'app est 100 %
+locale.**
+
+- **AdMob et UMP supprimés.** Le SDK publicitaire, le consentement UMP et la
+  seule pub (récompensée en pièces, devenue sans objet depuis la suppression
+  de l'économie) sont retirés du code, du build et du manifeste. L'app ne
+  précharge plus rien au lancement : plus aucun contact avec Google.
+- **APK release : 4,4 Mo → 2,5 Mo (−43 %).** Le SDK AdMob et ses dépendances
+  pesaient près de 2 Mo ; ils ne sont plus embarqués.
+- **Permissions allégées.** La permission `AD_ID` (identifiant publicitaire)
+  disparaît du manifeste ; INTERNET ne sert plus qu'aux mises à jour et aux
+  liens externes.
+- **Widget amélioré : un appui ouvre directement la révision** quand des
+  cartes sont dues (sinon l'écran Aujourd'hui).
+- **Documentation mise à jour** : guides, README et check-list Play Store
+  reflètent l'absence de publicité (fiche « aucune annonce », pas de
+  déclaration de collecte).
+
 ## 1.79.0 - 17 aout 2026
 
 **Le jeu est retiré de l'expérience. Sankai Life devient un compagnon

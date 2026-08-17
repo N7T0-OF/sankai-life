@@ -84,9 +84,8 @@ L'équilibrage chiffré est dans exemple/config/equilibrage.json.
 ```
 SankaiLife/app/src/main/java/com/sankailife/
 ├── MainActivity.kt              point d'entrée, thème, splash
-├── SankaiApplication.kt         init : canaux de notif, WorkManager, AdMob
+├── SankaiApplication.kt         init : canaux de notif, WorkManager
 ├── core/
-│   ├── ads/                     AdsManager + logique de récompense
 │   ├── connectivity/            détection en ligne / hors ligne
 │   ├── notifications/           canaux, worker mémo, planification
 │   ├── data/

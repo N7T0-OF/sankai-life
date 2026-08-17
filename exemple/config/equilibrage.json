@@ -46,7 +46,7 @@
       "coffreTous20Pubs": "COMMON",
       "maxParJour": 50,
       "cooldownSecondes": 25,
-      "_pourquoiUnPlafond": "Protège le compte AdMob d'une suspension pour trafic invalide et empêche l'app de devenir un farm simulator."
+      "_pourquoiUnPlafond": "Ancien garde-fou de l'économie (pubs récompensées), supprimé avec la refonte : l'app n'a plus ni pièces ni publicité."
     },
     "prixBoutique": {
       "coffreCommun": { "pieces": 200 },

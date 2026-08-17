@@ -69,7 +69,6 @@ Détails : [`exemple/guides/GITHUB-RECUPERER-APK.md`](exemple/guides/GITHUB-RECU
 | Je veux… | Fichier |
 |---|---|
 | Savoir ce que je dois te fournir | [`exemple/RESSOURCES-A-FOURNIR.md`](exemple/RESSOURCES-A-FOURNIR.md) |
-| Gagner de l'argent avec les pubs | [`exemple/guides/BRANCHER-GOOGLE-ADMOB.md`](exemple/guides/BRANCHER-GOOGLE-ADMOB.md) |
 | Publier sur le Play Store | [`exemple/guides/PUBLIER-SUR-PLAY-STORE.md`](exemple/guides/PUBLIER-SUR-PLAY-STORE.md) |
 | Modifier le code | [`exemple/guides/ANDROID-STUDIO-ET-CURSOR.md`](exemple/guides/ANDROID-STUDIO-ET-CURSOR.md) |
 | Récupérer l'APK depuis GitHub | [`exemple/guides/GITHUB-RECUPERER-APK.md`](exemple/guides/GITHUB-RECUPERER-APK.md) |
@@ -129,7 +128,7 @@ uniquement ce que tu as réellement fait.
 | Base de données | Room |
 | Préférences | DataStore |
 | Tâches de fond | WorkManager |
-| Publicité | Google AdMob — récompensée uniquement |
+| Publicité | Aucune — l'app est 100 % hors ligne |
 | Android minimum | 8.0 (API 26) |
 | Android cible | 15 (API 35) |
 | Build | Gradle 8.9, AGP 8.7.3, JDK 17 |
@@ -147,4 +146,4 @@ ordinateur** :
 Sans ces deux fichiers, une application publiée ne peut plus jamais être mise à
 jour. Ni par toi, ni par Google.
 
-Ces fichiers, comme `SankaiLife/admob.properties`, sont exclus de Git.
+Ces fichiers sont exclus de Git.

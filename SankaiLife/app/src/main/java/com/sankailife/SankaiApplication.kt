@@ -38,9 +38,6 @@ class SankaiApplication : Application() {
         scope.launch {
             runCatching { AujourdhuiWidgetProvider.rafraichirTous(this@SankaiApplication) }
         }
-
-        // AdMob est volontairement absent d'ici : il ne sera initialisé par
-        // MainActivity qu'après validation de `canRequestAds()` par UMP.
     }
 
     private fun createNotificationChannels() {

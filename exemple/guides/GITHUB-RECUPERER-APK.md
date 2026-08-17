@@ -72,13 +72,6 @@ une autre forme : ne l'envoie à personne et supprime-le après usage.**
 | `KEYSTORE_PASSWORD` | le mot de passe de ta clé |
 | `KEY_ALIAS` | `sankai` |
 
-Et si tu as tes identifiants AdMob :
-
-| Nom du secret | Valeur |
-|---|---|
-| `ADMOB_APP_ID` | `ca-app-pub-…~…` |
-| `ADMOB_REWARDED_UNIT_ID` | `ca-app-pub-…/…` |
-
 Tant que `KEYSTORE_BASE64` n'existe pas, le job « APK + AAB signés » se termine
 en vert sans rien produire. Rien ne casse.
 
@@ -159,7 +152,6 @@ Volontairement absents, et protégés par `.gitignore` :
 |---|---|
 | `cles/`, `*.jks` | La clé de signature ne doit jamais être versionnée |
 | `keystore.properties` | Contient le mot de passe de la clé |
-| `admob.properties` | Contient tes identifiants de monétisation |
 | `outils/` | ~1 Go de toolchain, retéléchargeable en une commande |
 | `dist/` | Les APK sont régénérables |
 
