@@ -65,6 +65,15 @@ class AppPreferences(private val context: Context) {
         // journée passée ne puisse pas être rejouée le lendemain.
         val SOURCE_XP_PREFIX = "source_xp_"
         val SOURCE_N_PREFIX = "source_n_"
+
+        // Événements du calendrier déjà crédités, par jour : un événement
+        // terminé ne rapporte qu'une fois, même si l'écran est rouvert dix fois.
+        val CALENDRIER_CREDITS_PREFIX = "calendrier_credits_"
+
+        // Source Concentration : l'accès aux notifications est sensible, il
+        // reste un choix explicite — jamais une conséquence d'une mise à jour.
+        val CONCENTRATION_ACTIF = booleanPreferencesKey("concentration_actif")
+        val CONCENTRATION_CREDITS_PREFIX = "concentration_credits_"
     }
 
     /**
@@ -88,6 +97,57 @@ class AppPreferences(private val context: Context) {
             prefs[cle] = (prefs[cle] ?: 0) + xp
             val cleN = intPreferencesKey("${Keys.SOURCE_N_PREFIX}${source}_$date")
             prefs[cleN] = (prefs[cleN] ?: 0) + 1
+        }
+    }
+
+    /**
+     * Les événements du calendrier déjà crédités pour un jour.
+     *
+     * La clé porte la date : hier et aujourd'hui sont deux ensembles, et un
+     * événement terminé avant minuit ne peut pas être rejoué après minuit.
+     */
+    suspend fun calendrierDejaCredites(date: String): Set<String> =
+        context.dataStore.data.first()[
+            stringSetPreferencesKey("${Keys.CALENDRIER_CREDITS_PREFIX}$date")
+        ] ?: emptySet()
+
+    /** Marque des événements comme crédités pour un jour. */
+    suspend fun calendrierCrediter(date: String, eventIds: Set<String>) {
+        if (eventIds.isEmpty()) return
+        context.dataStore.edit { prefs ->
+            val cle = stringSetPreferencesKey("${Keys.CALENDRIER_CREDITS_PREFIX}$date")
+            prefs[cle] = (prefs[cle] ?: emptySet()) + eventIds
+        }
+    }
+
+    /**
+     * La source Concentration est-elle activée ?
+     *
+     * Faux par défaut : elle exige l'accès aux notifications, une autorisation
+     * sensible qui ne se prend jamais toute seule.
+     */
+    val concentrationActif: Flow<Boolean> = pref(Keys.CONCENTRATION_ACTIF, false)
+
+    suspend fun setConcentrationActif(v: Boolean) =
+        context.dataStore.edit { it[Keys.CONCENTRATION_ACTIF] = v }
+
+    /**
+     * Les fins de minuteur déjà créditées pour un jour.
+     *
+     * Comme le calendrier : la clé porte la date, pour qu'une fin de minuteur
+     * d'hier ne puisse pas être rejouée aujourd'hui.
+     */
+    suspend fun concentrationDejaCredites(date: String): Set<String> =
+        context.dataStore.data.first()[
+            stringSetPreferencesKey("${Keys.CONCENTRATION_CREDITS_PREFIX}$date")
+        ] ?: emptySet()
+
+    /** Marque des fins de minuteur comme créditées pour un jour. */
+    suspend fun concentrationCrediter(date: String, cles: Set<String>) {
+        if (cles.isEmpty()) return
+        context.dataStore.edit { prefs ->
+            val cle = stringSetPreferencesKey("${Keys.CONCENTRATION_CREDITS_PREFIX}$date")
+            prefs[cle] = (prefs[cle] ?: emptySet()) + cles
         }
     }
 

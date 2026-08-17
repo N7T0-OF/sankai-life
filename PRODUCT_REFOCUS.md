@@ -6,15 +6,20 @@ Date de référence : 8 août 2026 (mise à jour : 17 août 2026)
 ## Mise à jour du 17 août — la direction est assumée
 
 Le recentrage est acté dans le code. **Sankai Life n'a plus de section
-« Jeu » : quatre sections, et une seule promesse — ouvrir, apprendre,
+« Jeu » : cinq destinations, et une seule promesse — ouvrir, découvrir,
 fermer.**
 
 | Section | Rôle |
 |---|---|
-| 🏠 **Accueil** | Écran statique : continuer, découverte du jour, prochain rappel, terminer. |
 | 📚 **Apprendre** | Le cœur : révision express ⚡, recommandation du jour, parcours, modules, découverte. |
-| 🌱 **Vie** | Les outils personnels : mémos, focus, objectifs. (Le jardin reviendra comme couche de progression calme, jamais comme jeu séparé.) |
+| 🌱 **Vie** | Le réel : mémos, et bientôt les événements terminés du calendrier Android (lecture seule, traitement local). |
+| 🌱 **Aujourd'hui** (centre) | Le tableau de bord minimal : découverte du jour, progression en cours, activité réelle, sortie explicite. |
+| 🌍 **Culture** | La découverte culturelle : une capsule par jour — mot, poésie, proverbe, sciences, histoire, biographie. |
 | 👤 **Profil** | Progression, statistiques, personnalisation. |
+
+La barre place **« Aujourd'hui » au centre**, légèrement dominant : c'est
+l'action principale de l'application, jamais un doublon. Les paramètres ne
+sont qu'une petite icône sur cet écran.
 
 Principes verrouillés par ce document :
 
@@ -33,7 +38,12 @@ fait l'action, Sankai la transforme en progression.
 - l'apprentissage, la mémoire, la culture : le cœur natif de Sankai — ce
   que le téléphone ne fait pas déjà bien ;
 - le calendrier Android, le minuteur système, les rappels : des sources
-  de progression connectées, jamais recréées ;
+  de progression connectées, jamais recréées. Le calendrier est connecté
+  (lecture seule, locale) : les événements terminés deviennent une XP
+  symbolique plafonnée, dédupliquée par événement et par jour. Les
+  minuteurs et listes de tâches — Focus et Objectifs — ont été retirés
+  du code (routes, écrans, service, réglages, statistiques) ; leurs
+  données Room restent dormantes, intactes, comme celles du jeu ;
 - le jardin et l'Arbre Sankai : la représentation visuelle de cette
   progression, pas un jeu à part.
 
@@ -41,10 +51,16 @@ Le moteur anti-farm est en place : chaque source (Calendrier,
 Concentration, Apprentissage, Découverte) a un plafond quotidien et une
 XP dégressive (20, 15, 10, 5…). Rien n'est jamais retiré ni pénalisé.
 
-Étapes suivantes : la source Calendrier (permission par permission, en
-ne lisant que l'essentiel), la source Concentration connectée au
-minuteur système, et la page « Activités connectées » dans les
-Paramètres.
+Le **minuteur système est connecté** : quand un minuteur de l'Horloge se
+termine, Sankai le crédite une fois par jour, plafonné et dégressif
+(source Concentration : 15 XP, plafond 50/jour) — sans aucun écran Focus
+à recréer. La détection repose sur l'accès aux notifications, accordé
+**explicitement** (réglage système + interrupteur Concentration dans les
+Paramètres, désactivé par défaut) ; Sankai ne lit que les notifications
+d'une Horloge connue sur le canal « minuteur », jamais le contenu des
+autres, et n'en retient qu'une clé pour ne pas créditer deux fois. La
+page **« Activités connectées » existe dans les Paramètres** : Calendrier
+et Concentration, chacune avec son état, son XP du jour et son accès.
 
 ## Décision produit
 
@@ -109,7 +125,10 @@ hiérarchie, pas encore la composition physique de l'APK.
 - Le dépôt ne fournit pas encore d'archive `.sankaipack` Jardin installable :
   l'écran et le store existent, mais le fichier doit encore être produit et
   distribué avec droits et provenance.
-- Le pack source `classics-fr-v1` contient trois textes du domaine public,
+- Le pack source `classics-fr-v1` (v1.1.0) contient **treize capsules**
+  — poésie et citations du domaine public (Hugo, du Bellay, Pascal,
+  La Fontaine, Ibn Battûta), mots, proverbes avec équivalents en d'autres
+  langues, sciences, histoire et biographie en textes originaux CC0 —
   leurs sources, une licence et les empreintes des fichiers.
 - **Localisation 100 % de l'écran Paramètres** : plus aucun texte en dur
   dans Paramètres, Langue, Apparence, Notifications, Heures silencieuses,
@@ -128,6 +147,30 @@ hiérarchie, pas encore la composition physique de l'APK.
 - **Vérification offline-first** : le seul réseau est les liens externes et
   la recherche de mise à jour, tous deux à la demande ; aucune fonction
   principale ne dépend d'une connexion, une seule permission demandée.
+
+## Découverte contextuelle (17 août)
+
+La découverte du jour suit le moment de la journée : **mot ou proverbe le
+matin, connaissance la journée, poésie ou pensée le soir** (`MomentCulture`).
+C'est une préférence douce, jamais un filtre : si la famille du moment est
+absente du catalogue, la sélection retombe sur tout le contenu, pour que
+« une découverte par jour » reste garantie à toute heure. Écran et
+notification partagent toujours la même sélection.
+
+Le pack embarqué v1.1.0 a été étoffé de 3 à **13 capsules** pour que chaque
+moment ait réellement matière à varier (2 mots, 2 proverbes, 2 sciences,
+2 notices histoire/culture, 1 biographie en plus des textes du domaine
+public). Les notices sont originales et sourcées (Wikipédia, Wiktionnaire,
+Wikiquote) sous CC0-1.0 ; `pack.json` et le test d'asset restent à jour sans
+passe-droit.
+
+## Progression réelle (17 août)
+
+Le profil n'affiche plus un seul niveau : il raconte la **vraie vie** en
+cinq dimensions descriptives — 🌱 Esprit (cartes maîtrisées), 📚 Culture
+(découvertes), 🌍 Langues, ⏱️ Habitudes (objectifs) et 🌿 Vie (jours
+actifs). Aucune barre n'est une obligation : elles décrivent ce que
+l'utilisateur fait déjà, alimentées uniquement par des données locales.
 
 ## Règle de développement (17 août)
 

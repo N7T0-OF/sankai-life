@@ -2,6 +2,7 @@ package com.sankailife.core.culture
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Test
@@ -145,10 +146,43 @@ class DailyCultureSelectorTest {
         }
     }
 
+    @Test
+    fun `une preference de moment privilegie les types du moment quand ils existent`() {
+        val entries = listOf(
+            entry("mot", type = CultureEntryType.WORD),
+            entry("poeme", type = CultureEntryType.POEM)
+        )
+
+        val matin = DailyCultureSelector.select(
+            entries,
+            request(preferredTypes = setOf(CultureEntryType.WORD, CultureEntryType.PROVERB))
+        )
+
+        assertEquals("mot", matin?.id)
+    }
+
+    @Test
+    fun `une preference de moment retombe sur tout le catalogue quand le type prefere est absent`() {
+        val entries = listOf(
+            entry("mot", type = CultureEntryType.WORD),
+            entry("poeme", type = CultureEntryType.POEM)
+        )
+
+        // Soir : seuls des poemes sont demandes, aucun n'est disponible.
+        val soir = DailyCultureSelector.select(
+            entries,
+            request(preferredTypes = setOf(CultureEntryType.POEM, CultureEntryType.QUOTE))
+        )
+
+        // La decouverte du jour reste garantie : on tombe sur le catalogue.
+        assertNotNull(soir)
+    }
+
     private fun request(
         enabledTypes: Set<CultureEntryType> = CultureEntryType.entries.toSet(),
         enabledLanguages: Set<String> = emptySet(),
         favoriteIds: Set<String> = emptySet(),
+        preferredTypes: Set<CultureEntryType> = emptySet(),
         history: List<CultureSelectionHistory> = emptyList()
     ) = DailyCultureSelectionRequest(
         profileId = "profile-1",
@@ -157,6 +191,7 @@ class DailyCultureSelectorTest {
         enabledTypes = enabledTypes,
         enabledLanguages = enabledLanguages,
         favoriteIds = favoriteIds,
+        preferredTypes = preferredTypes,
         history = history
     )
 

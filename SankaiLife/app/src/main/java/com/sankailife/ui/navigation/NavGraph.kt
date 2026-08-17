@@ -25,16 +25,13 @@ import com.sankailife.ui.screens.academie.AcademieScreen
 import com.sankailife.ui.screens.academie.AcademieViewModel
 import com.sankailife.ui.screens.academie.ParcoursScreen
 import com.sankailife.ui.screens.academie.ParcoursViewModel
-import com.sankailife.ui.screens.life.focus.FocusScreen
-import com.sankailife.ui.screens.life.focus.FocusViewModel
 import com.sankailife.ui.screens.life.ModeVieScreen
+import com.sankailife.ui.screens.life.ModeVieViewModel
 import com.sankailife.ui.screens.life.memo.MemoEditorScreen
 import com.sankailife.ui.screens.life.memo.MemoScreen
 import com.sankailife.ui.screens.life.memo.MemoViewModel
 import com.sankailife.ui.screens.life.flashcards.FlashcardsScreen
 import com.sankailife.ui.screens.life.flashcards.FlashcardsViewModel
-import com.sankailife.ui.screens.life.objectives.ObjectivesScreen
-import com.sankailife.ui.screens.life.objectives.ObjectivesViewModel
 import com.sankailife.ui.screens.profile.ProfileScreen
 import com.sankailife.ui.screens.profile.ProfileViewModel
 import com.sankailife.ui.screens.settings.SettingsScreen
@@ -89,13 +86,15 @@ fun SankaiNavGraph(
     val settingsVm: SettingsViewModel = viewModel(factory = SettingsViewModel.factory(app))
 
     LaunchedEffect(externalRoute) {
-        val route = externalRoute?.takeIf {
-            it in setOf(
+        val route = externalRoute?.takeIf { candidate ->
+            candidate in setOf(
                 Screen.Memo.route,
                 Screen.Capsules.route,
-                Screen.Academy.route,
-                Screen.Focus.route
-            )
+                Screen.Academy.route
+            ) ||
+                // Rappel mémo : la session du module précis (le module peut
+                // avoir été supprimé — l'écran le gère sans crash).
+                candidate.startsWith("flashcards/")
         } ?: return@LaunchedEffect
         if (currentRoute != route) {
             navController.navigate(route) { launchSingleTop = true }
@@ -112,8 +111,7 @@ fun SankaiNavGraph(
     com.sankailife.ui.screens.life.memo.FeuillePartageEntrant()
 
     val noBottomBarRoutes = setOf(
-        Screen.Settings.route, Screen.MemoEditor.route, Screen.Focus.route,
-        Screen.Objectives.route, Screen.Flashcards.route,
+        Screen.Settings.route, Screen.MemoEditor.route, Screen.Flashcards.route,
         Screen.Customization.route, Screen.AllStats.route,
         Screen.Parcours.route, Screen.Session.route
     )
@@ -168,7 +166,13 @@ fun SankaiNavGraph(
                 AcademieScreen(viewModel = vm, onNavigate = { navController.navigate(it) })
             }
             composable(Screen.Life.route) {
-                ModeVieScreen(app = app, onNavigate = { navController.navigate(it) })
+                val vieVm: ModeVieViewModel =
+                    viewModel(factory = ModeVieViewModel.factory(app))
+                ModeVieScreen(
+                    app = app,
+                    viewModel = vieVm,
+                    onNavigate = { navController.navigate(it) }
+                )
             }
             composable(Screen.Capsules.route) {
                 val vm: CapsulesViewModel = viewModel(factory = CapsulesViewModel.factory(app))
@@ -188,10 +192,6 @@ fun SankaiNavGraph(
                         navController.navigate(Screen.Session.createRoute(profileId, uniteId))
                     }
                 )
-            }
-            composable(Screen.Focus.route) {
-                val vm: FocusViewModel = viewModel(factory = FocusViewModel.factory(app))
-                FocusScreen(viewModel = vm, onBack = { navController.popBackStack() })
             }
             composable(Screen.Memo.route) {
                 val vm: MemoViewModel = viewModel(factory = MemoViewModel.factory(app))
@@ -220,7 +220,8 @@ fun SankaiNavGraph(
                     profileId = profileId,
                     uniteId = uniteId,
                     viewModel = vm,
-                    onBack = { navController.popBackStack() }
+                    onBack = { navController.popBackStack() },
+                    onImporter = { navController.navigate(Screen.Memo.route) }
                 )
             }
             composable(Screen.Flashcards.route) { backEntry ->
@@ -229,7 +230,8 @@ fun SankaiNavGraph(
                 FlashcardsScreen(
                     profileId = profileId,
                     viewModel = vm,
-                    onBack = { navController.popBackStack() }
+                    onBack = { navController.popBackStack() },
+                    onImporter = { navController.navigate(Screen.Memo.route) }
                 )
             }
             composable(Screen.Customization.route) {
@@ -240,10 +242,6 @@ fun SankaiNavGraph(
             composable(Screen.AllStats.route) {
                 val vm: ProfileViewModel = viewModel(factory = ProfileViewModel.factory(app))
                 AllStatsScreen(viewModel = vm, onBack = { navController.popBackStack() })
-            }
-            composable(Screen.Objectives.route) {
-                val vm: ObjectivesViewModel = viewModel(factory = ObjectivesViewModel.factory(app))
-                ObjectivesScreen(viewModel = vm, onBack = { navController.popBackStack() })
             }
             composable(Screen.Profile.route) {
                 val vm: ProfileViewModel = viewModel(factory = ProfileViewModel.factory(app))

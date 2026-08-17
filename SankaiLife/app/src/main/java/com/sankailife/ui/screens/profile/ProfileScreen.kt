@@ -29,6 +29,7 @@ fun ProfileScreen(viewModel: ProfileViewModel, onNavigate: (String) -> Unit) {
     val regularite by viewModel.regularite.collectAsStateWithLifecycle()
     val memorisation by viewModel.memorisation.collectAsStateWithLifecycle()
     val minimalMode by viewModel.minimalMode.collectAsStateWithLifecycle()
+    val progressionReelle by viewModel.progressionReelle.collectAsStateWithLifecycle()
     val c = MaterialTheme.sankaiColors
 
     Column(Modifier.fillMaxSize().background(c.background)) {
@@ -60,6 +61,37 @@ fun ProfileScreen(viewModel: ProfileViewModel, onNavigate: (String) -> Unit) {
                         Spacer(Modifier.height(12.dp))
                         XpBar(user.xp, user.xpNext, Modifier.fillMaxWidth())
                     }
+                }
+            }
+
+            // Progression réelle : cinq dimensions descriptives, aucune
+            // obligation. Une barre raconte ce que l'utilisateur fait déjà,
+            // elle n'exige rien — l'identité de Sankai, pas une dette.
+            SectionTitle(stringResource(R.string.progression_title))
+            Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(c.surface2)
+                .border(1.dp, c.border, RoundedCornerShape(16.dp)).padding(14.dp)) {
+                Column {
+                    progressionReelle.forEach { dim ->
+                        Row(Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(
+                                "${dim.emoji}  ${stringResource(dim.libelle)}",
+                                color = c.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.Medium
+                            )
+                            Text(dim.valeur, color = c.textSecondary, fontSize = 12.sp)
+                        }
+                        LinearProgressIndicator(
+                            progress = { dim.progression },
+                            modifier = Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(3.dp)),
+                            color = c.accent,
+                            trackColor = c.surface3
+                        )
+                        Spacer(Modifier.height(6.dp))
+                    }
+                    Text(
+                        stringResource(R.string.progression_hint),
+                        color = c.textDisabled, fontSize = 11.sp
+                    )
                 }
             }
 
@@ -100,15 +132,6 @@ fun ProfileScreen(viewModel: ProfileViewModel, onNavigate: (String) -> Unit) {
             SectionTitle(stringResource(R.string.stats_title))
             val principales = listOf(
                 Triple("${regularite.sept}%", stringResource(R.string.profile_metric_rhythm), SuccessGreen),
-                Triple(
-                    stringResource(
-                        R.string.stats_hours_minutes,
-                        user.totalFocusMinutes / 60,
-                        user.totalFocusMinutes % 60
-                    ),
-                    stringResource(R.string.profile_metric_focus),
-                    AccentViolet
-                ),
                 Triple(
                     "${memorisation.maitrisees}/${memorisation.total}",
                     stringResource(R.string.stats_mastered_cards),

@@ -1,5 +1,164 @@
 # Changelog Sankai Life
 
+## 1.95.0 - 17 aout 2026
+
+**Le minuteur système est connecté : sa fin devient une progression
+symbolique, sans aucun écran Focus à recréer.**
+
+- **Source Concentration.** Quand un minuteur de l'application Horloge se
+  termine, Sankai crédite une XP plafonnée et dégressive (15 XP initial,
+  plafond 50/jour) via le moteur anti-farm existant — dédupliqué par
+  notification et par jour. Détection par `NotificationListenerService` :
+  seules les notifications d'une Horloge connue (Pixel/AOSP, Samsung,
+  Oppo, Honor, Vivo, Transsion) sur le canal « minuteur » et non
+  persistantes sont lues ; jamais le contenu des autres.
+- **Accord explicite, jamais implicite.** La source est **désactivée par
+  défaut** : l'utilisatrice doit activer l'interrupteur Concentration ET
+  accorder l'accès aux notifications (réglage système, ouvert par Sankai
+  — Android interdit de le demander soi-même). Un minuteur en marche, un
+  réveil ou un chronomètre ne sont jamais crédités.
+- **Page « Activités connectées » dans les Paramètres.** Calendrier et
+  Concentration y montrent leur état (connecté/non connecté, accès
+  accordé), leur XP du jour, et le bouton qui mène au bon réglage. L'état
+  est relu au retour des réglages Android.
+- **Confirmation discrète** : « Concentration terminée — +X XP » dans la
+  limite du budget quotidien de notifications ; le crédit d'XP, lui, n'est
+  jamais une notification. Le widget « Aujourd'hui » reflète l'XP du jour.
+- 11 tests unitaires sur la détection pure (Horloges connues, réveil,
+  chronomètre, déduplication) et le CHANGELOG développeur mis à jour.
+
+## 1.94.0 - 17 aout 2026
+
+**Focus et Objectifs sont retirés du code : le téléphone les a déjà, le
+calendrier les remplace dans Vie.**
+
+- **Routes et écrans supprimés** : `FocusScreen`, `FocusViewModel`,
+  `ObjectivesScreen`, `ObjectivesViewModel` et le service d'avant-plan
+  `FocusForegroundService` disparaissent de l'APK (avec leurs permissions
+  `FOREGROUND_SERVICE` et le canal de notification Focus). La section
+  « Outils » de l'Académie — minuteur et liste de tâches recopiés — est
+  retirée : plus aucune porte vers ces doublons d'Android.
+- **Le profil suit le changement** : la dimension « ⏱️ Habitudes » de la
+  Progression réelle n'est plus alimentée par les objectifs cochés mais
+  par **les événements du calendrier terminés** (lecture seule, zéro sans
+  autorisation — rien n'est inventé). La métrique « temps de focus »
+  disparaît du profil et des statistiques.
+- **Notifications nettoyées** : le réglage « Notifications Focus » des
+  Paramètres et le rappel de fin de session Focus sont retirés. Les
+  notifications restantes sont Mémo, Rappels (révision/découverte) et
+  Récompenses.
+- **Données conservées, intactes** : entités Room (sessions de focus,
+  objectifs), moteurs et sauvegardes restent dormants, comme pour le jeu
+  en v1.79.0 — aucune migration de base, aucune perte pour qui a des
+  sauvegardes existantes.
+
+## 1.93.0 - 17 aout 2026
+
+**Le calendrier Android est connecté : la vraie vie devient progression,
+sans jamais être recréée ni modifiée.**
+
+- **Lecture seule, locale.** Avec l'autorisation (demandée à la demande,
+  dans la section Vie), Sankai lit les événements terminés aujourd'hui via
+  la table Instances du calendrier — occurrences récurrentes comprises.
+  Il ne modifie rien, n'envoie rien : tout reste sur l'appareil.
+- **Un événement terminé = une progression symbolique.** Chaque événement
+  qui s'est terminé depuis le début du jour est crédité **une seule fois**
+  (dédupliqué par événement et par jour, même pour les récurrents), via le
+  moteur anti-farm existant (source Calendrier : 20 XP, plafond 100/jour,
+  dégressif). Rouvert dix fois, la même journée ne rapporte pas dix fois.
+- **Carte Calendrier dans Vie** : « X événements terminés aujourd'hui »,
+  « +Y XP symbolique », bouton Actualiser, et la note de confidentialité
+  « Lecture seule · jamais modifié · tout reste sur ton téléphone ». Sans
+  autorisation, une explication honnête et un bouton d'autorisation.
+- Les événements à la journée (all-day) comptent le jour où ils ont lieu ;
+  un événement en cours compte quand il se termine.
+- 3 tests unitaires sur la sélection pure (pas de double crédit, récurrents
+  comptés une fois, liste vide).
+
+## 1.92.0 - 17 aout 2026
+
+**Refonte de structure : « Aujourd'hui » au centre, la culture dans la barre,
+Vie recentrée sur le réel.**
+
+- **Navigation à cinq positions** : Apprendre · Vie · **🌱 Aujourd'hui**
+  (centre, légèrement dominant) · Culture · Profil. L'ancien « Accueil »
+  devient la section centrale, et la découverte culturelle (Capsules)
+  devient un onglet à part entière — barre flottante Liquid Glass, aucune
+  transition, couleurs dynamiques conservées.
+- **Nouvel écran « Aujourd'hui »** : tableau de bord minimal qui tient sur
+  un écran — la découverte du jour (titre, extrait, type, bouton
+  « Découvrir »), la progression (module en cours, unité, barre,
+  « Continuer »), l'activité réelle (révisions dues, XP du jour) et une
+  sortie explicite. Les paramètres ne sont plus qu'une petite icône.
+- **Rappel mémo : deep-link vers le module précis.** Une notification mémo
+  ouvre la session du module concerné au lieu de la bibliothèque entière.
+  Si le module a été supprimé entre-temps, plus de session vide ni de
+  crash : l'écran affiche « Ce module n'est plus disponible. » avec
+  [Importer le module] et [Retour].
+- **Vie recentrée sur le réel.** Focus (minuteur) et Objectifs (liste de
+  tâches) sont retirés de la section Vie : le téléphone a déjà un minuteur
+  et un gestionnaire de tâches, Sankai ne les recopie pas. Les écrans
+  restent accessibles depuis Apprendre, en attendant l'intégration du
+  calendrier Android (lecture seule, locale) qui les remplacera.
+- **Audit anti-crash de la navigation** : tous les écrans de section et les
+  flux de rappel (alarme mémo, alarme révision, session sur module
+  supprimé, parcours sur module disparu) vérifiés — états Loading/Success/
+  Empty/Error partout, aucune référence orpheline ne peut plus planter.
+
+## 1.91.0 - 17 aout 2026
+
+**Le pack culturel de départ est étoffé : treize capsules au lieu de
+quatre familles de contenu au lieu de trois.**
+
+- **10 nouvelles capsules** (pack `classics-fr-sample` v1.1.0) : mots
+  (sérendipité, éphémère), proverbes avec équivalents en d'autres langues
+  (« Petit à petit, l'oiseau fait son nid », « Tout vient à point à qui
+  sait attendre »), sciences (le ciel bleu, les 8 minutes de la lumière du
+  Soleil), histoire (février, l'heure bleue), citation (La Fontaine) et
+  biographie (Ibn Battûta).
+- **La découverte contextuelle a enfin matière à varier** : chaque moment
+  de la journée (mot le matin, connaissance la journée, poésie le soir)
+  dispose désormais de contenu réel dans le pack embarqué.
+- **Textes originaux ou domaine public, sourcés** : les notices et
+  explications sont rédigées pour le pack sous CC0-1.0 et pointent vers
+  Wikipédia/Wiktionnaire ; les textes de La Fontaine et Ibn Battûta
+  rejoignent le domaine public déjà présent. `pack.json` est à jour
+  (empreintes SHA-256, compte, taille) et le test d'asset vérifie le pack
+  réel sans passe-droit.
+
+## 1.90.0 - 17 aout 2026
+
+**Découverte contextuelle : le contenu du jour suit le moment de la
+journée.**
+
+- **Matin (5h-11h)** : un mot ou un proverbe. **Journée (12h-17h)** : une
+  connaissance (histoire, science, art, biographie). **Soir (18h-4h)** :
+  une poésie ou une pensée. La sélection du jour (écran **et**
+  notification, une seule source de vérité) est partagée et déterministe.
+- **Préférence douce, jamais un filtre** : si le moment préféré n'a aucun
+  contenu disponible (ex. un catalogue uniquement poétique un matin), la
+  sélection retombe sur tout le catalogue — « une découverte par jour »
+  reste garantie à toute heure.
+- Moteur pur `MomentCulture` (cartographie heure → famille) + préférence
+  dans `DailyCultureSelector`, 6 nouveaux tests unitaires.
+
+## 1.89.0 - 17 aout 2026
+
+**« Progression réelle » : le profil raconte la vraie vie, pas un seul
+niveau.**
+
+- **Cinq dimensions au lieu d'un seul compteur** : 🌱 Esprit (cartes
+  maîtrisées), 📚 Culture (découvertes), 🌍 Langues (langues actives),
+  ⏱️ Habitudes (objectifs terminés) et 🌿 Vie (jours actifs sur 30
+  jours). Chaque dimension est une barre descriptive alimentée
+  uniquement par des données locales.
+- **Aucune barre n'est une obligation** : le hint l'écrit noir sur
+  blanc — les barres décrivent ce que l'utilisateur fait déjà, elles
+  n'exigent rien. L'identité « Sankai n'est pas conçu pour vous faire
+  rester » est portée jusque dans le profil.
+- Pluriels corrects en fr/en/pt pour chaque dimension (cartes
+  maîtrisées, découvertes, langues, objectifs, jours).
+
 ## 1.88.0 - 17 aout 2026
 
 **Passe de localisation : la session de révision et les derniers écrans UI

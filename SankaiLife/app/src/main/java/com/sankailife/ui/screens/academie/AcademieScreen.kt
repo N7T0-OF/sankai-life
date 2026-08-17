@@ -315,49 +315,12 @@ fun AcademieScreen(
                     }
                 }
 
-                // Focus et Objectifs.
+                // Le contenu, accessible d'un geste : créer un module.
                 //
-                // Ils n'existaient nulle part ailleurs que sur l'écran remplacé.
-                // Les laisser de côté parce que la nouvelle maquette ne les
-                // mentionne pas les aurait rendus inatteignables sans qu'aucun
-                // message ne le dise — exactement le défaut trouvé cette
-                // semaine sur l'embauche des Mimos. Ils descendent d'un cran,
-                // ils ne disparaissent pas.
-                Spacer(Modifier.height(20.dp))
-                SectionTitle(stringResource(R.string.academy_tools))
-                Spacer(Modifier.height(8.dp))
-
-                // Focus est un outil de base. Une progression de jeu ne peut
-                // plus bloquer une fonctionnalité éducative.
-                val verrouFocus: com.sankailife.core.domain.engine.DeblocageEngine.Verrou? = null
-                SankaiCard(
-                    modifier = Modifier.padding(bottom = 8.dp),
-                    onClick = if (verrouFocus == null) {
-                        { onNavigate(Screen.Focus.route) }
-                    } else null
-                ) {
-                    Text(
-                        "${if (verrouFocus != null) "🔒" else "⏱️"} " +
-                            stringResource(R.string.academy_focus),
-                        color = if (verrouFocus != null) c.textDisabled else c.textPrimary,
-                        fontSize = 15.sp, fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        verrouFocus?.explication ?: stringResource(R.string.academy_focus_desc),
-                        color = c.textSecondary, fontSize = 12.sp
-                    )
-                }
-                SankaiCard(onClick = { onNavigate(Screen.Objectives.route) }) {
-                    Text(
-                        "🎯 ${stringResource(R.string.academy_objectives)}", color = c.textPrimary,
-                        fontSize = 15.sp, fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        stringResource(R.string.academy_objectives_desc),
-                        color = c.textSecondary, fontSize = 12.sp
-                    )
-                }
-
+                // Focus et Objectifs ont été retirés : le téléphone a déjà un
+                // minuteur et un gestionnaire de tâches, et le calendrier
+                // Android (lecture seule) valorise désormais les événements
+                // terminés depuis la section Vie.
                 Spacer(Modifier.height(20.dp))
                 SectionTitle(stringResource(R.string.academy_content))
                 Spacer(Modifier.height(8.dp))

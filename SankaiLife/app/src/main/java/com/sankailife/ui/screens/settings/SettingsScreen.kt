@@ -1,7 +1,11 @@
 package com.sankailife.ui.screens.settings
 
+import android.Manifest
+import android.content.Intent
 import android.os.Build
-import android.app.Activity
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -59,16 +63,27 @@ fun SettingsScreen(
     val notifyLearning by viewModel.notifyLearning.collectAsStateWithLifecycle()
     val notifyMemo by viewModel.notifyMemo.collectAsStateWithLifecycle()
     val notifyCulture by viewModel.notifyCulture.collectAsStateWithLifecycle()
-    val notifyFocus by viewModel.notifyFocus.collectAsStateWithLifecycle()
     val diag        by viewModel.diagnostic.collectAsStateWithLifecycle()
     val enLigne     by viewModel.isOnline.collectAsStateWithLifecycle()
     val etatMaj     by viewModel.maj.collectAsStateWithLifecycle()
+    val activites   by viewModel.activites.collectAsStateWithLifecycle()
+    val concentrationActif by viewModel.concentrationActif.collectAsStateWithLifecycle()
     val c = MaterialTheme.sankaiColors
     val contexte = LocalContext.current
 
     // Les permissions peuvent avoir changé pendant que l'utilisateur était
     // dans les réglages Android : on relit l'état à chaque affichage.
-    LaunchedEffect(Unit) { viewModel.rafraichirDiagnostic() }
+    LaunchedEffect(Unit) { viewModel.rafraichirDiagnostic(); viewModel.rafraichirActivites() }
+
+    // Le retour des réglages Android relit l'état des activités connectées :
+    // l'autorisation de lecture du calendrier ou l'accès aux notifications
+    // viennent d'être accordés ou refusés là-bas.
+    val demanderCalendrier = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { viewModel.rafraichirActivites() }
+    val ouvrirAccessNotifications = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { viewModel.rafraichirActivites() }
 
     var showReset by remember { mutableStateOf(false) }
     var resetCount by remember { mutableIntStateOf(0) }
@@ -258,9 +273,6 @@ fun SettingsScreen(
                     SettingToggle(stringResource(R.string.wellbeing_notify_culture), notifyCulture) {
                         viewModel.setNotifyCulture(it)
                     }
-                    SettingToggle(stringResource(R.string.wellbeing_notify_focus), notifyFocus) {
-                        viewModel.setNotifyFocus(it)
-                    }
                     Spacer(Modifier.height(10.dp))
                     Text(
                         stringResource(R.string.wellbeing_notification_limit),
@@ -323,6 +335,139 @@ fun SettingsScreen(
                                 QuietHours.formater(quietEnd)
                             ),
                             color = c.textSecondary, fontSize = 11.sp
+                        )
+                    }
+                }
+            }
+
+            SectionTitle(stringResource(R.string.settings_section_connected))
+            SettingsCard {
+                Text(
+                    stringResource(R.string.settings_connected_intro),
+                    color = c.textSecondary,
+                    fontSize = 11.sp
+                )
+                Spacer(Modifier.height(12.dp))
+
+                // Calendrier : la vraie vie valorisée, sans jamais être recréée.
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("📅", fontSize = 20.sp)
+                    Spacer(Modifier.width(10.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            stringResource(R.string.mode_life_calendar_title),
+                            color = c.textPrimary,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            stringResource(R.string.mode_life_calendar_privacy),
+                            color = c.textSecondary,
+                            fontSize = 11.sp
+                        )
+                    }
+                    Text(
+                        if (activites.permissionCalendrier) {
+                            stringResource(R.string.settings_connected_granted)
+                        } else {
+                            stringResource(R.string.settings_connected_not_granted)
+                        },
+                        color = if (activites.permissionCalendrier) SuccessGreen else c.textSecondary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                if (activites.xpCalendrier > 0) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        stringResource(R.string.settings_connected_xp, activites.xpCalendrier),
+                        color = c.accent,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                if (!activites.permissionCalendrier) {
+                    Spacer(Modifier.height(8.dp))
+                    SankaiButton(
+                        text = stringResource(R.string.mode_life_calendar_allow),
+                        onClick = {
+                            demanderCalendrier.launch(Manifest.permission.READ_CALENDAR)
+                        },
+                        small = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // Concentration : le minuteur du téléphone fait l'action, sa
+                // fin devient une progression symbolique. L'accès aux
+                // notifications reste un accord explicite.
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("⏱️", fontSize = 20.sp)
+                    Spacer(Modifier.width(10.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            stringResource(R.string.settings_concentration_title),
+                            color = c.textPrimary,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            stringResource(R.string.settings_concentration_desc),
+                            color = c.textSecondary,
+                            fontSize = 11.sp
+                        )
+                    }
+                    Switch(
+                        checked = concentrationActif,
+                        onCheckedChange = viewModel::setConcentrationActif,
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = c.accent,
+                            checkedTrackColor = c.accent.copy(0.3f)
+                        )
+                    )
+                }
+                if (concentrationActif) {
+                    Spacer(Modifier.height(8.dp))
+                    if (activites.accessNotifications) {
+                        Text(
+                            stringResource(R.string.settings_connected_access_granted),
+                            color = SuccessGreen,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    } else {
+                        Text(
+                            stringResource(R.string.settings_concentration_access_hint),
+                            color = c.textSecondary,
+                            fontSize = 11.sp
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        SankaiButton(
+                            text = stringResource(R.string.settings_concentration_open_access),
+                            onClick = {
+                                ouvrirAccessNotifications.launch(
+                                    Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                                )
+                            },
+                            small = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    if (activites.xpConcentration > 0) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            stringResource(R.string.settings_connected_xp, activites.xpConcentration),
+                            color = c.accent,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 }

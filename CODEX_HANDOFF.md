@@ -67,8 +67,10 @@ effectué par le lot documentaire.
 - `core/culture` contient modèles, parseur JSON JVM, importeur ZIP borné,
   checksums, compatibilité, store atomique et sélecteur déterministe.
 - Le lot ajoute 28 tests culturels ciblés.
-- `app/src/main/assets/culture/classics-fr-v1` contient trois capsules du
-  domaine public, avec source, licence et hashes.
+- `app/src/main/assets/culture/classics-fr-v1` (v1.1.0) contient treize
+  capsules : textes du domaine public (Hugo, du Bellay, Pascal, La
+  Fontaine, Ibn Battûta) et notices originales CC0 (mots, proverbes,
+  sciences, histoire, culture), avec source, licence et hashes.
 - `ui/screens/capsules` affiche une capsule finie, provenance, favori, lecture
   vocale éventuelle et réflexion locale. Il utilise le pack embarqué et un
   `AtomicFile` sous `noBackupFilesDir`, pas encore `CulturePackStore`.

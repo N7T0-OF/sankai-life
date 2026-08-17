@@ -1,18 +1,18 @@
 {
   "schemaVersion": 1,
   "id": "classics-fr-sample",
-  "version": "1.0.0",
-  "title": "Classiques français — exemple",
-  "description": "Trois capsules sourcées du domaine public pour valider le format hors ligne.",
+  "version": "1.1.0",
+  "title": "Classiques français — pack de départ",
+  "description": "Treize capsules du domaine public ou originales (CC0) : poésie, mots, proverbes, sciences, histoire, citations et biographie — le catalogue de départ hors ligne.",
   "languages": ["fr"],
-  "license": "Domaine public + métadonnées CC0-1.0",
-  "sourceLabel": "Œuvres originales et transcriptions Wikisource ; détails dans README.md",
+  "license": "Domaine public + textes originaux et métadonnées CC0-1.0",
+  "sourceLabel": "Œuvres du domaine public et transcriptions Wikisource ; détails dans README.md",
   "minAppVersionCode": 80,
-  "entryCount": 3,
-  "payloadBytes": 5533,
+  "entryCount": 13,
+  "payloadBytes": 16928,
   "files": {
-    "entries.json": "caf727b816050387255d83ef26d024b98b0b0fbb4fff846ad5bf3354c5e1c1c0",
-    "README.md": "becba72d3dd129c2f4f7250428e91dcea5732c3ef3fbfb13d0d414b281f05f9a",
-    "LICENSE": "ed1e1a9ddd06a6e85623438461f366359bc5053d9a256a767c8b18c6fade439a"
+    "entries.json": "9b7f89a5c1ef1bd583faa0c39a70c4bb9ef1acd1fa013bed4d52a0d4330978cd",
+    "README.md": "75ffa594c7397fbd0460055bf1f6fdeec3cb314635e42ba1165f3994751ed92a",
+    "LICENSE": "e5a8248f06a859838651ae2c1f01960bc4695f21a2d68f386fbe10f477de444a"
   }
 }

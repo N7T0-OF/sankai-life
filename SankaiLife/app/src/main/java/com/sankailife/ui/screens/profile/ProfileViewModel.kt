@@ -4,7 +4,10 @@ import android.app.Application
 import androidx.lifecycle.*
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.sankailife.R
 import com.sankailife.SankaiApplication
+import com.sankailife.core.calendar.CalendrierIntegration
+import com.sankailife.core.culture.CultureLocalState
 import com.sankailife.core.data.db.entities.UserEntity
 import com.sankailife.core.data.repository.UserRepository
 import com.sankailife.core.domain.engine.MemorisationEngine
@@ -70,6 +73,92 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), MemorisationEngine.Etat())
 
     data class Regularite(val sept: Int = 0, val trente: Int = 0, val quatreVingtDix: Int = 0)
+
+    /**
+     * Une dimension de la « progression réelle » : une barre descriptive,
+     * jamais une obligation. Chaque dimension raconte ce que l'utilisateur
+     * fait déjà, à partir de données locales.
+     */
+    data class DimensionReelle(
+        val emoji: String,
+        val libelle: Int,
+        val valeur: String,
+        val progression: Float
+    )
+
+    /**
+     * Progression réelle : cinq dimensions au lieu d'un seul niveau.
+     *
+     * Esprit (apprentissage), Culture (découvertes), Langues, Habitudes
+     * (événements du calendrier terminés) et Vie (jours actifs). Les barres
+     * sont bornées par des paliers doux — elles se remplissent par l'usage,
+     * pas par la contrainte.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val progressionReelle: StateFlow<List<DimensionReelle>> = combine(
+        memorisation,
+        observedDay.flatMapLatest { jour ->
+            flow {
+                val userId = app.database.userDao().getUserOnce()?.id ?: 1L
+                emit(CultureLocalState(app).history("user-$userId").size)
+            }
+        }.distinctUntilChanged(),
+        app.database.learningDao().observerModules(),
+        observedDay.flatMapLatest {
+            // Les habitudes, c'est la vraie vie : les événements terminés du
+            // calendrier (lecture seule). Zéro sans autorisation — rien n'est
+            // inventé.
+            flow { emit(CalendrierIntegration.evenementsTerminesAujourdhui(app).size) }
+        }.distinctUntilChanged(),
+        observedDay.flatMapLatest { jour ->
+            app.database.dayRecordDao().getDepuis(jour.minusDays(29).toString())
+        }
+    ) { mem, decouvertes, modules, evenements, jours ->
+        val langues = modules.map { it.langue }.filter { it.isNotBlank() }.distinct().size
+        val joursActifs = jours.count { it.status == "SUCCESS" || it.status == "PARTIAL" }
+        listOf(
+            DimensionReelle(
+                emoji = "🌱",
+                libelle = R.string.progression_esprit,
+                valeur = app.resources.getQuantityString(
+                    R.plurals.progression_cards, mem.maitrisees, mem.maitrisees
+                ),
+                progression = if (mem.total > 0) mem.maitrisees.toFloat() / mem.total else 0f
+            ),
+            DimensionReelle(
+                emoji = "📚",
+                libelle = R.string.progression_culture,
+                valeur = app.resources.getQuantityString(
+                    R.plurals.progression_discoveries, decouvertes, decouvertes
+                ),
+                progression = decouvertes.coerceAtMost(14) / 14f
+            ),
+            DimensionReelle(
+                emoji = "🌍",
+                libelle = R.string.progression_languages,
+                valeur = app.resources.getQuantityString(
+                    R.plurals.progression_langs, langues, langues
+                ),
+                progression = langues.coerceAtMost(5) / 5f
+            ),
+            DimensionReelle(
+                emoji = "⏱️",
+                libelle = R.string.progression_habits,
+                valeur = app.resources.getQuantityString(
+                    R.plurals.progression_events, evenements, evenements
+                ),
+                progression = evenements.coerceAtMost(10) / 10f
+            ),
+            DimensionReelle(
+                emoji = "🌿",
+                libelle = R.string.progression_life,
+                valeur = app.resources.getQuantityString(
+                    R.plurals.progression_days, joursActifs, joursActifs
+                ),
+                progression = joursActifs.coerceAtMost(30) / 30f
+            )
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val regularite: StateFlow<Regularite> = observedDay

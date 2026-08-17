@@ -26,7 +26,6 @@ object SankaiNotifications {
     const val CHANNEL_MEMO = "sankai_memo"
     const val CHANNEL_REMINDER = "sankai_reminder"
     const val CHANNEL_REWARD = "sankai_reward"
-    const val CHANNEL_FOCUS = "sankai_focus"
 
     /** Extra posé sur l'intent quand l'app est ouverte depuis un mémo (donne de l'XP). */
     const val EXTRA_FROM_MEMO = "sankai.from_memo"
@@ -35,7 +34,6 @@ object SankaiNotifications {
     const val DESTINATION_MEMO = "memo"
     const val DESTINATION_CAPSULES = "capsules"
     const val DESTINATION_ACADEMY = "academy"
-    const val DESTINATION_FOCUS = "focus"
 
     /**
      * Android 13+ exige une permission runtime. Sans elle on n'envoie rien :
@@ -83,25 +81,6 @@ object SankaiNotifications {
 
     fun afficherRecompense(context: Context, titre: String, texte: String, notificationId: Int = 3000) {
         afficher(context, CHANNEL_REWARD, notificationId, titre, texte)
-    }
-
-    fun afficherFinFocus(context: Context, minutes: Int) {
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            putExtra(EXTRA_DESTINATION, DESTINATION_FOCUS)
-        }
-        afficher(
-            context = context,
-            canalId = CHANNEL_FOCUS,
-            notificationId = 4000,
-            titre = context.getString(R.string.notif_focus_title),
-            texte = context.resources.getQuantityString(
-                R.plurals.notif_focus_body,
-                minutes,
-                minutes
-            ),
-            intent = intent
-        )
     }
 
     // La permission est vérifiée juste au-dessus par peutNotifier(). Lint ne

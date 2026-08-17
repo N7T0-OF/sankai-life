@@ -20,6 +20,12 @@ data class DailyCultureSelectionRequest(
     val enabledLanguages: Set<String> = emptySet(),
     val favoriteIds: Set<String> = emptySet(),
     val preferredTags: Set<String> = emptySet(),
+    /**
+     * Types préférés pour le moment de la journée. Préférence douce : si
+     * aucun contenu du moment n'est disponible, la sélection retombe sur
+     * tout le catalogue pour garantir une découverte par jour.
+     */
+    val preferredTypes: Set<CultureEntryType> = emptySet(),
     /** Ordre indifférent : les dates déterminent la récence. */
     val history: List<CultureSelectionHistory> = emptyList(),
     val recentWindow: Int = 14
@@ -50,7 +56,14 @@ object DailyCultureSelector {
         require(filtered.map { it.id }.distinct().size == filtered.size) {
             "Les identifiants de capsules doivent être uniques dans le catalogue."
         }
-        val eligible = filtered.sortedBy { it.id }
+        // Préférence douce du moment : restreint aux types du moment quand ils
+        // existent, sinon retombe sur tout le catalogue. Jamais un filtre dur.
+        val eligible = if (request.preferredTypes.isNotEmpty()) {
+            val preferes = filtered.filter { it.type in request.preferredTypes }
+            if (preferes.isNotEmpty()) preferes else filtered
+        } else {
+            filtered
+        }.sortedBy { it.id }
         if (eligible.isEmpty()) return null
 
         val byId = eligible.associateBy { it.id }

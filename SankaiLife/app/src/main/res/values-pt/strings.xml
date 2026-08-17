@@ -376,6 +376,23 @@
     <string name="settings_diag_granted">✓ concedida</string>
     <string name="settings_diag_denied">✗ recusada</string>
 
+    <!-- Configurações: atividades ligadas -->
+    <string name="settings_section_connected">Atividades ligadas</string>
+    <string name="settings_connected_intro">O que o Sankai valoriza sem recriar: o telemóvel faz a ação, o Sankai transforma-a em progresso simbólico.</string>
+    <string name="settings_connected_granted">✓ ligado</string>
+    <string name="settings_connected_not_granted">não ligado</string>
+    <string name="settings_connected_access_granted">✓ acesso concedido</string>
+    <string name="settings_connected_xp">+%1$d XP hoje</string>
+    <string name="settings_concentration_title">Concentração</string>
+    <string name="settings_concentration_desc">Quando um temporizador do telemóvel termina, o Sankai transforma-o em progresso simbólico. Só lê fins de temporizador, nada mais.</string>
+    <string name="settings_concentration_access_hint">O Android exige que permitas o Sankai ler notificações. Só são usados fins de temporizador; nada mais é lido nem enviado.</string>
+    <string name="settings_concentration_open_access">Abrir acesso às notificações</string>
+
+    <!-- Fonte Concentração: notificações -->
+    <string name="concentration_done_title">Temporizador terminado</string>
+    <string name="concentration_done_xp">+%1$d XP — está feito, já podes fechar.</string>
+    <string name="concentration_listener_label">Concentração (temporizador)</string>
+
     <!-- Configurações: links -->
     <string name="settings_section_links">Links</string>
     <string name="settings_link_site">Site Souanpt</string>
@@ -647,4 +664,69 @@
 
     <!-- Genérico -->
     <string name="action_retry">Tentar novamente</string>
+
+    <!-- Progresso real -->
+    <string name="progression_title">Progresso real</string>
+    <string name="progression_esprit">Mente</string>
+    <string name="progression_culture">Cultura</string>
+    <string name="progression_languages">Idiomas</string>
+    <string name="progression_habits">Hábitos</string>
+    <string name="progression_life">Vida</string>
+    <string name="progression_hint">Nenhuma barra é uma obrigação: elas descrevem o que você já faz.</string>
+    <plurals name="progression_cards">
+        <item quantity="one">%1$d carta dominada</item>
+        <item quantity="other">%1$d cartas dominadas</item>
+    </plurals>
+    <plurals name="progression_discoveries">
+        <item quantity="one">%1$d descoberta</item>
+        <item quantity="other">%1$d descobertas</item>
+    </plurals>
+    <plurals name="progression_langs">
+        <item quantity="one">%1$d idioma</item>
+        <item quantity="other">%1$d idiomas</item>
+    </plurals>
+    <plurals name="progression_objectives">
+        <item quantity="one">%1$d objetivo concluído</item>
+        <item quantity="other">%1$d objetivos concluídos</item>
+    </plurals>
+    <plurals name="progression_days">
+        <item quantity="one">%1$d dia ativo</item>
+        <item quantity="other">%1$d dias ativos</item>
+    </plurals>
+
+    <string name="nav_today">Hoje</string>
+    <string name="nav_culture">Cultura</string>
+
+    <string name="home_intro">Uma pequena descoberta hoje.</string>
+    <string name="home_discover_title">Descoberta do dia</string>
+    <string name="home_discover_action">Descobrir</string>
+    <string name="home_discover_none">Nenhuma descoberta disponível hoje.</string>
+    <string name="home_progress_title">Progresso</string>
+    <string name="home_continue">Continuar</string>
+    <string name="home_progress_none">Nenhum percurso em curso</string>
+    <string name="home_progress_cta">Ir para Aprender</string>
+    <string name="home_activity_title">Hoje</string>
+    <string name="home_activity_learned">Aprendeste algo hoje.</string>
+    <string name="home_activity_nothing">Nada previsto — aproveita o teu dia.</string>
+
+    <string name="flashcards_module_gone_title">Este módulo já não está disponível.</string>
+    <string name="flashcards_module_gone_body">Pode ter sido removido ou movido. Podes importá-lo novamente.</string>
+    <string name="action_import_module">Importar o módulo</string>
+
+    <string name="mode_life_calendar_title">Calendário</string>
+    <string name="mode_life_calendar_privacy">Apenas leitura · nunca alterado · tudo fica no teu telemóvel</string>
+    <string name="mode_life_calendar_hint">O Sankai valoriza o que já fazes: um evento terminado torna-se progresso simbólico. Lê apenas o necessário e não envia nada.</string>
+    <string name="mode_life_calendar_allow">Permitir acesso ao calendário</string>
+    <string name="mode_life_calendar_loading">A ler o calendário…</string>
+    <string name="mode_life_calendar_xp">+%1$d XP simbólico hoje</string>
+    <string name="mode_life_calendar_gained">+%1$d XP por eventos concluídos</string>
+    <string name="mode_life_calendar_refresh">Atualizar</string>
+    <plurals name="mode_life_calendar_done">
+        <item quantity="one">%1$d evento concluído hoje</item>
+        <item quantity="other">%1$d eventos concluídos hoje</item>
+    </plurals>
+    <plurals name="progression_events">
+        <item quantity="one">%1$d evento concluído</item>
+        <item quantity="other">%1$d eventos concluídos</item>
+    </plurals>
 </resources>

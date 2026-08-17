@@ -3,12 +3,15 @@ package com.sankailife.ui.screens.settings
 import android.app.Application
 import android.content.Context
 import android.content.Intent
+import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.*
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.room.withTransaction
 import com.sankailife.SankaiApplication
 import com.sankailife.R
+import com.sankailife.core.calendar.CalendrierIntegration
+import com.sankailife.core.domain.engine.ProgressSourceEngine
 import com.sankailife.core.notifications.NotificationCoordinator
 import com.sankailife.core.notifications.MemoAlarmScheduler
 import com.sankailife.core.notifications.SankaiNotifications
@@ -17,6 +20,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -46,7 +50,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
     val notifyCulture: StateFlow<Boolean> = prefs.notifyCulture
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
-    val notifyFocus: StateFlow<Boolean> = prefs.notifyFocus
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     val couleursSysteme: StateFlow<Boolean> = prefs.couleursSysteme
@@ -114,7 +117,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         prefs.setNotifyCulture(v)
         NotificationCoordinator.reconcile(app)
     }
-    fun setNotifyFocus(v: Boolean)         = viewModelScope.launch { prefs.setNotifyFocus(v) }
 
     fun pauseNotifications(days: Long) = viewModelScope.launch {
         val until = java.time.LocalDate.now()
@@ -150,6 +152,49 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setQuietEnd(minutes: Int) = viewModelScope.launch {
         prefs.setQuietEnd(minutes)
         NotificationCoordinator.reconcile(app)
+    }
+
+    // ----- Activités connectées --------------------------------------------
+
+    /**
+     * L'état des sources connectées : ce qui est autorisé, ce qui a rapporté
+     * aujourd'hui. Relu à chaque affichage, car l'utilisatrice peut avoir
+     * changé les permissions dans les réglages Android.
+     */
+    data class Activites(
+        val permissionCalendrier: Boolean = false,
+        val accessNotifications: Boolean = false,
+        val xpCalendrier: Int = 0,
+        val xpConcentration: Int = 0
+    )
+
+    private val _activites = MutableStateFlow(Activites())
+    val activites: StateFlow<Activites> = _activites
+
+    /** L'accord explicite pour la source Concentration. */
+    val concentrationActif: StateFlow<Boolean> = prefs.concentrationActif
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    fun setConcentrationActif(v: Boolean) = viewModelScope.launch {
+        prefs.setConcentrationActif(v)
+    }
+
+    fun rafraichirActivites() = viewModelScope.launch {
+        val jour = LocalDate.now().toString()
+        _activites.value = Activites(
+            permissionCalendrier = CalendrierIntegration.permissionAccordee(app),
+            accessNotifications = NotificationManagerCompat
+                .getEnabledListenerPackages(app)
+                .contains(app.packageName),
+            xpCalendrier = prefs.xpAccordeSource(
+                ProgressSourceEngine.Source.CALENDRIER.name,
+                jour
+            ),
+            xpConcentration = prefs.xpAccordeSource(
+                ProgressSourceEngine.Source.CONCENTRATION.name,
+                jour
+            )
+        )
     }
 
     /** Grise les liens externes hors connexion. Le reste de l'écran reste actif. */

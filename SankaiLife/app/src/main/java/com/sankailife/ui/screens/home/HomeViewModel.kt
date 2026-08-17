@@ -6,14 +6,22 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.sankailife.SankaiApplication
+import com.sankailife.core.culture.CultureLocalState
+import com.sankailife.core.culture.DailyCultureEntry
+import com.sankailife.core.culture.DailyDiscovery
 import com.sankailife.core.data.db.entities.MemoProfileEntity
 import com.sankailife.core.data.repository.UserRepository
 import com.sankailife.core.domain.model.UserState
+import com.sankailife.core.learning.data.LearningModuleEntity
+import com.sankailife.core.learning.data.LearningRepository
+import com.sankailife.core.learning.domain.AcademieEngine
 import com.sankailife.core.time.observedMinutes
 import java.time.LocalDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
@@ -89,10 +97,72 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         .flatMapLatest { jour -> app.preferences.xpSourceTotalJour(jour.toString()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
+    /** Ce qu'il faut continuer : un module, l'unité en cours, la progression. */
+    data class Suite(
+        val module: LearningModuleEntity,
+        val unite: AcademieEngine.Unite,
+        val progression: Float,
+        val resume: String
+    )
+
+    private val _suite = MutableStateFlow<Suite?>(null)
+    val suite: StateFlow<Suite?> = _suite.asStateFlow()
+
+    /** La capsule du jour, la même que l'écran Culture et la notification. */
+    private val _decouverte = MutableStateFlow<DailyCultureEntry?>(null)
+    val decouverte: StateFlow<DailyCultureEntry?> = _decouverte.asStateFlow()
+
     init {
         // L'accueil initialise seulement le profil. Il ne crée plus en
         // arrière-plan de coffre, défi ou récompense à réclamer.
         viewModelScope.launch { userRepository.ensureUser() }
+    }
+
+    /**
+     * Relit le module en cours et la capsule du jour.
+     *
+     * Appelé à chaque ouverture de l'écran : la progression vient de changer
+     * après une session, et la découverte du jour peut avoir été consultée.
+     */
+    fun rafraichir() {
+        viewModelScope.launch {
+            runCatching {
+                val depot = LearningRepository(app.database)
+                val maintenant = System.currentTimeMillis()
+                val profils = app.database.memoDao().getAllProfilesOnce()
+                val avecCartes = profils.map { it to app.database.memoDao().getLinesOnce(it.id) }
+                    .filter { (_, lignes) -> lignes.isNotEmpty() }
+                _suite.value = avecCartes
+                    .mapNotNull { (profil, _) -> depot.moduleDuProfil(profil.id) }
+                    .firstNotNullOfOrNull { module -> suitePour(depot, module) }
+
+                val local = CultureLocalState(app)
+                val userId = app.database.userDao().getUserOnce()?.id ?: 1L
+                val profileId = "user-$userId"
+                _decouverte.value = DailyDiscovery.duJour(
+                    app,
+                    profileId = profileId,
+                    history = local.history(profileId)
+                )
+            }
+        }
+    }
+
+    private suspend fun suitePour(
+        depot: LearningRepository,
+        module: LearningModuleEntity
+    ): Suite? {
+        val parcours = depot.parcours(module)
+        val unite = AcademieEngine.aContinuer(parcours) ?: return null
+        val noeud = parcours.first { it.unite.id == unite.id }
+        val plan = depot.preparerSession(module, unite.id) ?: return null
+        if (plan.vide) return null
+        return Suite(
+            module = module,
+            unite = unite,
+            progression = noeud.progression,
+            resume = com.sankailife.core.learning.domain.SessionPlanEngine.resume(plan)
+        )
     }
 
     fun finishToday(onSaved: () -> Unit = {}) = viewModelScope.launch {

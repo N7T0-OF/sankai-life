@@ -4,8 +4,13 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
+    <!--
+      Calendrier : lecture seule, pour valoriser les événements terminés en
+      progression. Sankai ne modifie jamais le calendrier et ne lit que les
+      événements nécessaires, localement — aucun réseau.
+    -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
 
     <!--
       Alarmes exactes : indispensable pour qu'un mémo demandé à 22h00 parte à
@@ -102,11 +107,6 @@
             </intent-filter>
         </activity>
 
-        <service
-            android:name=".core.FocusForegroundService"
-            android:foregroundServiceType="dataSync"
-            android:exported="false" />
-
         <!--
           Widget « Aujourd'hui » : la journée en un coup d'œil, sans ouvrir
           l'application. Les données affichées restent locales.
@@ -179,5 +179,23 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+
+        <!--
+          Source Concentration : observe uniquement la fin d'un minuteur
+          système pour la transformer en progression symbolique. Inactif tant
+          que l'utilisateur n'a pas accordé l'accès aux notifications (réglage
+          système) ET activé la Concentration dans les Paramètres. La
+          permission BIND_NOTIFICATION_LISTENER_SERVICE est système : Sankai ne
+          la demande jamais, seule l'utilisatrice peut l'accorder.
+        -->
+        <service
+            android:name=".core.concentration.MinuteurListener"
+            android:exported="true"
+            android:label="@string/concentration_listener_label"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
     </application>
 </manifest>

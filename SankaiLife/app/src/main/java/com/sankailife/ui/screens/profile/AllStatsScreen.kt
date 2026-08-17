@@ -98,16 +98,6 @@ fun AllStatsScreen(viewModel: ProfileViewModel, onBack: () -> Unit) {
                     )
             )
 
-            SectionTitle(stringResource(R.string.stats_activity))
-            StatRow(
-                stringResource(R.string.stats_focus_time),
-                stringResource(
-                    R.string.stats_hours_minutes,
-                    user.totalFocusMinutes / 60,
-                    user.totalFocusMinutes % 60
-                )
-            )
-
             SectionTitle(stringResource(R.string.stats_life_time))
             Text(
                 if (dailyMinutes == 0) stringResource(R.string.stats_no_time_target)

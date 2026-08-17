@@ -5,6 +5,7 @@ import com.sankailife.BuildConfig
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.time.LocalDate
+import java.time.LocalTime
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
@@ -69,7 +70,12 @@ object DailyDiscovery {
                 profileId = profileId,
                 localDate = LocalDate.now(),
                 packVersion = cat.version,
-                history = history
+                history = history,
+                // La découverte suit le moment de la journée : mot le matin,
+                // connaissance la journée, poésie le soir. Préférence douce.
+                preferredTypes = MomentCulture.typesPreferees(
+                    MomentCulture.moment(LocalTime.now().hour)
+                )
             )
         )
     }

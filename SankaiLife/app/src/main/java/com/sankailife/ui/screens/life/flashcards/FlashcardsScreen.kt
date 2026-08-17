@@ -57,7 +57,9 @@ fun FlashcardsScreen(
      * Vide pour une revision libre : c'est alors la liste des cartes dues qui
      * fait la session, comme avant.
      */
-    uniteId: String = ""
+    uniteId: String = "",
+    /** Le module n'existe plus : proposer de l'importer à nouveau. */
+    onImporter: () -> Unit = {}
 ) {
     val etat by viewModel.etat.collectAsState()
     val c = MaterialTheme.sankaiColors
@@ -143,6 +145,13 @@ fun FlashcardsScreen(
             etat.chargement -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = c.accent)
             }
+
+            // Un rappel peut ouvrir un module supprimé : jamais un crash, un
+            // état qui explique et propose d'importer.
+            etat.moduleIntrouvable -> EcranModuleIntrouvable(
+                onImporter = onImporter,
+                onBack = onBack
+            )
 
             etat.terminee -> EcranFin(
                 reussies = etat.reussies,
@@ -689,5 +698,49 @@ private fun EcranFin(
             Spacer(Modifier.height(10.dp))
         }
         SankaiButton(stringResource(R.string.action_back), onClick = onBack, secondary = true, modifier = Modifier.fillMaxWidth())
+    }
+}
+
+/**
+ * Le module ouvert n'existe plus (supprimé depuis la notification).
+ *
+ * Une porte de sortie explicite : importer à nouveau, ou revenir.
+ */
+@Composable
+private fun EcranModuleIntrouvable(
+    onImporter: () -> Unit,
+    onBack: () -> Unit
+) {
+    val c = MaterialTheme.sankaiColors
+    Column(
+        Modifier.fillMaxSize().padding(28.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("🃏", fontSize = 52.sp)
+        Spacer(Modifier.height(12.dp))
+        Text(
+            stringResource(R.string.flashcards_module_gone_title),
+            color = c.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            stringResource(R.string.flashcards_module_gone_body),
+            color = c.textSecondary, fontSize = 13.sp, textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(28.dp))
+        SankaiButton(
+            stringResource(R.string.action_import_module),
+            onClick = onImporter,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(10.dp))
+        SankaiButton(
+            stringResource(R.string.action_back),
+            onClick = onBack,
+            secondary = true,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }

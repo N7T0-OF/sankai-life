@@ -188,11 +188,33 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun lireDestination(intent: android.content.Intent?) {
-        val route = intent?.getStringExtra(
+        if (intent == null) return
+
+        // Un rappel mémo ouvre le module précis, jamais la bibliothèque
+        // entière. Le module peut avoir été supprimé entre-temps : l'écran de
+        // session le dit et propose d'importer à nouveau, au lieu de planter
+        // sur une référence orpheline.
+        val profileId = intent.getLongExtra(
+            com.sankailife.core.notifications.SankaiNotifications.EXTRA_MEMO_PROFILE_ID,
+            -1L
+        )
+        if (profileId > 0L) {
+            navigationRequest.value = "flashcards/$profileId"
+            // Une rotation ne doit pas rejouer une navigation déjà consommée.
+            intent.removeExtra(
+                com.sankailife.core.notifications.SankaiNotifications.EXTRA_MEMO_PROFILE_ID
+            )
+            intent.removeExtra(
+                com.sankailife.core.notifications.SankaiNotifications.EXTRA_DESTINATION
+            )
+            return
+        }
+
+        val route = intent.getStringExtra(
             com.sankailife.core.notifications.SankaiNotifications.EXTRA_DESTINATION
         ) ?: return
         if (route in setOf(
-                "memo", "capsules", "academy", "focus",
+                "memo", "capsules", "academy",
                 // Route de la révision libre, utilisée par le widget.
                 "flashcards/${com.sankailife.ui.screens.life.flashcards.FlashcardsViewModel.PROFIL_ERREURS}"
             )

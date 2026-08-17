@@ -23,9 +23,18 @@ class CulturePackExampleAssetTest {
 
         val pack = CulturePackImporter.inspect(archive, appVersionCode = 80)
         assertEquals("classics-fr-sample", pack.manifest.id)
-        assertEquals(3, pack.entries.size)
-        assertTrue(pack.entries.all { it.rightsStatus == ContentRightsStatus.PUBLIC_DOMAIN })
+        assertEquals(13, pack.entries.size)
+        assertTrue(
+            pack.entries.all {
+                it.rightsStatus == ContentRightsStatus.PUBLIC_DOMAIN ||
+                    it.rightsStatus == ContentRightsStatus.CREATIVE_COMMONS
+            }
+        )
         assertTrue(pack.entries.all { !it.sourceLabel.isNullOrBlank() })
+        assertTrue(pack.entries.any { it.rightsStatus == ContentRightsStatus.PUBLIC_DOMAIN })
+        assertTrue(pack.entries.any { it.rightsStatus == ContentRightsStatus.CREATIVE_COMMONS })
+        assertTrue(pack.entries.count { it.type == CultureEntryType.WORD } >= 2)
+        assertTrue(pack.entries.count { it.type == CultureEntryType.SCIENCE } >= 2)
     }
 }
 

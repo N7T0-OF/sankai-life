@@ -56,17 +56,38 @@ data class NavItem(
     val route: String,
     @StringRes val label: Int,
     val iconSelected: ImageVector,
-    val iconUnselected: ImageVector
+    val iconUnselected: ImageVector,
+    /** L'action principale, au centre : l'élément un peu plus grand et plus marqué. */
+    val center: Boolean = false
 )
 
+/**
+ * Cinq destinations, « Aujourd'hui » au centre.
+ *
+ * La section centrale est l'action principale de l'application : elle montre
+ * ce qui mérite l'attention aujourd'hui, puis laisse repartir dans la vraie
+ * vie. Apprendre et Vie à sa gauche, Culture et Profil à sa droite.
+ */
 val bottomNavItems = listOf(
-    NavItem(Screen.Home.route, R.string.nav_home, Icons.Filled.WbSunny, Icons.Outlined.WbSunny),
     NavItem(Screen.Academy.route, R.string.nav_learn, Icons.Filled.School, Icons.Outlined.School),
     NavItem(
         Screen.Life.route,
         R.string.nav_life,
         Icons.Filled.SelfImprovement,
         Icons.Outlined.SelfImprovement
+    ),
+    NavItem(
+        Screen.Home.route,
+        R.string.nav_today,
+        Icons.Filled.WbSunny,
+        Icons.Outlined.WbSunny,
+        center = true
+    ),
+    NavItem(
+        Screen.Capsules.route,
+        R.string.nav_culture,
+        Icons.Filled.AutoStories,
+        Icons.Outlined.AutoStories
     ),
     NavItem(Screen.Profile.route, R.string.nav_profile, Icons.Filled.Person, Icons.Outlined.Person)
 )
@@ -107,13 +128,30 @@ fun SankaiBottomNavBar(
                         targetValue = if (selected) 1.06f else 1f,
                         label = "navigation_scale"
                     )
+                    // L'élément central est l'action principale : il reste
+                    // légèrement marqué même non sélectionné, et se détache
+                    // nettement quand on est dessus — la hiérarchie visuelle
+                    // d'une action centrale, sans gros rectangle ni fond.
                     val iconColor by animateColorAsState(
-                        targetValue = if (selected) colors.accent else colors.textSecondary,
+                        targetValue = when {
+                            selected -> colors.accent
+                            item.center -> colors.accent.copy(alpha = 0.85f)
+                            else -> colors.textSecondary
+                        },
                         label = "navigation_color"
                     )
                     val backgroundAlpha by animateFloatAsState(
-                        targetValue = if (selected) 0.16f else 0f,
+                        targetValue = when {
+                            selected && item.center -> 0.22f
+                            selected -> 0.16f
+                            item.center -> 0.07f
+                            else -> 0f
+                        },
                         label = "navigation_background"
+                    )
+                    val iconSize by animateFloatAsState(
+                        targetValue = if (item.center) 26.dp.value else 23.dp.value,
+                        label = "navigation_icon_size"
                     )
 
                     Box(
@@ -144,15 +182,15 @@ fun SankaiBottomNavBar(
                                 imageVector = if (selected) item.iconSelected else item.iconUnselected,
                                 contentDescription = if (showLabels) null else label,
                                 tint = iconColor,
-                                modifier = Modifier.size(23.dp)
+                                modifier = Modifier.size(iconSize.dp)
                             )
                             if (showLabels) {
-                                Spacer(Modifier.height(3.dp))
+                                Spacer(Modifier.height(if (item.center) 4.dp else 3.dp))
                                 Text(
                                     label,
                                     color = iconColor,
-                                    fontSize = 10.sp,
-                                    fontWeight = if (selected) FontWeight.SemiBold
+                                    fontSize = if (item.center) 10.5.sp else 10.sp,
+                                    fontWeight = if (selected || item.center) FontWeight.SemiBold
                                     else FontWeight.Normal,
                                     maxLines = 1
                                 )

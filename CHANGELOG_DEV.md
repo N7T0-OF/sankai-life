@@ -1,5 +1,33 @@
 # Changelog développeur
 
+## 1.95.0 — 17 août 2026
+
+### Source Concentration (minuteur système)
+
+- `core/concentration/ConcentrationIntegration` : décision pure et testable
+  d'une « fin de minuteur » (paquet Horloge connu + canal « timer » +
+  non-persistant), déduplication par clé de notification ;
+- `core/concentration/MinuteurListener` (`NotificationListenerService`) :
+  crédit une fois par jour via `UserRepository.addSourceXp(CONCENTRATION)`,
+  relit les notifications présentes au raccordement, ne retient qu'une clé ;
+- préférences : `concentration_actif` (désactivé par défaut) et
+  `concentration_credits_<date>` (déduplication quotidienne) ;
+- confirmation discrète via `NotificationPolicy.tryAcquire(FOCUS)` dans le
+  budget quotidien ; le crédit d'XP n'est jamais une notification ;
+- widget « Aujourd'hui » rafraîchi après un crédit.
+
+### Activités connectées (Paramètres)
+
+- section Calendrier + Concentration : état, XP du jour, bouton d'accès ;
+- état relu au retour des réglages Android (launcher d'activité et
+  permission) ; `NotificationManagerCompat.getEnabledListenerPackages` pour
+  l'état réel de l'accès aux notifications.
+
+### Validation
+
+- 11 tests unitaires nouveaux (détection, déduplication) ;
+- `testDebugUnitTest`, lint et build à revérifier avant publication.
+
 ## 1.38.0 — 1er août 2026
 
 ### Intégrité

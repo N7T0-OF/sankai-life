@@ -55,10 +55,6 @@ class SankaiApplication : Application() {
                 NotificationChannel(
                     SankaiNotifications.CHANNEL_REWARD, "Récompenses",
                     NotificationManager.IMPORTANCE_DEFAULT
-                ),
-                NotificationChannel(
-                    SankaiNotifications.CHANNEL_FOCUS, "Session Focus",
-                    NotificationManager.IMPORTANCE_LOW
                 )
             ).forEach { manager.createNotificationChannel(it) }
         }

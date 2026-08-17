@@ -57,7 +57,13 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
          * Il remplace [exercice] plutôt que de coexister avec : les deux
          * affichés en même temps poseraient deux questions à la fois.
          */
-        val association: AssociationEngine.Etat? = null
+        val association: AssociationEngine.Etat? = null,
+        /**
+         * Le module ouvert n'existe plus (supprimé depuis la notification).
+         *
+         * Jamais un crash : un état qui explique, avec une porte de sortie.
+         */
+        val moduleIntrouvable: Boolean = false
     ) {
         val carteCourante: FlashcardEngine.Carte? get() = cartes.getOrNull(index)
         val total: Int get() = cartes.size
@@ -160,6 +166,10 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
             }
 
             val profil = if (multiModules) null else memoDao.getProfile(profileId)
+            // Un rappel peut ouvrir un module supprimé entre-temps : plutôt
+            // qu'un crash ou une session vide sans explication, on le dit et
+            // on propose d'importer à nouveau.
+            val moduleIntrouvable = !multiModules && profileId > 0 && profil == null
 
             // La langue se porte par carte : une session multi-modules mélange
             // les modules, et lire du portugais avec une voix française
@@ -222,13 +232,15 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
                     else -> profil?.name.orEmpty().ifBlank { app.getString(R.string.memo_default_name) }
                 },
                 cartes = cartes,
-                terminee = cartes.isEmpty(),
+                terminee = cartes.isEmpty() || moduleIntrouvable,
                 messageFin = when {
+                    moduleIntrouvable -> ""
                     cartes.isNotEmpty() -> ""
                     modeErreurs -> app.getString(R.string.flashcards_no_errors)
                     modeExpress -> app.getString(R.string.flashcards_nothing_express)
                     else -> app.getString(R.string.flashcards_nothing_module)
                 },
+                moduleIntrouvable = moduleIntrouvable,
                 exercice = null
             ).avecExercice(0)
             uniteEnCours?.let { (moduleId, unite) ->
