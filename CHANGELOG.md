@@ -1,5 +1,21 @@
 # Changelog Sankai Life
 
+## 1.81.0 - 17 aout 2026
+
+**L'Académie dessine ta semaine, et parle enfin toutes les langues de
+l'application.**
+
+- **Grille de régularité hebdomadaire.** La carte « Régularité » de
+  l'Académie affiche les 7 derniers jours en pastilles (L M M J V S D) :
+  le jour est rempli quand une session de révision s'y est terminée, le
+  jour courant est marqué. Toujours compté en jours distincts, jamais en
+  sessions — un encouragement à revenir, pas un compteur à faire grossir.
+- **Académie, Parcours et Mode Vie traduits en anglais et en portugais.**
+  Les textes en dur restants (titres, révisions, régularité, modules,
+  outils, écrans de parcours) passent dans `strings.xml` : l'app est
+  maintenant entièrement trilingue, plus aucun écran ne retombe en
+  français dans une interface anglaise ou portugaise.
+
 ## 1.80.0 - 17 aout 2026
 
 **La publicité disparaît définitivement. Sankai Life ne contient plus aucun

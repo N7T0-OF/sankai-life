@@ -244,4 +244,13 @@ class LearningRepository(
         val decalage = java.util.TimeZone.getDefault().getOffset(System.currentTimeMillis())
         return dao.joursActifs(depuisMillis, decalage.toLong())
     }
+
+    /**
+     * Les jours (epoch-day) travaillés depuis une date, dans le fuseau de
+     * l'appareil. Sert à dessiner la semaine sans deviner le fuseau.
+     */
+    fun joursActifsListe(depuisMillis: Long): Flow<List<Long>> {
+        val decalage = java.util.TimeZone.getDefault().getOffset(System.currentTimeMillis())
+        return dao.joursActifsListe(depuisMillis, decalage.toLong())
+    }
 }

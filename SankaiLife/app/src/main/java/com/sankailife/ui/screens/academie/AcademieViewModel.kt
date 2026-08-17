@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.sankailife.R
 import com.sankailife.SankaiApplication
 import com.sankailife.core.data.db.entities.MemoProfileEntity
 import com.sankailife.core.learning.data.LearningModuleEntity
@@ -43,6 +44,13 @@ class AcademieViewModel(application: Application) : AndroidViewModel(application
         val resume: String
     )
 
+    /** Un jour de la semaine de régularité, prêt à dessiner. */
+    data class JourSemaine(
+        val libelle: String,
+        val actif: Boolean,
+        val aujourdHui: Boolean
+    )
+
     data class Etat(
         val chargement: Boolean = true,
         val suite: Suite? = null,
@@ -60,7 +68,9 @@ class AcademieViewModel(application: Application) : AndroidViewModel(application
         val groupes: List<com.sankailife.core.learning.domain.GroupementEngine.Groupe> =
             emptyList(),
         val cartesDues: Int = 0,
-        val joursActifs: Int = 0
+        val joursActifs: Int = 0,
+        /** Les 7 derniers jours, du plus ancien au plus récent. */
+        val semaine: List<JourSemaine> = emptyList()
     ) {
         /** Rien à apprendre : ni contenu, ni révision. */
         val vide: Boolean get() = suite == null && modulesDisponibles.isEmpty()
@@ -124,7 +134,20 @@ class AcademieViewModel(application: Application) : AndroidViewModel(application
                     .mapNotNull { (profil, _) -> depot.moduleDuProfil(profil.id) }
                     .firstNotNullOfOrNull { module -> suitePour(module) }
 
-                val semaine = maintenant - TimeUnit.DAYS.toMillis(7)
+                val depuis = maintenant - TimeUnit.DAYS.toMillis(7)
+                val joursTravailes = depot.joursActifsListe(depuis).first().toSet()
+                val aujourdHui = java.time.LocalDate.now()
+                val semaine = (6L downTo 0L).map { recul ->
+                    val jour = aujourdHui.minusDays(recul)
+                    JourSemaine(
+                        libelle = java.time.format.DateTimeFormatter
+                            .ofPattern("E", java.util.Locale.getDefault())
+                            .format(jour)
+                            .take(1),
+                        actif = jour.toEpochDay() in joursTravailes,
+                        aujourdHui = recul == 0L
+                    )
+                }
                 Etat(
                     chargement = false,
                     suite = suite,
@@ -147,12 +170,14 @@ class AcademieViewModel(application: Application) : AndroidViewModel(application
                         }
                     ),
                     cartesDues = dues,
-                    joursActifs = depot.joursActifs(semaine).first()
+                    joursActifs = joursTravailes.size,
+                    semaine = semaine
                 )
             }.onSuccess { _etat.value = it }
                 .onFailure {
                     _etat.value = _etat.value.copy(chargement = false)
-                    _message.value = "Impossible de charger l'Académie."
+                    _message.value = getApplication<android.app.Application>()
+                        .getString(R.string.academy_load_error)
                 }
         }
     }

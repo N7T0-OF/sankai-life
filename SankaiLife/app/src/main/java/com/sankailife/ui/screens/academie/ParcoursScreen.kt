@@ -29,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -36,6 +37,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.sankailife.R
 import com.sankailife.SankaiApplication
 import com.sankailife.core.learning.data.LearningModuleEntity
 import com.sankailife.core.learning.data.LearningRepository
@@ -77,10 +79,11 @@ class ParcoursViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             _etat.value = Etat(chargement = true)
             runCatching {
+                val app = getApplication<android.app.Application>()
                 val module = depot.moduleDuProfil(profileId)
                     ?: return@runCatching Etat(
                         chargement = false,
-                        erreur = "Ce module n'existe plus."
+                        erreur = app.getString(R.string.academy_module_gone)
                     )
                 val noeuds = depot.parcours(module)
                 Etat(
@@ -89,12 +92,16 @@ class ParcoursViewModel(application: Application) : AndroidViewModel(application
                     noeuds = noeuds,
                     progression = AcademieEngine.progression(noeuds),
                     erreur = if (noeuds.isEmpty()) {
-                        "Ce module ne contient encore aucune carte."
+                        app.getString(R.string.academy_module_empty)
                     } else ""
                 )
             }.onSuccess { _etat.value = it }
                 .onFailure {
-                    _etat.value = Etat(chargement = false, erreur = "Chargement impossible.")
+                    _etat.value = Etat(
+                        chargement = false,
+                        erreur = getApplication<android.app.Application>()
+                            .getString(R.string.academy_load_error)
+                    )
                 }
         }
     }
@@ -126,22 +133,29 @@ fun ParcoursScreen(
             ) {
                 IconButton(onClick = onBack) {
                     Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack, "Retour",
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        stringResource(R.string.action_back),
                         tint = c.textPrimary
                     )
                 }
                 Column {
                     Text(
-                        etat.module?.nom?.ifBlank { "Parcours" } ?: "Parcours",
+                        etat.module?.nom?.ifBlank {
+                            stringResource(R.string.academy_module_unnamed)
+                        } ?: stringResource(R.string.academy_module_unnamed),
                         color = c.textPrimary, fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
                     if (etat.noeuds.isNotEmpty()) {
                         Text(
                             "${(etat.progression * 100).toInt()} % · " +
-                                "${etat.noeuds.count {
-                                    it.etat == AcademieEngine.Etat.TERMINEE
-                                }} / ${etat.noeuds.size} unités",
+                                stringResource(
+                                    R.string.academy_units_done,
+                                    etat.noeuds.count {
+                                        it.etat == AcademieEngine.Etat.TERMINEE
+                                    },
+                                    etat.noeuds.size
+                                ),
                             color = c.textSecondary, fontSize = 12.sp
                         )
                     }
@@ -160,7 +174,9 @@ fun ParcoursScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(etat.erreur, color = c.textSecondary, fontSize = 14.sp)
                         Spacer(Modifier.height(12.dp))
-                        SankaiButton("Retour", onClick = onBack, secondary = true)
+                        SankaiButton(
+                            stringResource(R.string.action_back), onClick = onBack, secondary = true
+                        )
                     }
                 }
 
@@ -174,7 +190,9 @@ fun ParcoursScreen(
                             chapitreAffiche = noeud.unite.chapitre
                             Spacer(Modifier.height(18.dp))
                             Text(
-                                "Chapitre ${chapitreAffiche + 1}",
+                                stringResource(
+                                    R.string.academy_chapter, chapitreAffiche + 1
+                                ),
                                 color = c.textSecondary, fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -238,10 +256,12 @@ private fun NoeudUnite(
                             // On explique la condition plutôt que d'afficher un
                             // cadenas muet : un verrou sans raison se lit comme
                             // une punition.
-                            "Commence l'unité précédente pour l'ouvrir"
+                            stringResource(R.string.academy_unlock_prev)
                         } else {
-                            "${noeud.unite.taille} carte(s) · " +
-                                "${(noeud.progression * 100).toInt()} %"
+                            stringResource(
+                                R.string.academy_cards_progress,
+                                noeud.unite.taille, (noeud.progression * 100).toInt()
+                            )
                         },
                         color = c.textSecondary, fontSize = 12.sp
                     )

@@ -276,4 +276,50 @@
     <string name="widget_next_memo">Próximo lembrete: %1$s</string>
     <string name="widget_no_memo">Sem lembretes agendados</string>
     <string name="widget_description">O teu dia de relance: cartões para rever e próximo lembrete.</string>
+
+    <!-- Academia -->
+    <string name="academy_title">Academia</string>
+    <string name="academy_subtitle">O que aprendes, e quando</string>
+    <string name="academy_revisions">Revisões</string>
+    <plurals name="academy_due_cards">
+        <item quantity="one">%1$d cartão para rever</item>
+        <item quantity="other">%1$d cartões para rever</item>
+    </plurals>
+    <string name="academy_due_reason">A data de revisão já passou.</string>
+    <string name="academy_regularity">Regularidade</string>
+    <plurals name="academy_days_week">
+        <item quantity="one">%1$d dia trabalhado esta semana</item>
+        <item quantity="other">%1$d dias trabalhados esta semana</item>
+    </plurals>
+    <string name="academy_today">Hoje</string>
+    <string name="academy_days_distinct">Contado em dias distintos, não em sessões.</string>
+    <string name="academy_my_modules">Os meus módulos</string>
+    <string name="academy_module_unnamed">Módulo sem nome</string>
+    <plurals name="academy_cards_count">
+        <item quantity="one">%1$d cartão</item>
+        <item quantity="other">%1$d cartões</item>
+    </plurals>
+    <string name="academy_tools">Ferramentas</string>
+    <string name="academy_focus">Focus</string>
+    <string name="academy_focus_desc">Sessões de concentração</string>
+    <string name="academy_objectives">Objetivos</string>
+    <string name="academy_objectives_desc">A tua lista pessoal</string>
+    <string name="academy_content">Conteúdo</string>
+    <string name="academy_create_module">Criar ou editar um módulo</string>
+    <string name="academy_continue_badge">CONTINUAR</string>
+    <string name="academy_unit_progress">%1$d %% da unidade</string>
+    <string name="academy_session_estimate">≈ %1$d min · %2$s</string>
+    <string name="academy_start">Começar</string>
+    <string name="academy_all_caught_up">Tudo em dia</string>
+    <string name="academy_all_caught_up_desc">Nenhum cartão espera revisão. Volta mais tarde, ou adiciona conteúdo a um módulo.</string>
+    <string name="academy_where_to_start">Por onde começar</string>
+    <string name="academy_where_to_start_desc">A Academia constrói um percurso a partir do teu conteúdo. Cria um módulo — uma língua, uma matéria, uma lista de palavras — e o percurso organiza-se sozinho.</string>
+    <string name="academy_first_module">Criar o meu primeiro módulo</string>
+    <string name="academy_load_error">Não foi possível carregar a Academia.</string>
+    <string name="academy_units_done">%1$d / %2$d unidades</string>
+    <string name="academy_chapter">Capítulo %1$d</string>
+    <string name="academy_unlock_prev">Termina a unidade anterior para a desbloquear</string>
+    <string name="academy_cards_progress">%1$d cartão(ões) · %2$d %%</string>
+    <string name="academy_module_gone">Este módulo já não existe.</string>
+    <string name="academy_module_empty">Este módulo ainda não tem cartões.</string>
 </resources>

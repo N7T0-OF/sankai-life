@@ -109,6 +109,20 @@ interface LearningDao {
     """)
     fun joursActifs(depuisMillis: Long, decalageMillis: Long): Flow<Int>
 
+    /**
+     * Les jours (epoch-day) où une session a été terminée depuis une date.
+     *
+     * Permet de dessiner la semaine : une pastille par jour, remplie si une
+     * session s'y est terminée. La même règle que [joursActifs] — un jour
+     * travaillé est un jour avec au moins une session terminée.
+     */
+    @Query("""
+        SELECT DISTINCT CAST((finMillis + :decalageMillis) / 86400000 AS INTEGER)
+        FROM learning_session
+        WHERE finMillis >= :depuisMillis AND exercicesFaits > 0
+    """)
+    fun joursActifsListe(depuisMillis: Long, decalageMillis: Long): Flow<List<Long>>
+
     @Query("DELETE FROM learning_session WHERE moduleId = :moduleId")
     suspend fun effacerSessions(moduleId: Long): Int
 }

@@ -10,8 +10,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.clip
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -24,10 +27,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sankailife.R
 import com.sankailife.ui.components.SankaiButton
 import com.sankailife.ui.components.SankaiCard
 import com.sankailife.ui.components.SectionTitle
@@ -78,11 +84,11 @@ fun AcademieScreen(
                 Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)
             ) {
                 Text(
-                    "Académie", color = c.textPrimary,
+                    stringResource(R.string.academy_title), color = c.textPrimary,
                     fontSize = 24.sp, fontWeight = FontWeight.Bold
                 )
                 Text(
-                    "Ce que tu apprends, et quand",
+                    stringResource(R.string.academy_subtitle),
                     color = c.textSecondary, fontSize = 13.sp
                 )
                 Spacer(Modifier.height(18.dp))
@@ -95,7 +101,7 @@ fun AcademieScreen(
 
                 if (etat.cartesDues > 0) {
                     Spacer(Modifier.height(20.dp))
-                    SectionTitle("Révisions")
+                    SectionTitle(stringResource(R.string.academy_revisions))
                     Spacer(Modifier.height(8.dp))
                     SankaiCard(onClick = {
                         onNavigate(
@@ -106,7 +112,9 @@ fun AcademieScreen(
                         )
                     }) {
                         Text(
-                            "${etat.cartesDues} carte(s) à revoir",
+                            pluralStringResource(
+                                R.plurals.academy_due_cards, etat.cartesDues, etat.cartesDues
+                            ),
                             color = c.textPrimary, fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -114,33 +122,84 @@ fun AcademieScreen(
                             // On dit d'où vient la liste : une révision dont on
                             // comprend la raison se fait, une révision
                             // arbitraire s'évite.
-                            "Leur date de rappel est passée.",
+                            stringResource(R.string.academy_due_reason),
                             color = c.textSecondary, fontSize = 12.sp
                         )
                     }
                 }
 
-                Spacer(Modifier.height(20.dp))
-                SectionTitle("Régularité")
-                Spacer(Modifier.height(8.dp))
-                SankaiCard {
-                    Text(
-                        "${etat.joursActifs} jour(s) travaillé(s) cette semaine",
-                        color = c.textPrimary, fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        // Compté en jours, pas en sessions : trois sessions le
-                        // même soir ne font pas trois jours de régularité, et
-                        // prétendre le contraire serait flatteur et faux.
-                        "Compté en jours distincts, pas en sessions.",
-                        color = c.textSecondary, fontSize = 12.sp
-                    )
+                if (etat.semaine.isNotEmpty()) {
+                    Spacer(Modifier.height(20.dp))
+                    SectionTitle(stringResource(R.string.academy_regularity))
+                    Spacer(Modifier.height(8.dp))
+                    SankaiCard {
+                        Text(
+                            pluralStringResource(
+                                R.plurals.academy_days_week, etat.joursActifs, etat.joursActifs
+                            ),
+                            color = c.textPrimary, fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        // Une pastille par jour : lire sa semaine en un coup
+                        // d'œil, sans compteur à faire grossir. Le jour actif
+                        // est rempli, le jour sans session reste sobre.
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            etat.semaine.forEach { jour ->
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Box(
+                                        Modifier
+                                            .size(30.dp)
+                                            .clip(androidx.compose.foundation.shape.CircleShape)
+                                            .background(
+                                                when {
+                                                    jour.actif -> c.accent
+                                                    jour.aujourdHui -> c.surface3
+                                                    else -> c.surface2
+                                                }
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            jour.libelle,
+                                            color = if (jour.actif) {
+                                                if (c.isDark) androidx.compose.ui.graphics.Color.White
+                                                else c.background
+                                            } else c.textSecondary,
+                                            fontSize = 13.sp,
+                                            fontWeight = if (jour.actif) FontWeight.Bold else FontWeight.Medium
+                                        )
+                                    }
+                                    Spacer(Modifier.height(4.dp))
+                                    if (jour.aujourdHui) {
+                                        Text(
+                                            stringResource(R.string.academy_today),
+                                            color = c.textSecondary, fontSize = 9.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(10.dp))
+                        Text(
+                            // Compté en jours, pas en sessions : trois sessions
+                            // le même soir ne font pas trois jours de
+                            // régularité, et prétendre le contraire serait
+                            // flatteur et faux.
+                            stringResource(R.string.academy_days_distinct),
+                            color = c.textSecondary, fontSize = 12.sp
+                        )
+                    }
                 }
 
                 if (etat.modulesDisponibles.isNotEmpty()) {
                     Spacer(Modifier.height(20.dp))
-                    SectionTitle("Mes modules")
+                    SectionTitle(stringResource(R.string.academy_my_modules))
                     Spacer(Modifier.height(8.dp))
                     // Un dossier par parcours, pas six cartes identiques.
                     //
@@ -152,8 +211,12 @@ fun AcademieScreen(
                         if (!groupe.estParcours) {
                             val membre = groupe.modules.first()
                             LigneModule(
-                                titre = membre.nom.ifBlank { "Module sans nom" },
-                                details = "${membre.cartes} carte(s)",
+                                titre = membre.nom.ifBlank {
+                                    stringResource(R.string.academy_module_unnamed)
+                                },
+                                details = pluralStringResource(
+                                    R.plurals.academy_cards_count, membre.cartes, membre.cartes
+                                ),
                                 onClick = {
                                     onNavigate(Screen.Parcours.createRoute(membre.profileId))
                                 }
@@ -198,7 +261,12 @@ fun AcademieScreen(
                                             titre = membre.nom,
                                             details = buildList {
                                                 if (membre.niveau.isNotBlank()) add(membre.niveau)
-                                                add("${membre.cartes} carte(s)")
+                                                add(
+                                                    pluralStringResource(
+                                                        R.plurals.academy_cards_count,
+                                                        membre.cartes, membre.cartes
+                                                    )
+                                                )
                                                 add("${(membre.progression * 100).toInt()} %")
                                             }.joinToString(" · "),
                                             onClick = {
@@ -223,7 +291,7 @@ fun AcademieScreen(
                 // semaine sur l'embauche des Mimos. Ils descendent d'un cran,
                 // ils ne disparaissent pas.
                 Spacer(Modifier.height(20.dp))
-                SectionTitle("Outils")
+                SectionTitle(stringResource(R.string.academy_tools))
                 Spacer(Modifier.height(8.dp))
 
                 // Focus est un outil de base. Une progression de jeu ne peut
@@ -236,28 +304,32 @@ fun AcademieScreen(
                     } else null
                 ) {
                     Text(
-                        "${if (verrouFocus != null) "🔒" else "⏱️"} Focus",
+                        "${if (verrouFocus != null) "🔒" else "⏱️"} " +
+                            stringResource(R.string.academy_focus),
                         color = if (verrouFocus != null) c.textDisabled else c.textPrimary,
                         fontSize = 15.sp, fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        verrouFocus?.explication ?: "Sessions de concentration",
+                        verrouFocus?.explication ?: stringResource(R.string.academy_focus_desc),
                         color = c.textSecondary, fontSize = 12.sp
                     )
                 }
                 SankaiCard(onClick = { onNavigate(Screen.Objectives.route) }) {
                     Text(
-                        "🎯 Objectifs", color = c.textPrimary,
+                        "🎯 ${stringResource(R.string.academy_objectives)}", color = c.textPrimary,
                         fontSize = 15.sp, fontWeight = FontWeight.SemiBold
                     )
-                    Text("Ta liste personnelle", color = c.textSecondary, fontSize = 12.sp)
+                    Text(
+                        stringResource(R.string.academy_objectives_desc),
+                        color = c.textSecondary, fontSize = 12.sp
+                    )
                 }
 
                 Spacer(Modifier.height(20.dp))
-                SectionTitle("Contenu")
+                SectionTitle(stringResource(R.string.academy_content))
                 Spacer(Modifier.height(8.dp))
                 SankaiButton(
-                    "Créer ou modifier un module",
+                    stringResource(R.string.academy_create_module),
                     onClick = { onNavigate(Screen.Memo.route) },
                     secondary = true,
                     modifier = Modifier.fillMaxWidth()
@@ -278,11 +350,15 @@ private fun CarteSuite(
 ) {
     val c = MaterialTheme.sankaiColors
     SankaiCard {
-        Text("CONTINUER", color = c.accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        Text(
+            stringResource(R.string.academy_continue_badge),
+            color = c.accent, fontSize = 11.sp, fontWeight = FontWeight.Bold
+        )
         Spacer(Modifier.height(6.dp))
         Text(
-            suite.module.nom.ifBlank { "Module" } +
-                if (suite.module.niveau.isNotBlank()) " ${suite.module.niveau}" else "",
+            suite.module.nom.ifBlank {
+                stringResource(R.string.academy_module_unnamed)
+            } + if (suite.module.niveau.isNotBlank()) " ${suite.module.niveau}" else "",
             color = c.textPrimary, fontSize = 19.sp, fontWeight = FontWeight.Bold
         )
         Text(suite.unite.titre, color = c.textSecondary, fontSize = 13.sp)
@@ -296,7 +372,9 @@ private fun CarteSuite(
         )
         Spacer(Modifier.height(6.dp))
         Text(
-            "${(suite.progression * 100).toInt()} % de l'unité",
+            stringResource(
+                R.string.academy_unit_progress, (suite.progression * 100).toInt()
+            ),
             color = c.textSecondary, fontSize = 12.sp
         )
 
@@ -304,12 +382,14 @@ private fun CarteSuite(
         Text(
             // Annoncer la composition évite le sentiment de tirage au sort et
             // permet de refuser une session dont on n'a pas le temps.
-            "≈ ${suite.minutes} min · ${suite.resume}",
+            stringResource(
+                R.string.academy_session_estimate, suite.minutes, suite.resume
+            ),
             color = c.textSecondary, fontSize = 12.sp
         )
         Spacer(Modifier.height(14.dp))
         SankaiButton(
-            "Commencer",
+            stringResource(R.string.academy_start),
             onClick = {
                 onNavigate(Screen.Parcours.createRoute(suite.module.memoProfileId))
             },
@@ -323,11 +403,10 @@ private fun CarteSuite(
 private fun RienAFaire() {
     val c = MaterialTheme.sankaiColors
     SankaiCard {
-        Text("Tout est à jour", color = c.textPrimary, fontSize = 17.sp,
-            fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.academy_all_caught_up), color = c.textPrimary,
+            fontSize = 17.sp, fontWeight = FontWeight.Bold)
         Text(
-            "Aucune carte n'attend de révision. Reviens plus tard, ou ajoute " +
-                "du contenu à un module.",
+            stringResource(R.string.academy_all_caught_up_desc),
             color = c.textSecondary, fontSize = 13.sp
         )
     }
@@ -338,18 +417,16 @@ private fun RienAFaire() {
 private fun PremierPas(onNavigate: (String) -> Unit) {
     val c = MaterialTheme.sankaiColors
     SankaiCard {
-        Text("Par où commencer", color = c.textPrimary, fontSize = 17.sp,
-            fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.academy_where_to_start), color = c.textPrimary,
+            fontSize = 17.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(4.dp))
         Text(
-            "L'Académie construit un parcours à partir de ton contenu. " +
-                "Crée un module — une langue, une matière, une liste de mots — " +
-                "et le parcours se découpe tout seul.",
+            stringResource(R.string.academy_where_to_start_desc),
             color = c.textSecondary, fontSize = 13.sp
         )
         Spacer(Modifier.height(14.dp))
         SankaiButton(
-            "Créer mon premier module",
+            stringResource(R.string.academy_first_module),
             onClick = { onNavigate(Screen.Memo.route) },
             modifier = Modifier.fillMaxWidth()
         )
