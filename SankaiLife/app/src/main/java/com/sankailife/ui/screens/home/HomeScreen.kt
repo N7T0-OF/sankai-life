@@ -19,7 +19,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.School
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -44,7 +43,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sankailife.R
 import com.sankailife.core.culture.CultureEntryType
 import com.sankailife.ui.components.SankaiButton
-import com.sankailife.ui.components.SankaiFloatingButton
 import com.sankailife.ui.components.SankaiGlassCard
 import com.sankailife.ui.navigation.Screen
 import com.sankailife.ui.theme.SuccessGreen
@@ -116,14 +114,6 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
                             fontWeight = FontWeight.SemiBold
                         )
                     }
-                }
-                // Les paramètres sont une petite icône, jamais le contenu de
-                // l'accueil.
-                SankaiFloatingButton(
-                    contentDescription = stringResource(R.string.settings_title),
-                    onClick = { onNavigate(Screen.Settings.route) }
-                ) {
-                    Icon(Icons.Filled.Settings, contentDescription = null, tint = colors.textPrimary)
                 }
             }
 

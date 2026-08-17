@@ -263,9 +263,11 @@ private fun CapsuleContent(
         onDispose { voice.arreter() }
     }
 
+    // La page ne défile pas : tout tient à l'écran. Seule la carte, au
+    // centre, fait défiler son contenu si le texte est long — l'habillage
+    // (type, retournement, écoute) reste toujours visible.
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -281,17 +283,19 @@ private fun CapsuleContent(
             color = colors.textSecondary,
             fontSize = 13.sp
         )
-        Spacer(Modifier.height(18.dp))
+        Spacer(Modifier.height(12.dp))
 
         // La carte entière se retourne : le texte devient la provenance, et
-        // inversement. Un geste, pas une navigation.
+        // inversement. Un geste, pas une navigation. Elle occupe tout l'espace
+        // restant, pour que l'écran ne défile jamais.
         CarteRetournable(
             entry = entry,
             detailsVisible = detailsVisible,
             onFlip = {
                 voice.arreter()
                 onToggleDetails()
-            }
+            },
+            modifier = Modifier.fillMaxWidth().weight(1f)
         )
 
         Spacer(Modifier.height(10.dp))
@@ -323,7 +327,7 @@ private fun CapsuleContent(
             }
         }
 
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(12.dp))
         Text(
             stringResource(R.string.culture_end_note),
             color = colors.textSecondary,
@@ -331,7 +335,7 @@ private fun CapsuleContent(
             fontStyle = FontStyle.Italic,
             textAlign = TextAlign.Center
         )
-        Spacer(Modifier.height(28.dp))
+        Spacer(Modifier.height(12.dp))
     }
 }
 
@@ -347,7 +351,8 @@ private fun CapsuleContent(
 private fun CarteRetournable(
     entry: DailyCultureEntry,
     detailsVisible: Boolean,
-    onFlip: () -> Unit
+    onFlip: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val rotation by animateFloatAsState(
         targetValue = if (detailsVisible) 180f else 0f,
@@ -358,34 +363,32 @@ private fun CarteRetournable(
     val rectoVisible = rotation <= 90f
 
     Box(
-        Modifier
-            .fillMaxWidth()
-            .graphicsLayer {
-                this.rotationY = rotation
-                // Éloigne le pivot pour une rotation profonde, pas un simple
-                // aplatissement horizontal.
-                cameraDistance = 12f * densite
-            }
+        modifier.graphicsLayer {
+            this.rotationY = rotation
+            // Éloigne le pivot pour une rotation profonde, pas un simple
+            // aplatissement horizontal.
+            cameraDistance = 12f * densite
+        }
     ) {
         Box(
             Modifier
-                .fillMaxWidth()
+                .fillMaxSize()
                 .graphicsLayer {
                     rotationY = 0f
                     alpha = if (rectoVisible) 1f else 0f
                 }
         ) {
-            SankaiCard(onClick = onFlip) { ReadingFace(entry) }
+            SankaiCard(modifier = Modifier.fillMaxSize(), onClick = onFlip) { ReadingFace(entry) }
         }
         Box(
             Modifier
-                .fillMaxWidth()
+                .fillMaxSize()
                 .graphicsLayer {
                     rotationY = 180f
                     alpha = if (rectoVisible) 0f else 1f
                 }
         ) {
-            SankaiCard(onClick = onFlip) { DetailsFace(entry) }
+            SankaiCard(modifier = Modifier.fillMaxSize(), onClick = onFlip) { DetailsFace(entry) }
         }
     }
 }
@@ -394,7 +397,9 @@ private fun CarteRetournable(
 private fun ReadingFace(entry: DailyCultureEntry) {
     val colors = MaterialTheme.sankaiColors
     Column(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 18.dp),
+        // Le texte long défile à l'intérieur de la carte, jamais la page.
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+            .padding(vertical = 18.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -438,7 +443,9 @@ private fun DetailsFace(entry: DailyCultureEntry) {
         entry.authorDeathYear?.toString()
     ).joinToString(" – ").ifBlank { null }
 
-    Column(Modifier.fillMaxWidth()) {
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+    ) {
         Text(
             entry.author ?: stringResource(R.string.culture_author_unknown),
             color = colors.textPrimary,

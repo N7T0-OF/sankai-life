@@ -1,5 +1,18 @@
 # Changelog développeur
 
+## 1.97.0 — 17 août 2026
+
+### Accueil
+
+- icône Paramètres retirée de la barre d'en-tête (`SankaiFloatingButton` +
+  imports inutilisés) ; l'accès reste disponible dans Profil.
+
+### Culture
+
+- page non déroulante : le `verticalScroll` global est retiré, la carte
+  retournable occupe l'espace restant (`weight(1f)`) et chaque face fait
+  défiler son contenu à l'intérieur (`fillMaxSize().verticalScroll`).
+
 ## 1.96.0 — 17 août 2026
 
 ### Crash

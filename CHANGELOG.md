@@ -1,5 +1,17 @@
 # Changelog Sankai Life
 
+## 1.97.0 - 17 aout 2026
+
+**Accueil épuré, Culture sans défilement.**
+
+- **L'icône Paramètres quitte l'Accueil** : le bouton flottant occupait le
+  haut de l'écran pour une action déjà présente dans Profil. L'Accueil
+  retrouve son rôle de tableau de bord minimal — découverte, progression,
+  activité, sortie.
+- **La page Culture ne défile plus** : l'habillage (type, retournement,
+  écoute, note de fin) reste toujours visible. Seule la carte centrale
+  fait défiler son contenu à l'intérieur si le texte est long.
+
 ## 1.96.0 - 17 aout 2026
 
 **Crash corrigé, capsule plus belle, et l'ancien « Accueil » revient.**
