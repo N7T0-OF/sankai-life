@@ -1,7 +1,28 @@
 # Recentrage produit de Sankai Life
 
-Date de référence : 8 août 2026
+Date de référence : 8 août 2026 (mise à jour : 17 août 2026)
 État : contrat produit et plan de migration, fondés sur le code non commité présent dans le dépôt.
+
+## Mise à jour du 17 août — la direction est assumée
+
+Le recentrage est acté dans le code. **Sankai Life n'a plus de section
+« Jeu » : quatre sections, et une seule promesse — ouvrir, apprendre,
+fermer.**
+
+| Section | Rôle |
+|---|---|
+| 🏠 **Accueil** | Écran statique : continuer, découverte du jour, prochain rappel, terminer. |
+| 📚 **Apprendre** | Le cœur : révision express ⚡, recommandation du jour, parcours, modules, découverte. |
+| 🌱 **Vie** | Les outils personnels : mémos, focus, objectifs. (Le jardin reviendra comme couche de progression calme, jamais comme jeu séparé.) |
+| 👤 **Profil** | Progression, statistiques, personnalisation. |
+
+Principes verrouillés par ce document :
+
+- aucune monnaie nécessaire pour apprendre ;
+- aucune notification culpabilisante (pas de « ton streak est en danger ») ;
+- la révision express se termine seule, sans invitation à continuer ;
+- la découverte du jour est une carte, pas un fil ;
+- désinstaller une extension ne supprime aucune connaissance.
 
 ## Décision produit
 

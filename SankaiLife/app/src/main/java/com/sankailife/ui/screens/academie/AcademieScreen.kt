@@ -93,6 +93,39 @@ fun AcademieScreen(
                 )
                 Spacer(Modifier.height(18.dp))
 
+                // La révision express passe avant tout : c'est l'action la plus
+                // courte et la plus utile quand on a deux minutes. Elle se
+                // compose toute seule (deux difficiles, une ancienne, une
+                // nouvelle) et se termine seule — on n'est jamais invité à
+                // « continuer pour gagner ».
+                CarteRevisionExpress(onNavigate)
+                Spacer(Modifier.height(10.dp))
+
+                // La découverte du jour : une seule idée, impossible d'en
+                // consommer cinquante d'affilée.
+                SankaiCard(onClick = { onNavigate(Screen.Capsules.route) }) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text("📖", color = c.accentSecondary, fontSize = 22.sp)
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                stringResource(R.string.academy_discovery_title),
+                                color = c.textPrimary, fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                stringResource(R.string.academy_discovery_desc),
+                                color = c.textSecondary, fontSize = 12.sp
+                            )
+                        }
+                        Text("›", color = c.textSecondary, fontSize = 24.sp)
+                    }
+                }
+                Spacer(Modifier.height(14.dp))
+
                 when {
                     etat.suite != null -> CarteSuite(etat.suite!!, onNavigate)
                     etat.modulesDisponibles.isNotEmpty() -> RienAFaire()
@@ -339,6 +372,47 @@ fun AcademieScreen(
         }
 
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(16.dp))
+    }
+}
+
+/**
+ * La révision express : cinq notions choisies par le moteur, en deux minutes.
+ *
+ * Toujours visible, même quand tout est à jour : s'il n'y a rien à réviser,
+ * la session le dit et se termine. Le bouton n'est jamais grisé — griser un
+ * point d'entrée utile serait dire « il n'y a rien à faire », ce qui est
+ * exactement le contraire de ce qu'une session courte doit dire.
+ */
+@Composable
+private fun CarteRevisionExpress(onNavigate: (String) -> Unit) {
+    val c = MaterialTheme.sankaiColors
+    SankaiCard(onClick = {
+        onNavigate(
+            Screen.Flashcards.createRoute(
+                com.sankailife.ui.screens.life.flashcards
+                    .FlashcardsViewModel.PROFIL_EXPRESS
+            )
+        )
+    }) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text("⚡", color = c.accent, fontSize = 24.sp)
+            Column(Modifier.weight(1f)) {
+                Text(
+                    stringResource(R.string.academy_express_title),
+                    color = c.textPrimary, fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    stringResource(R.string.academy_express_desc),
+                    color = c.textSecondary, fontSize = 12.sp
+                )
+            }
+            Text("›", color = c.textSecondary, fontSize = 24.sp)
+        }
     }
 }
 

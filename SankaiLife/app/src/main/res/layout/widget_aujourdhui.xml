@@ -14,7 +14,7 @@
         android:id="@+id/widget_titre"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/nav_today"
+        android:text="@string/nav_home"
         android:textSize="14sp"
         android:textStyle="bold"
         android:maxLines="1" />

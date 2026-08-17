@@ -12,6 +12,7 @@ import com.sankailife.core.domain.engine.ExerciceEngine
 import com.sankailife.core.domain.engine.ErreursEngine
 import com.sankailife.core.domain.engine.FlashcardEngine
 import com.sankailife.core.learning.domain.AssociationEngine
+import com.sankailife.core.learning.domain.ExpressEngine
 import com.sankailife.core.learning.domain.SessionPlanEngine.Type as TypeSession
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -105,35 +106,64 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
 
         viewModelScope.launch {
             val modeErreurs = profileId == PROFIL_ERREURS
+            val modeExpress = profileId == PROFIL_EXPRESS
+            // Les sessions multi-modules : « Mes erreurs » et « Révision
+            // express » tirent de tous les modules à la fois.
+            val multiModules = modeErreurs || modeExpress
+            val maintenant = System.currentTimeMillis()
 
-            val lignes = if (modeErreurs) {
-                // Les cartes qui résistent, tous modules confondus. La sélection
-                // est faite par le moteur : la requête ne fait qu'écarter ce qui
-                // est manifestement hors sujet.
-                val difficiles = memoDao.cartesDifficiles(ErreursEngine.REVISIONS_MINIMUM)
-                val parId = difficiles.associateBy { it.id }
-                ErreursEngine.selectionner(
-                    difficiles.map {
-                        ErreursEngine.Historique(
-                            id = it.id, texte = it.text, boite = it.box,
-                            revisions = it.reviewCount, reussites = it.successCount
-                        )
-                    }
-                ).mapNotNull { parId[it.id] }
-            } else {
-                memoDao.getCartesDues(
+            val lignes = when {
+                modeErreurs -> {
+                    // Les cartes qui résistent, tous modules confondus. La
+                    // sélection est faite par le moteur : la requête ne fait
+                    // qu'écarter ce qui est manifestement hors sujet.
+                    val difficiles = memoDao.cartesDifficiles(ErreursEngine.REVISIONS_MINIMUM)
+                    val parId = difficiles.associateBy { it.id }
+                    ErreursEngine.selectionner(
+                        difficiles.map {
+                            ErreursEngine.Historique(
+                                id = it.id, texte = it.text, boite = it.box,
+                                revisions = it.reviewCount, reussites = it.successCount
+                            )
+                        }
+                    ).mapNotNull { parId[it.id] }
+                }
+
+                modeExpress -> {
+                    // Une session courte et équilibrée : deux difficiles, une
+                    // ancienne échue, une nouvelle, puis on complète. Elle se
+                    // compose de tous les modules, comme « Mes erreurs ».
+                    val tousProfils = memoDao.getAllProfilesOnce()
+                    val toutes = if (tousProfils.isEmpty()) emptyList()
+                    else memoDao.getLinesForProfilesOnce(
+                        tousProfils.map { it.id }
+                    )
+                    ExpressEngine.composer(
+                        toutes.map {
+                            ExpressEngine.Carte(
+                                id = it.id, texte = it.text, boite = it.box,
+                                revisions = it.reviewCount, reussites = it.successCount,
+                                prochaineRevisionMillis = it.nextReviewAtMillis,
+                                profileId = it.profileId
+                            )
+                        },
+                        maintenantMillis = maintenant
+                    ).mapNotNull { c -> toutes.firstOrNull { it.id == c.id } }
+                }
+
+                else -> memoDao.getCartesDues(
                     profileId = profileId,
-                    maintenant = System.currentTimeMillis(),
+                    maintenant = maintenant,
                     limite = FlashcardEngine.CARTES_PAR_SESSION
                 )
             }
 
-            val profil = if (modeErreurs) null else memoDao.getProfile(profileId)
+            val profil = if (multiModules) null else memoDao.getProfile(profileId)
 
-            // La langue se porte par carte : une session « Mes erreurs »
-            // mélange les modules, et lire du portugais avec une voix
-            // française apprendrait une prononciation fausse.
-            val langues: Map<Long, String> = if (modeErreurs) {
+            // La langue se porte par carte : une session multi-modules mélange
+            // les modules, et lire du portugais avec une voix française
+            // apprendrait une prononciation fausse.
+            val langues: Map<Long, String> = if (multiModules) {
                 memoDao.getAllProfilesOnce().associate { it.id to it.langue }
             } else {
                 mapOf(profileId to profil?.langue.orEmpty())
@@ -152,7 +182,7 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
             // Les leurres viennent de tout le module, pas seulement des cartes
             // dues : une session courte n'offrirait pas assez de propositions
             // crédibles, et l'exercice se dégraderait en saisie systématique.
-            reservoirLeurres = if (modeErreurs) {
+            reservoirLeurres = if (multiModules) {
                 // On charge toutes les cartes des modules concernés pour avoir
                 // assez de choix, puis ExerciceEngine garde uniquement celles
                 // du même module que la question courante.
@@ -168,7 +198,7 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
             // l'unite, pas seulement celles qui sont dues — une unite qu'on
             // ouvre doit se travailler, meme si rien n'est encore echu.
             var uniteEnCours: Pair<Long, String>? = null
-            if (uniteId != null && !modeErreurs) {
+            if (uniteId != null && !multiModules) {
                 val module = learningRepo.moduleDuProfil(profileId, creer = true)
                 val plan = module?.let { learningRepo.preparerSession(it, uniteId) }
                 if (plan != null && !plan.vide) {
@@ -185,13 +215,17 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
 
             _etat.value = EtatSession(
                 chargement = false,
-                nomModule = if (modeErreurs) "Mes erreurs"
-                else profil?.name.orEmpty().ifBlank { "Mémo" },
+                nomModule = when {
+                    modeErreurs -> "Mes erreurs"
+                    modeExpress -> "Révision express"
+                    else -> profil?.name.orEmpty().ifBlank { "Mémo" }
+                },
                 cartes = cartes,
                 terminee = cartes.isEmpty(),
                 messageFin = when {
                     cartes.isNotEmpty() -> ""
                     modeErreurs -> "Aucune carte ne te résiste pour l'instant"
+                    modeExpress -> "Rien à réviser pour l'instant"
                     else -> "Aucune carte à réviser pour l'instant"
                 },
                 exercice = null
@@ -551,6 +585,14 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
          * sentinelle sûre plutôt qu'astucieuse.
          */
         const val PROFIL_ERREURS = -2L
+
+        /**
+         * Identifiant sentinelle : « Révision express », tous modules confondus.
+         *
+         * Même principe que [PROFIL_ERREURS] : une valeur négative ne peut
+         * jamais entrer en collision avec une clé Room auto-incrémentée.
+         */
+        const val PROFIL_EXPRESS = -3L
 
         fun factory(app: SankaiApplication) = viewModelFactory {
             initializer { FlashcardsViewModel(app) }

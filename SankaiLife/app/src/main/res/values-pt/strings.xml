@@ -1,6 +1,6 @@
 <resources>
     <!-- Português. Volta ao francês para o que ainda não está traduzido. -->
-    <string name="nav_life">Modo Vida</string>
+    <string name="nav_life">Vida</string>
     <string name="nav_profile">Perfil</string>
 
     <string name="action_cancel">Cancelar</string>
@@ -65,9 +65,8 @@
     <string name="memo_copied">Texto copiado para a área de transferência</string>
     <string name="memo_share_chooser">Partilhar ou exportar Memo</string>
     <!-- Recentragem: utilização curta e intencional -->
-    <string name="nav_today">Hoje</string>
-    <string name="nav_academy">Academia</string>
-    <string name="nav_capsules">Cápsulas</string>
+    <string name="nav_home">Início</string>
+    <string name="nav_learn">Aprender</string>
     <string name="settings_title">Definições</string>
     <string name="today_greeting">Olá %1$s</string>
     <string name="today_minimal_active">Modo mínimo · apenas o essencial</string>
@@ -322,4 +321,8 @@
     <string name="academy_cards_progress">%1$d cartão(ões) · %2$d %%</string>
     <string name="academy_module_gone">Este módulo já não existe.</string>
     <string name="academy_module_empty">Este módulo ainda não tem cartões.</string>
+    <string name="academy_express_title">Revisão expressa</string>
+    <string name="academy_express_desc">2 difíceis · 1 antiga · 1 nova · ≈ 2 min</string>
+    <string name="academy_discovery_title">Descoberta do dia</string>
+    <string name="academy_discovery_desc">Uma ideia cultural, sem feed infinito.</string>
 </resources>

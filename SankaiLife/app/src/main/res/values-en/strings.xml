@@ -1,6 +1,6 @@
 <resources>
     <!-- English. Falls back to French for anything not yet translated. -->
-    <string name="nav_life">Life Mode</string>
+    <string name="nav_life">Life</string>
     <string name="nav_profile">Profile</string>
 
     <string name="action_cancel">Cancel</string>
@@ -65,9 +65,8 @@
     <string name="memo_copied">Text copied to clipboard</string>
     <string name="memo_share_chooser">Share or export Memo</string>
     <!-- Refocus: short, intentional use -->
-    <string name="nav_today">Today</string>
-    <string name="nav_academy">Academy</string>
-    <string name="nav_capsules">Capsules</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_learn">Learn</string>
     <string name="settings_title">Settings</string>
     <string name="today_greeting">Hello %1$s</string>
     <string name="today_minimal_active">Minimal mode · essentials only</string>
@@ -318,4 +317,8 @@
     <string name="academy_cards_progress">%1$d card(s) · %2$d %%</string>
     <string name="academy_module_gone">This module no longer exists.</string>
     <string name="academy_module_empty">This module has no cards yet.</string>
+    <string name="academy_express_title">Quick review</string>
+    <string name="academy_express_desc">2 hard · 1 old · 1 new · ≈ 2 min</string>
+    <string name="academy_discovery_title">Discovery of the day</string>
+    <string name="academy_discovery_desc">One cultural idea, without an infinite feed.</string>
 </resources>

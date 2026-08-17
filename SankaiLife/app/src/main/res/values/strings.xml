@@ -13,7 +13,7 @@
     <string name="app_name" translatable="false">Sankai Life</string>
 
     <!-- Navigation -->
-    <string name="nav_life">Mode Vie</string>
+    <string name="nav_life">Vie</string>
     <string name="nav_profile">Profil</string>
 
     <!-- Actions communes -->
@@ -85,9 +85,8 @@
     <string name="memo_copied">Texte copié dans le presse-papiers</string>
     <string name="memo_share_chooser">Partager ou exporter le Mémo</string>
     <!-- Recentrage : usage court et intentionnel -->
-    <string name="nav_today">Aujourd’hui</string>
-    <string name="nav_academy">Académie</string>
-    <string name="nav_capsules">Capsules</string>
+    <string name="nav_home">Accueil</string>
+    <string name="nav_learn">Apprendre</string>
     <string name="settings_title">Paramètres</string>
     <string name="today_greeting">Bonjour %1$s</string>
     <string name="today_minimal_active">Mode minimal · uniquement l’essentiel</string>
@@ -338,4 +337,8 @@
     <string name="academy_cards_progress">%1$d carte(s) · %2$d %%</string>
     <string name="academy_module_gone">Ce module n\'existe plus.</string>
     <string name="academy_module_empty">Ce module ne contient encore aucune carte.</string>
+    <string name="academy_express_title">Révision express</string>
+    <string name="academy_express_desc">2 difficiles · 1 ancienne · 1 nouvelle · ≈ 2 min</string>
+    <string name="academy_discovery_title">Découverte du jour</string>
+    <string name="academy_discovery_desc">Une idée culturelle, sans fil infini.</string>
 </resources>

@@ -1,5 +1,23 @@
 # Changelog Sankai Life
 
+## 1.82.0 - 17 aout 2026
+
+**Sankai Life assume sa direction : quatre sections, plus aucune section
+« Jeu ».**
+
+- **La barre du bas passe à quatre destinations : Accueil · Apprendre ·
+  Vie · Profil.** L'onglet Capsules disparaît de la barre : la découverte
+  du jour reste accessible depuis l'Accueil **et** depuis Apprendre, où
+  elle est présentée comme la « Découverte du jour » (une idée, pas un
+  fil infini). « Académie » devient « Apprendre », « Mode Vie » devient
+  « Vie ».
+- **Nouveau : la Révision express ⚡.** Une session courte et équilibrée
+  composée par un moteur : deux notions difficiles, une ancienne échue,
+  une nouvelle, puis on complète — cinq cartes environ, deux minutes,
+  tous modules confondus. Elle se termine seule et n'invite jamais à
+  « continuer pour gagner ». Moteur pur (ExpressEngine) avec 8 tests
+  unitaires.
+
 ## 1.81.0 - 17 aout 2026
 
 **L'Académie dessine ta semaine, et parle enfin toutes les langues de

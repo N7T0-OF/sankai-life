@@ -60,14 +60,8 @@ data class NavItem(
 )
 
 val bottomNavItems = listOf(
-    NavItem(Screen.Home.route, R.string.nav_today, Icons.Filled.WbSunny, Icons.Outlined.WbSunny),
-    NavItem(Screen.Academy.route, R.string.nav_academy, Icons.Filled.School, Icons.Outlined.School),
-    NavItem(
-        Screen.Capsules.route,
-        R.string.nav_capsules,
-        Icons.Filled.AutoStories,
-        Icons.Outlined.AutoStories
-    ),
+    NavItem(Screen.Home.route, R.string.nav_home, Icons.Filled.WbSunny, Icons.Outlined.WbSunny),
+    NavItem(Screen.Academy.route, R.string.nav_learn, Icons.Filled.School, Icons.Outlined.School),
     NavItem(
         Screen.Life.route,
         R.string.nav_life,
