@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.sankailife.SankaiApplication
 import com.sankailife.core.data.repository.UserRepository
 import com.sankailife.core.domain.engine.FocusRewardEngine
+import com.sankailife.core.domain.engine.ProgressSourceEngine
 import com.sankailife.core.notifications.NotificationCategory
 import com.sankailife.core.notifications.NotificationPolicy
 import com.sankailife.core.notifications.SankaiNotifications
@@ -105,7 +106,16 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
         try {
             val sessionMin = (_totalSecs.value / 60).toInt()
             val recompense = FocusRewardEngine.pourMinutes(sessionMin)
-            if (recompense.xp > 0) userRepo.addXp(recompense.xp)
+            // L'XP de concentration passe par le moteur anti-farm : le plafond
+            // quotidien et la dégressivité s'appliquent à chaque session, pas
+            // seulement à la première.
+            if (recompense.xp > 0) {
+                val app = getApplication<SankaiApplication>()
+                userRepo.addSourceXp(
+                    ProgressSourceEngine.Source.CONCENTRATION,
+                    app.preferences
+                )
+            }
             if (recompense.pieces > 0) userRepo.addCoins(recompense.pieces)
             app.database.userDao().addFocusMinutes(sessionMin)
             if (!screenActive && NotificationPolicy.tryAcquire(app, NotificationCategory.FOCUS)) {

@@ -7,6 +7,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.sankailife.core.notifications.QuietHours
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.io.IOException
 
@@ -59,7 +60,50 @@ class AppPreferences(private val context: Context) {
 
         val CULTURE_ORIENTATION = stringPreferencesKey("culture_orientation")
         val CULTURE_STYLE       = stringPreferencesKey("culture_style")
+
+        // Compteurs par source d'activité : la clé porte la date pour qu'une
+        // journée passée ne puisse pas être rejouée le lendemain.
+        val SOURCE_XP_PREFIX = "source_xp_"
+        val SOURCE_N_PREFIX = "source_n_"
     }
+
+    /**
+     * L'XP déjà accordé aujourd'hui pour une source d'activité.
+     *
+     * La clé embarque la date : deux jours différents, deux compteurs. Sans
+     * date, le compteur de la veille continuerait de s'appliquer — un plafond
+     * quotidien qui se vide d'un jour à l'autre serait un plafond de 48 h.
+     */
+    suspend fun xpAccordeSource(source: String, date: String): Int =
+        context.dataStore.data.first()[intPreferencesKey("${Keys.SOURCE_XP_PREFIX}${source}_$date")] ?: 0
+
+    /** Le nombre d'occurrences déjà consommées aujourd'hui pour la source. */
+    suspend fun occurrencesSource(source: String, date: String): Int =
+        context.dataStore.data.first()[intPreferencesKey("${Keys.SOURCE_N_PREFIX}${source}_$date")] ?: 0
+
+    suspend fun ajouterXpSource(source: String, date: String, xp: Int) {
+        if (xp <= 0) return
+        context.dataStore.edit { prefs ->
+            val cle = intPreferencesKey("${Keys.SOURCE_XP_PREFIX}${source}_$date")
+            prefs[cle] = (prefs[cle] ?: 0) + xp
+            val cleN = intPreferencesKey("${Keys.SOURCE_N_PREFIX}${source}_$date")
+            prefs[cleN] = (prefs[cleN] ?: 0) + 1
+        }
+    }
+
+    /**
+     * L'XP total gagné pour un jour, toutes sources confondues.
+     *
+     * C'est le chiffre que montre l'Accueil (« +34 XP aujourd'hui ») : la
+     * synthèse de ce que l'utilisateur a réellement fait, pas un compteur
+     * d'ouverture d'application. Flow : se met à jour à chaque occurrence.
+     */
+    fun xpSourceTotalJour(date: String): Flow<Int> =
+        context.dataStore.data.map { prefs ->
+            com.sankailife.core.domain.engine.ProgressSourceEngine.Source.entries.sumOf { source ->
+                prefs[intPreferencesKey("${Keys.SOURCE_XP_PREFIX}${source.name}_$date")] ?: 0
+            }
+        }
 
     val themeMode: Flow<String>       = pref(Keys.THEME_MODE, "dark")
 

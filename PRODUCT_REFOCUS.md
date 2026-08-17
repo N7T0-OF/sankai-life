@@ -24,6 +24,28 @@ Principes verrouillés par ce document :
 - la découverte du jour est une carte, pas un fil ;
 - désinstaller une extension ne supprime aucune connaissance.
 
+## La philosophie « Sankai Companion » (17 août)
+
+**Si Android sait déjà faire quelque chose correctement, Sankai ne le
+recrée pas : il s'y connecte et valorise son utilisation.** Le téléphone
+fait l'action, Sankai la transforme en progression.
+
+- l'apprentissage, la mémoire, la culture : le cœur natif de Sankai — ce
+  que le téléphone ne fait pas déjà bien ;
+- le calendrier Android, le minuteur système, les rappels : des sources
+  de progression connectées, jamais recréées ;
+- le jardin et l'Arbre Sankai : la représentation visuelle de cette
+  progression, pas un jeu à part.
+
+Le moteur anti-farm est en place : chaque source (Calendrier,
+Concentration, Apprentissage, Découverte) a un plafond quotidien et une
+XP dégressive (20, 15, 10, 5…). Rien n'est jamais retiré ni pénalisé.
+
+Étapes suivantes : la source Calendrier (permission par permission, en
+ne lisant que l'essentiel), la source Concentration connectée au
+minuteur système, et la page « Activités connectées » dans les
+Paramètres.
+
 ## Décision produit
 
 Sankai Life doit devenir un compagnon local pour apprendre, mémoriser, se

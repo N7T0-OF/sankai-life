@@ -52,15 +52,39 @@ class RevisionAlarmReceiver : BroadcastReceiver() {
                     )
                 ) return@launch
 
+                // La découverte du jour porte la notification : le titre et un
+                // extrait de la capsule elle-même, pas un message générique.
+                // C'est le « Sankai Moment » — une chose à lire, puis à fermer.
+                //
+                // L'historique réel est lu (même état local que l'écran) pour
+                // que la notification annonce exactement la capsule qui
+                // s'ouvrira — jamais une déjà vue hier.
+                val capsule = if (cultureReady) {
+                    val local = com.sankailife.core.culture.CultureLocalState(context)
+                    val userId = app.database.userDao().getUserOnce()?.id ?: 1L
+                    val profileId = "user-$userId"
+                    com.sankailife.core.culture.DailyDiscovery.duJour(
+                        context,
+                        profileId = profileId,
+                        history = local.history(profileId)
+                    )
+                } else null
+
                 SankaiNotifications.afficherRappel(
                     context = context,
-                    titre = context.getString(
-                        if (cultureReady && !learningReady) R.string.notif_culture_title
-                        else R.string.notif_review_title
-                    ),
+                    titre = when {
+                        cultureReady && !learningReady -> capsule?.let {
+                            context.getString(R.string.notif_culture_discovery_title, it.title)
+                        } ?: context.getString(R.string.notif_culture_title)
+                        else -> context.getString(R.string.notif_review_title)
+                    },
                     texte = when {
-                        cultureReady && learningReady -> context.getString(R.string.notif_daily_combined)
-                        cultureReady -> context.getString(R.string.notif_culture_body)
+                        cultureReady && learningReady -> context.getString(
+                            R.string.notif_daily_combined,
+                            capsule?.let { titreEtExtrait(it) } ?: ""
+                        )
+                        cultureReady -> capsule?.let { titreEtExtrait(it) }
+                            ?: context.getString(R.string.notif_culture_body)
                         dues == 1 -> context.getString(R.string.notif_review_one)
                         else -> context.getString(R.string.notif_review_many, dues)
                     },
@@ -79,6 +103,19 @@ class RevisionAlarmReceiver : BroadcastReceiver() {
                 resultat.finish()
             }
         }
+    }
+
+    /** Le titre suivi d'un court extrait du corps, sur une ou deux lignes. */
+    private fun titreEtExtrait(
+        capsule: com.sankailife.core.culture.DailyCultureEntry
+    ): String {
+        val extrait = capsule.body
+            ?.replace('\n', ' ')
+            ?.trim()
+            ?.take(90)
+            ?.let { "$it…" }
+            ?: capsule.context ?: capsule.sourceLabel ?: ""
+        return if (extrait.isBlank()) capsule.title else "${capsule.title} — $extrait"
     }
 
     companion object {

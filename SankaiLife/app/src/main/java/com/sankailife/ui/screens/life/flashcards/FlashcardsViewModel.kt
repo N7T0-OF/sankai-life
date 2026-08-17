@@ -11,6 +11,7 @@ import com.sankailife.core.data.repository.UserRepository
 import com.sankailife.core.domain.engine.ExerciceEngine
 import com.sankailife.core.domain.engine.ErreursEngine
 import com.sankailife.core.domain.engine.FlashcardEngine
+import com.sankailife.core.domain.engine.ProgressSourceEngine
 import com.sankailife.core.learning.domain.AssociationEngine
 import com.sankailife.core.learning.domain.ExpressEngine
 import com.sankailife.core.learning.domain.SessionPlanEngine.Type as TypeSession
@@ -542,7 +543,16 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
         }
 
         val recompense = recompenseSession()
-        if (recompense.xpFin > 0) userRepo.addXp(recompense.xpFin)
+        // Le bonus de fin de session passe par le moteur anti-farm : une
+        // session compte comme une occurrence d'apprentissage, plafonnée et
+        // dégressive. Réviser est le cœur de Sankai — le plafond ne punit pas
+        // l'effort, il empêche les sessions en boucle de farmer de l'XP.
+        if (recompense.xpFin > 0) {
+            userRepo.addSourceXp(
+                ProgressSourceEngine.Source.APPRENTISSAGE,
+                app.preferences
+            )
+        }
         if (recompense.piecesFin > 0) userRepo.addCoins(recompense.piecesFin)
 
         _etat.value = _etat.value.copy(

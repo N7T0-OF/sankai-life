@@ -77,6 +77,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     ) { completedDate, today -> completedDate == today.toString() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
+    /**
+     * L'XP gagné aujourd'hui, toutes sources confondues.
+     *
+     * Mis à jour par les occurrences réelles (révisions, concentration,
+     * découverte) — jamais par le simple fait d'ouvrir l'application. C'est
+     * le chiffre que montre l'Accueil : ce que tu as fait, pas combien de
+     * temps tu as passé dans Sankai.
+     */
+    val xpDuJour: StateFlow<Int> = observedDay
+        .flatMapLatest { jour -> app.preferences.xpSourceTotalJour(jour.toString()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
     init {
         // L'accueil initialise seulement le profil. Il ne crée plus en
         // arrière-plan de coffre, défi ou récompense à réclamer.

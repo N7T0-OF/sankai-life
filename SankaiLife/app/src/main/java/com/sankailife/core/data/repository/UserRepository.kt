@@ -6,6 +6,7 @@ import com.sankailife.core.data.db.entities.DayRecordEntity
 import com.sankailife.core.data.db.entities.StatsEntity
 import com.sankailife.core.data.db.entities.UserEntity
 import com.sankailife.core.domain.engine.EconomyEngine
+import com.sankailife.core.domain.engine.ProgressSourceEngine
 import com.sankailife.core.domain.engine.RegularityEngine
 import com.sankailife.core.domain.engine.XpEngine
 import com.sankailife.core.domain.model.UserState
@@ -41,6 +42,30 @@ class UserRepository(private val db: SankaiDatabase) {
     suspend fun addCoins(amount: Int) = db.withTransaction {
         if (amount <= 0 || dao.creditCoins(amount) == 0) return@withTransaction
         enregistrerStatistiques(pieces = amount)
+    }
+
+    /**
+     * Crédite l'XP d'une source d'activité, plafonné et dégressif.
+     *
+     * C'est le passage obligé de toute activité transformée en progression :
+     * calendrier, concentration, apprentissage, découverte. Le moteur
+     * [ProgressSourceEngine] décide combien vaut l'occurrence compte tenu de
+     * ce qui a déjà été accordé aujourd'hui ; cette fonction n'ajoute que ce
+     * gain et le reflète dans le compteur de la source. Retourne l'XP crédité
+     * (0 quand la source est épuisée pour aujourd'hui).
+     */
+    suspend fun addSourceXp(
+        source: ProgressSourceEngine.Source,
+        preferences: com.sankailife.core.data.preferences.AppPreferences
+    ): Int {
+        val aujourdhui = LocalDate.now().toString()
+        val deja = preferences.xpAccordeSource(source.name, aujourdhui)
+        val occurrences = preferences.occurrencesSource(source.name, aujourdhui)
+        val gain = ProgressSourceEngine.xpPour(source, deja, occurrences)
+        if (gain <= 0) return 0
+        preferences.ajouterXpSource(source.name, aujourdhui, gain)
+        addXp(gain)
+        return gain
     }
 
     /** Un remboursement ne gonfle ni les gains cumulés ni les statistiques. */

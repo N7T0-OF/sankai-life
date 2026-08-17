@@ -91,6 +91,7 @@
     <string name="today_greeting">Bonjour %1$s</string>
     <string name="today_minimal_active">Mode minimal · uniquement l’essentiel</string>
     <string name="today_intentional_subtitle">Apprendre un peu, puis retourner vivre</string>
+    <string name="today_xp_earned">+%1$d XP aujourd\'hui</string>
     <string name="today_section">AUJOURD’HUI</string>
     <plurals name="today_due_cards">
         <item quantity="one">%1$d carte à revoir</item>
@@ -274,13 +275,14 @@
     <string name="profile_equipped">Équipé</string>
     <string name="profile_apply">Appliquer</string>
     <string name="notif_culture_title">Capsule du jour</string>
+    <string name="notif_culture_discovery_title">Découverte du jour · %1$s</string>
     <string name="notif_culture_body">Ta capsule est prête. Une minute de découverte, sans fil infini.</string>
     <string name="notif_focus_title">Session Focus terminée</string>
     <plurals name="notif_focus_body">
         <item quantity="one">%1$d minute terminée. Tu peux revenir quand tu veux.</item>
         <item quantity="other">%1$d minutes terminées. Tu peux revenir quand tu veux.</item>
     </plurals>
-    <string name="notif_daily_combined">Ta capsule et tes révisions sont prêtes. Environ 4 minutes.</string>
+    <string name="notif_daily_combined">%1$s · Tes révisions sont prêtes. Environ 4 minutes.</string>
     <string name="culture_close_app">Fermer Sankai Life</string>
     <string name="culture_import_pack">Importer un pack culturel</string>
     <!-- Extensions locales -->

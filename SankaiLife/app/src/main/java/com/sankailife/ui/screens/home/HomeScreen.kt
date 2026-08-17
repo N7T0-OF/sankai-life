@@ -62,6 +62,7 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
     val dailyMinutes by viewModel.dailyMinutes.collectAsStateWithLifecycle()
     val minimalMode by viewModel.minimalMode.collectAsStateWithLifecycle()
     val todayCompleted by viewModel.todayCompleted.collectAsStateWithLifecycle()
+    val xpDuJour by viewModel.xpDuJour.collectAsStateWithLifecycle()
     val colors = MaterialTheme.sankaiColors
     val activity = LocalContext.current as? Activity
     val nextReminder = nextMemo?.nextTriggerAtMillis?.let { millis ->
@@ -102,6 +103,17 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
                         fontSize = 12.sp,
                         maxLines = 1
                     )
+                    // L'XP d'aujourd'hui : ce que tu as réellement fait, pas
+                    // un compteur d'ouverture. Affiché seulement quand il y en
+                    // a — un « +0 XP » serait un reproche, pas une donnée.
+                    if (xpDuJour > 0) {
+                        Text(
+                            stringResource(R.string.today_xp_earned, xpDuJour),
+                            color = colors.accent,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
                 SankaiFloatingButton(
                     contentDescription = stringResource(R.string.settings_title),

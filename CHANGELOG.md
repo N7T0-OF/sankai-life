@@ -1,5 +1,44 @@
 # Changelog Sankai Life
 
+## 1.84.0 - 17 aout 2026
+
+**Le « Sankai Moment » : la notification porte la découverte du jour elle-même.**
+
+- **La notification de découverte affiche le contenu réel** : titre de la
+  capsule du jour (« Découverte du jour · Demain, dès l'aube… ») suivi
+  d'un court extrait, au lieu du message générique. Une chose à lire,
+  puis à fermer — aucun bouton « encore une ».
+- **Une seule source de vérité pour la capsule du jour.** La logique de
+  sélection (packs embarqué + locaux, historique, déterministe) est
+  extraite de l'écran vers `DailyDiscovery`, partagée avec la
+  notification : la notification annonce exactement la capsule qui
+  s'ouvrira, jamais une déjà vue hier. `CultureLocalState` devient une
+  classe publique du domaine culture.
+- **La découverte reste plafonnée** : +5 XP par jour, une seule fois,
+  créditée quand la capsule est retournée.
+
+## 1.83.0 - 17 aout 2026
+
+**Fondation « Sankai Companion » : le téléphone fait l'action, Sankai
+la transforme en progression.**
+
+- **Moteur anti-farm d'XP par source.** Chaque source d'activité
+  (Calendrier, Concentration, Apprentissage, Découverte) a un **plafond
+  quotidien** et une **XP dégressive** : 20, 15, 10, 5… puis un plancher
+  d'1 XP jusqu'au plafond. Créer cent tâches pour farmer ne rapporte
+  rien de plus ; faire trois vraies choses vaut mieux que gratter trente
+  micro-actions. Moteur pur `ProgressSourceEngine` avec 8 tests.
+- **Les sources existantes passent par ce moteur.** La concentration
+  (Focus), l'apprentissage (bonus de fin de session) et la découverte du
+  jour (retournée une fois, plafonné à +5) créditent désormais l'XP
+  plafonné. La découverte ne peut plus rapporter qu'une fois par jour.
+- **L'Accueil affiche l'XP du jour** (« +34 XP aujourd'hui »), synthèse
+  des activités réellement faites — jamais un compteur d'ouverture de
+  l'application.
+- **Aucune pénalité** : rien n'est retiré, aucun streak cassé. Sankai
+  accompagne, il ne juge pas. Le calendrier Android sera la prochaine
+  source connectée.
+
 ## 1.82.0 - 17 aout 2026
 
 **Sankai Life assume sa direction : quatre sections, plus aucune section
