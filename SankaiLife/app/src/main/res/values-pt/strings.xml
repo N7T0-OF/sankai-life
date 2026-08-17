@@ -170,12 +170,6 @@
     <string name="culture_flip_to_details">Virar o cartão</string>
     <string name="culture_flip_to_text">Voltar ao texto</string>
     <string name="culture_listen">Ler em voz alta</string>
-    <string name="culture_reflection_title">Reflexão pessoal</string>
-    <string name="culture_reflection_prompt">O que te evoca este texto?</string>
-    <string name="culture_reflection_placeholder">Uma frase é suficiente…</string>
-    <string name="culture_reflection_save">Guardar localmente</string>
-    <string name="culture_reflection_saved">Guardado</string>
-    <string name="culture_local_only">Esta nota fica apenas neste dispositivo.</string>
     <string name="culture_save_error">Não foi possível guardar neste dispositivo.</string>
     <string name="culture_end_note">Uma cápsula é suficiente. Agora podes voltar ao teu dia.</string>
     <string name="culture_author_unknown">Autor não atribuído</string>
@@ -267,7 +261,6 @@
         <item quantity="other">%1$d minutos terminados. Volta quando quiseres.</item>
     </plurals>
     <string name="notif_daily_combined">%1$s · As tuas revisões estão prontas. Cerca de 4 minutos.</string>
-    <string name="culture_close_app">Fechar Sankai Life</string>
     <string name="culture_import_pack">Importar um pacote cultural</string>
     <!-- Extensões locais -->
     <string name="widget_loading">A carregar…</string>
@@ -502,7 +495,7 @@
     <string name="memo_uninstall_title">Desinstalar "%1$s"?</string>
     <string name="memo_uninstall_body">%1$d módulos, %2$d cartões.\n\nO progresso vai junto: as caixas de revisão vivem nas cartas. Nada poderá ser recuperado.</string>
     <string name="memo_uninstall_action">Desinstalar</string>
-    <string name="memo_mastery_percent">%1$d % dominado</string>
+    <string name="memo_mastery_percent">%1$d %% dominado</string>
 
     <!-- Mensagens de memo -->
     <string name="memo_uninstalled">"%1$s" desinstalado — %2$d módulos, %3$d cartões.</string>
@@ -694,7 +687,7 @@
         <item quantity="other">%1$d dias ativos</item>
     </plurals>
 
-    <string name="nav_today">Hoje</string>
+    <string name="nav_today">Início</string>
     <string name="nav_culture">Cultura</string>
 
     <string name="home_intro">Uma pequena descoberta hoje.</string>

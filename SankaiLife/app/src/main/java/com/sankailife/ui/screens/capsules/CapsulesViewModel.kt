@@ -32,10 +32,6 @@ data class CapsulesUiState(
     val entry: DailyCultureEntry? = null,
     val detailsVisible: Boolean = false,
     val favorite: Boolean = false,
-    val reflectionVisible: Boolean = false,
-    val reflection: String = "",
-    val savingReflection: Boolean = false,
-    val reflectionSaved: Boolean = false,
     val saveError: Boolean = false,
     val empty: Boolean = false,
     val loadError: Boolean = false,
@@ -83,7 +79,6 @@ class CapsulesViewModel(private val app: SankaiApplication) : ViewModel() {
                         loading = false,
                         entry = loaded.entry,
                         favorite = loaded.favorite,
-                        reflection = loaded.reflection,
                         saveError = !loaded.persisted
                     )
                 }
@@ -109,37 +104,6 @@ class CapsulesViewModel(private val app: SankaiApplication) : ViewModel() {
                     app.preferences
                 )
             }
-        }
-    }
-
-    fun toggleReflection() {
-        _state.value = _state.value.copy(
-            reflectionVisible = !_state.value.reflectionVisible,
-            reflectionSaved = false,
-            saveError = false
-        )
-    }
-
-    fun updateReflection(value: String) {
-        _state.value = _state.value.copy(
-            reflection = value.take(MAX_REFLECTION_LENGTH),
-            reflectionSaved = false,
-            saveError = false
-        )
-    }
-
-    fun saveReflection() {
-        val entry = _state.value.entry ?: return
-        val reflection = _state.value.reflection.trim()
-        _state.value = _state.value.copy(savingReflection = true, saveError = false)
-        viewModelScope.launch(Dispatchers.IO) {
-            val saved = localState.saveReflection(profileId, entry.id, reflection)
-            _state.value = _state.value.copy(
-                reflection = reflection,
-                savingReflection = false,
-                reflectionSaved = saved,
-                saveError = !saved
-            )
         }
     }
 
@@ -223,7 +187,6 @@ class CapsulesViewModel(private val app: SankaiApplication) : ViewModel() {
         LoadedCapsule(
             entry = selected,
             favorite = selected.id in favorites,
-            reflection = localState.reflection(profileId, selected.id),
             persisted = persisted
         )
     }
@@ -231,13 +194,10 @@ class CapsulesViewModel(private val app: SankaiApplication) : ViewModel() {
     private data class LoadedCapsule(
         val entry: DailyCultureEntry,
         val favorite: Boolean,
-        val reflection: String,
         val persisted: Boolean
     )
 
     companion object {
-        private const val MAX_REFLECTION_LENGTH = 2_000
-
         fun factory(app: SankaiApplication) = viewModelFactory {
             initializer { CapsulesViewModel(app) }
         }

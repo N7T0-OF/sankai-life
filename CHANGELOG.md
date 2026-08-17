@@ -1,5 +1,26 @@
 # Changelog Sankai Life
 
+## 1.96.0 - 17 aout 2026
+
+**Crash corrigé, capsule plus belle, et l'ancien « Accueil » revient.**
+
+- **Crash Mémo corrigé** : la chaîne de maîtrise d'un parcours
+  (`%1$d % maîtrisé`) contenait un `%` non échappé — un format invalide
+  qui faisait planter l'application dès l'ouverture de « Mémos et
+  rappels » quand un parcours était présent. Corrigé dans les trois
+  langues ; plus aucune chaîne à format invalide ne subsiste.
+- **« Aujourd'hui » redevient « Accueil »** dans la barre de navigation
+  (Home / Início), avec les documents de référence mis à jour.
+- **Capsules — carte retournable** : un appui sur la capsule fait pivoter
+  la carte en 3D, le texte devient la provenance et inversement. Plus de
+  boutons pleine largeur : un simple rappel sous la carte.
+- **Écoute compacte** : « Lire à voix haute » devient une icône volume,
+  discrète, à côté de la carte.
+- **Allégé** : la « Réflexion personnelle » (bouton, champ et
+  enregistrement local) et le bouton « Fermer Sankai Life » sont
+  supprimés. La capsule se lit, se retourne, puis on repart — sans
+  invite à quitter l'application.
+
 ## 1.95.0 - 17 aout 2026
 
 **Le minuteur système est connecté : sa fin devient une progression

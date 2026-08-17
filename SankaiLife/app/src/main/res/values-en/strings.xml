@@ -169,12 +169,6 @@
     <string name="culture_flip_to_details">Turn the card over</string>
     <string name="culture_flip_to_text">Return to the text</string>
     <string name="culture_listen">Read aloud</string>
-    <string name="culture_reflection_title">Personal reflection</string>
-    <string name="culture_reflection_prompt">What does this text bring to mind?</string>
-    <string name="culture_reflection_placeholder">One sentence is enough…</string>
-    <string name="culture_reflection_save">Save locally</string>
-    <string name="culture_reflection_saved">Saved</string>
-    <string name="culture_local_only">This note stays on this device only.</string>
     <string name="culture_save_error">Unable to save on this device.</string>
     <string name="culture_end_note">One capsule is enough. You can now return to your day.</string>
     <string name="culture_author_unknown">Unattributed author</string>
@@ -263,7 +257,6 @@
         <item quantity="other">%1$d minutes complete. Come back whenever you want.</item>
     </plurals>
     <string name="notif_daily_combined">%1$s · Your reviews are ready. About 4 minutes.</string>
-    <string name="culture_close_app">Close Sankai Life</string>
     <string name="culture_import_pack">Import a culture pack</string>
     <!-- Local extensions -->
     <string name="widget_loading">Loading…</string>
@@ -498,7 +491,7 @@
     <string name="memo_uninstall_title">Uninstall "%1$s"?</string>
     <string name="memo_uninstall_body">%1$d modules, %2$d cards.\n\nThe progress goes with them: the review boxes live on the cards. Nothing can be recovered.</string>
     <string name="memo_uninstall_action">Uninstall</string>
-    <string name="memo_mastery_percent">%1$d % mastered</string>
+    <string name="memo_mastery_percent">%1$d %% mastered</string>
 
     <!-- Memo messages -->
     <string name="memo_uninstalled">"%1$s" uninstalled — %2$d modules, %3$d cards.</string>
@@ -690,7 +683,7 @@
         <item quantity="other">%1$d active days</item>
     </plurals>
 
-    <string name="nav_today">Today</string>
+    <string name="nav_today">Home</string>
     <string name="nav_culture">Culture</string>
 
     <string name="home_intro">One small discovery today.</string>

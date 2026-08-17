@@ -1,9 +1,10 @@
 package com.sankailife.ui.screens.capsules
 
-import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,22 +16,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -42,12 +41,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -159,14 +158,7 @@ fun CapsulesScreen(
                 else -> CapsuleContent(
                     entry = entry,
                     detailsVisible = state.detailsVisible,
-                    reflectionVisible = state.reflectionVisible,
-                    reflection = state.reflection,
-                    savingReflection = state.savingReflection,
-                    reflectionSaved = state.reflectionSaved,
-                    onToggleDetails = viewModel::toggleDetails,
-                    onToggleReflection = viewModel::toggleReflection,
-                    onReflectionChange = viewModel::updateReflection,
-                    onSaveReflection = viewModel::saveReflection
+                    onToggleDetails = viewModel::toggleDetails
                 )
             }
         }
@@ -261,18 +253,10 @@ private fun CenteredState(content: @Composable ColumnScope.() -> Unit) {
 private fun CapsuleContent(
     entry: DailyCultureEntry,
     detailsVisible: Boolean,
-    reflectionVisible: Boolean,
-    reflection: String,
-    savingReflection: Boolean,
-    reflectionSaved: Boolean,
-    onToggleDetails: () -> Unit,
-    onToggleReflection: () -> Unit,
-    onReflectionChange: (String) -> Unit,
-    onSaveReflection: () -> Unit
+    onToggleDetails: () -> Unit
 ) {
     val colors = MaterialTheme.sankaiColors
     val voice = rememberVoix()
-    val activity = LocalContext.current as? Activity
     val canRead = entry.body != null && voice.disponiblePour(entry.languageCode)
 
     DisposableEffect(entry.id, voice) {
@@ -299,92 +283,47 @@ private fun CapsuleContent(
         )
         Spacer(Modifier.height(18.dp))
 
-        SankaiCard {
-            if (detailsVisible) DetailsFace(entry) else ReadingFace(entry)
-        }
+        // La carte entière se retourne : le texte devient la provenance, et
+        // inversement. Un geste, pas une navigation.
+        CarteRetournable(
+            entry = entry,
+            detailsVisible = detailsVisible,
+            onFlip = {
+                voice.arreter()
+                onToggleDetails()
+            }
+        )
 
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(10.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            SankaiButton(
-                text = stringResource(
+            Text(
+                stringResource(
                     if (detailsVisible) R.string.culture_flip_to_text
                     else R.string.culture_flip_to_details
                 ),
-                onClick = {
-                    voice.arreter()
-                    onToggleDetails()
-                },
-                secondary = true,
-                modifier = Modifier.weight(1f)
+                color = colors.textSecondary,
+                fontSize = 12.sp
             )
+            // L'écoute reste un bouton compact : une icône, pas un bandeau.
             if (canRead) {
-                SankaiButton(
-                    text = stringResource(R.string.culture_listen),
+                IconButton(
                     onClick = { entry.body?.let { voice.dire(it, entry.languageCode) } },
-                    secondary = true,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-
-        Spacer(Modifier.height(18.dp))
-        SankaiButton(
-            text = stringResource(R.string.culture_reflection_title),
-            onClick = onToggleReflection,
-            secondary = true,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        if (reflectionVisible) {
-            Spacer(Modifier.height(12.dp))
-            SankaiCard {
-                Text(
-                    stringResource(R.string.culture_reflection_prompt),
-                    color = colors.textPrimary,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    stringResource(R.string.culture_local_only),
-                    color = colors.textSecondary,
-                    fontSize = 12.sp
-                )
-                Spacer(Modifier.height(12.dp))
-                OutlinedTextField(
-                    value = reflection,
-                    onValueChange = onReflectionChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text(stringResource(R.string.culture_reflection_placeholder)) },
-                    minLines = 3,
-                    maxLines = 7,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(onDone = { onSaveReflection() }),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = colors.textPrimary,
-                        unfocusedTextColor = colors.textPrimary,
-                        focusedBorderColor = colors.accent,
-                        unfocusedBorderColor = colors.border,
-                        focusedContainerColor = colors.surface1,
-                        unfocusedContainerColor = colors.surface1
+                    modifier = Modifier.size(44.dp)
+                ) {
+                    Icon(
+                        Icons.Filled.VolumeUp,
+                        contentDescription = stringResource(R.string.culture_listen),
+                        tint = colors.accent
                     )
-                )
-                Spacer(Modifier.height(10.dp))
-                SankaiButton(
-                    text = stringResource(
-                        if (reflectionSaved) R.string.culture_reflection_saved
-                        else R.string.culture_reflection_save
-                    ),
-                    onClick = onSaveReflection,
-                    enabled = !savingReflection,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                }
             }
         }
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(20.dp))
         Text(
             stringResource(R.string.culture_end_note),
             color = colors.textSecondary,
@@ -392,13 +331,62 @@ private fun CapsuleContent(
             fontStyle = FontStyle.Italic,
             textAlign = TextAlign.Center
         )
-        Spacer(Modifier.height(14.dp))
-        SankaiButton(
-            text = stringResource(R.string.culture_close_app),
-            onClick = { activity?.finishAndRemoveTask() },
-            modifier = Modifier.fillMaxWidth()
-        )
         Spacer(Modifier.height(28.dp))
+    }
+}
+
+/**
+ * La capsule en carte à retourner.
+ *
+ * Deux faces dans le même volume : le texte au recto, la provenance au verso.
+ * Un appui fait pivoter la carte d'un demi-tour (animation 3D), et chaque face
+ * se dévoile exactement au bon moment — le verso est pré-roté pour être lisible
+ * après la bascule.
+ */
+@Composable
+private fun CarteRetournable(
+    entry: DailyCultureEntry,
+    detailsVisible: Boolean,
+    onFlip: () -> Unit
+) {
+    val rotation by animateFloatAsState(
+        targetValue = if (detailsVisible) 180f else 0f,
+        animationSpec = tween(durationMillis = 450),
+        label = "capsule_flip"
+    )
+    val densite = LocalDensity.current.density
+    val rectoVisible = rotation <= 90f
+
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                this.rotationY = rotation
+                // Éloigne le pivot pour une rotation profonde, pas un simple
+                // aplatissement horizontal.
+                cameraDistance = 12f * densite
+            }
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .graphicsLayer {
+                    rotationY = 0f
+                    alpha = if (rectoVisible) 1f else 0f
+                }
+        ) {
+            SankaiCard(onClick = onFlip) { ReadingFace(entry) }
+        }
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .graphicsLayer {
+                    rotationY = 180f
+                    alpha = if (rectoVisible) 0f else 1f
+                }
+        ) {
+            SankaiCard(onClick = onFlip) { DetailsFace(entry) }
+        }
     }
 }
 

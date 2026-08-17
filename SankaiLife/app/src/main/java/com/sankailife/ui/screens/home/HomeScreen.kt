@@ -51,7 +51,7 @@ import com.sankailife.ui.theme.SuccessGreen
 import com.sankailife.ui.theme.sankaiColors
 
 /**
- * « Aujourd'hui » : le tableau de bord minimal de Sankai, au centre de la
+ * « Accueil » : le tableau de bord minimal de Sankai, au centre de la
  * navigation.
  *
  * Une découverte à lire, un parcours à continuer, ce qui a réellement été

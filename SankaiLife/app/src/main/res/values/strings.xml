@@ -189,12 +189,6 @@
     <string name="culture_flip_to_details">Retourner la carte</string>
     <string name="culture_flip_to_text">Revenir au texte</string>
     <string name="culture_listen">Lire à voix haute</string>
-    <string name="culture_reflection_title">Réflexion personnelle</string>
-    <string name="culture_reflection_prompt">Qu’est-ce que ce texte t’évoque ?</string>
-    <string name="culture_reflection_placeholder">Une phrase suffit…</string>
-    <string name="culture_reflection_save">Enregistrer localement</string>
-    <string name="culture_reflection_saved">Enregistré</string>
-    <string name="culture_local_only">Cette note reste uniquement sur cet appareil.</string>
     <string name="culture_save_error">Impossible d’enregistrer sur cet appareil.</string>
     <string name="culture_end_note">Une capsule suffit. Tu peux maintenant retourner à ta journée.</string>
     <string name="culture_author_unknown">Auteur non attribué</string>
@@ -283,7 +277,6 @@
         <item quantity="other">%1$d minutes terminées. Tu peux revenir quand tu veux.</item>
     </plurals>
     <string name="notif_daily_combined">%1$s · Tes révisions sont prêtes. Environ 4 minutes.</string>
-    <string name="culture_close_app">Fermer Sankai Life</string>
     <string name="culture_import_pack">Importer un pack culturel</string>
     <!-- Extensions locales -->
     <string name="widget_loading">Chargement…</string>
@@ -518,7 +511,7 @@
     <string name="memo_uninstall_title">Désinstaller « %1$s » ?</string>
     <string name="memo_uninstall_body">%1$d modules, %2$d cartes.\n\nLa progression part avec : les boîtes de révision vivent sur les cartes. Rien ne pourra être récupéré.</string>
     <string name="memo_uninstall_action">Désinstaller</string>
-    <string name="memo_mastery_percent">%1$d % maîtrisé</string>
+    <string name="memo_mastery_percent">%1$d %% maîtrisé</string>
 
     <!-- Messages mémos -->
     <string name="memo_uninstalled">« %1$s » désinstallé — %2$d modules, %3$d cartes.</string>
@@ -710,7 +703,7 @@
         <item quantity="other">%1$d jours actifs</item>
     </plurals>
 
-    <string name="nav_today">Aujourd\'hui</string>
+    <string name="nav_today">Accueil</string>
     <string name="nav_culture">Culture</string>
 
     <string name="home_intro">Une petite découverte aujourd\'hui.</string>

@@ -1,5 +1,27 @@
 # Changelog développeur
 
+## 1.96.0 — 17 août 2026
+
+### Crash
+
+- `memo_mastery_percent` : `%1$d % maîtrisé` → `%1$d %% maîtrisé` (fr/en/pt).
+  Le `%` suivi d'un espace était un spécificateur invalide pour
+  `String.format` → `UnknownFormatConversionException` à l'ouverture de
+  Mémo avec un parcours présent.
+
+### Capsules
+
+- carte retournable : rotation 3D (`graphicsLayer.rotationY` + `cameraDistance`),
+  faces en fondu à 90°, la bascule crédite toujours la source Découverte ;
+- écoute : bouton pleine largeur → `IconButton` volume compact ;
+- réflexion personnelle retirée (état ViewModel, fonctions, chaînes
+  fr/en/pt) ; données locales existantes laissées dormantes ;
+- bouton « Fermer Sankai Life » retiré de l'écran Capsules.
+
+### Nommage
+
+- « Aujourd'hui » → « Accueil » (nav_today fr/en/pt, KDoc, PRODUCT_REFOCUS).
+
 ## 1.95.0 — 17 août 2026
 
 ### Source Concentration (minuteur système)

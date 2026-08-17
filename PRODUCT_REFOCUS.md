@@ -13,11 +13,11 @@ fermer.**
 |---|---|
 | 📚 **Apprendre** | Le cœur : révision express ⚡, recommandation du jour, parcours, modules, découverte. |
 | 🌱 **Vie** | Le réel : mémos, et bientôt les événements terminés du calendrier Android (lecture seule, traitement local). |
-| 🌱 **Aujourd'hui** (centre) | Le tableau de bord minimal : découverte du jour, progression en cours, activité réelle, sortie explicite. |
+| 🌱 **Accueil** (centre) | Le tableau de bord minimal : découverte du jour, progression en cours, activité réelle, sortie explicite. |
 | 🌍 **Culture** | La découverte culturelle : une capsule par jour — mot, poésie, proverbe, sciences, histoire, biographie. |
 | 👤 **Profil** | Progression, statistiques, personnalisation. |
 
-La barre place **« Aujourd'hui » au centre**, légèrement dominant : c'est
+La barre place **« Accueil » au centre**, légèrement dominant : c'est
 l'action principale de l'application, jamais un doublon. Les paramètres ne
 sont qu'une petite icône sur cet écran.
 
@@ -77,7 +77,7 @@ pouvoir partir sans pénalité**.
 
 | Espace | Rôle | Statut observé dans le diff |
 |---|---|---|
-| Aujourd'hui | Une action d'apprentissage, une capsule, le prochain mémo, puis « Terminer » | Écran principal refondu ; fermeture volontaire de l'application après validation |
+| Accueil | Une action d'apprentissage, une capsule, le prochain mémo, puis « Terminer » | Écran principal refondu ; fermeture volontaire de l'application après validation |
 | Académie | Parcours, modules et révisions | Route et onglet dédiés présents |
 | Capsules | Une découverte culturelle locale et finie | Écran, ViewModel et destination du graphe présents |
 | Mode Vie | Mémo et Focus en premier ; objectifs et anciens systèmes en second | Nouvel écran présent |
@@ -86,7 +86,7 @@ pouvoir partir sans pénalité**.
 | Jardin / Île | Extension contemplative facultative | Toujours compilée et persistée dans `:app` ; routes gardées par l'installation du pack |
 
 La barre inférieure reflète déjà cette direction dans
-`BottomNavBar.kt` : Aujourd'hui, Académie, Capsules, Mode Vie et Profil
+`BottomNavBar.kt` : Accueil, Académie, Capsules, Mode Vie et Profil
 remplacent Boutique, Mode Vie, Accueil, Défis et Profil. Cela change la
 hiérarchie, pas encore la composition physique de l'APK.
 
@@ -326,7 +326,7 @@ reproductible à configuration identique.
 - confondre intégrité SHA-256 et authenticité d'un éditeur ;
 - supprimer les tables Jardin pour gagner de la place et perdre une partie de
   sauvegarde utilisateur ;
-- réintroduire coffres, badges ou compteurs dans Aujourd'hui par facilité ;
+- réintroduire coffres, badges ou compteurs dans Accueil par facilité ;
 - promettre un APK plus petit avant une vraie modularisation de code ;
 - publier des textes, images ou traductions sans chaîne de droits complète.
 

@@ -62,7 +62,7 @@ data class NavItem(
 )
 
 /**
- * Cinq destinations, « Aujourd'hui » au centre.
+ * Cinq destinations, « Accueil » au centre.
  *
  * La section centrale est l'action principale de l'application : elle montre
  * ce qui mérite l'attention aujourd'hui, puis laisse repartir dans la vraie
