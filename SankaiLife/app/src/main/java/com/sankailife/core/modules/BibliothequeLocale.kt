@@ -1,6 +1,7 @@
 package com.sankailife.core.modules
 
 import android.content.Context
+import com.sankailife.R
 import com.sankailife.core.data.db.SankaiDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -149,7 +150,7 @@ class BibliothequeLocale(
             if (fiche.estCollection) {
                 val trouves = modules.inspecterCollection(uri)
                 if (trouves.isEmpty()) {
-                    return@withContext Issue.Echec("Aucun module lisible dans cette collection.")
+                    return@withContext Issue.Echec(contexte.getString(R.string.lib_collection_empty))
                 }
                 // Le niveau vient de l'ordre declare par la collection : c'est
                 // elle qui sait que le troisieme module est le B1.
@@ -164,7 +165,7 @@ class BibliothequeLocale(
                     cartes += lignes.size
                 }
                 Issue.Ok(
-                    "« ${fiche.nom} » installé — ${trouves.size} niveaux, $cartes cartes."
+                    contexte.getString(R.string.lib_collection_installed, fiche.nom, trouves.size, cartes)
                 )
             } else {
                 val (verdict, cartes) = modules.inspecter(uri)
@@ -175,12 +176,19 @@ class BibliothequeLocale(
                             verdict.apercu.manifeste, cartes,
                             collection = fiche.collection, niveau = fiche.niveau
                         )
-                        Issue.Ok("« $nom » installé — ${cartes.size} cartes.")
+                        Issue.Ok(
+                            contexte.resources.getQuantityString(
+                                R.plurals.lib_module_installed,
+                                cartes.size,
+                                nom,
+                                cartes.size
+                            )
+                        )
                     }
                 }
             }
         } catch (e: Throwable) {
-            Issue.Echec(e.message ?: "Installation impossible.")
+            Issue.Echec(e.message ?: contexte.getString(R.string.lib_install_failed))
         } finally {
             temporaire.delete()
         }
@@ -196,7 +204,7 @@ class BibliothequeLocale(
         collection: Fiche,
         idsVoulus: Set<String>
     ): Issue = withContext(Dispatchers.IO) {
-        if (idsVoulus.isEmpty()) return@withContext Issue.Echec("Aucun niveau choisi.")
+        if (idsVoulus.isEmpty()) return@withContext Issue.Echec(contexte.getString(R.string.lib_no_level_chosen))
         val temporaire = File(contexte.cacheDir, "local-${collection.id}.zip")
         try {
             contexte.assets.open("$DOSSIER/${collection.fichier}").use { entree ->
@@ -207,7 +215,7 @@ class BibliothequeLocale(
                 .filter { (manifeste, _) -> manifeste.id in idsVoulus }
 
             if (trouves.isEmpty()) {
-                return@withContext Issue.Echec("Ces niveaux sont introuvables dans le paquet.")
+                return@withContext Issue.Echec(contexte.getString(R.string.lib_levels_missing))
             }
             val niveauxParId = collection.contenus.zip(collection.niveaux).toMap()
             var cartes = 0
@@ -219,9 +227,16 @@ class BibliothequeLocale(
                 )
                 cartes += lignes.size
             }
-            Issue.Ok("${trouves.size} niveau(x) installé(s) — $cartes cartes.")
+            Issue.Ok(
+                contexte.resources.getQuantityString(
+                    R.plurals.lib_levels_installed,
+                    cartes,
+                    trouves.size,
+                    cartes
+                )
+            )
         } catch (e: Throwable) {
-            Issue.Echec(e.message ?: "Installation impossible.")
+            Issue.Echec(e.message ?: contexte.getString(R.string.lib_install_failed))
         } finally {
             temporaire.delete()
         }

@@ -22,9 +22,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sankailife.R
 import com.sankailife.SankaiApplication
 import com.sankailife.core.modules.FormatImportEngine
 import com.sankailife.core.modules.ModuleEngine
@@ -75,14 +78,14 @@ fun FeuillePartageEntrant() {
                         estAdresse = true
                         return@runCatching
                     }
-                    nom = contenu.titre.ifBlank { "Cartes partagées" }
+                    nom = contenu.titre.ifBlank { contexte.getString(R.string.share_cards_default) }
                     cartes = lire(contenu.valeur.toByteArray(), "")
                 }
                 is PartageEntrant.Contenu.Fichier -> {
                     val octets = withContext(Dispatchers.IO) {
                         contexte.contentResolver.openInputStream(contenu.uri)
                             ?.use { it.readBytes() }
-                    } ?: throw IllegalStateException("Fichier illisible.")
+                    } ?: throw IllegalStateException(contexte.getString(R.string.share_file_unreadable))
 
                     if (FormatImportEngine.detecter(octets, contenu.nom) ==
                         FormatImportEngine.Format.ARCHIVE
@@ -105,7 +108,7 @@ fun FeuillePartageEntrant() {
                     }
                 }
             }
-        }.onFailure { message = it.message ?: "Contenu illisible." }
+        }.onFailure { message = it.message ?: contexte.getString(R.string.share_content_unreadable) }
     }
 
     ModalBottomSheet(
@@ -116,14 +119,14 @@ fun FeuillePartageEntrant() {
             Modifier.fillMaxWidth().padding(horizontal = 22.dp).padding(bottom = 30.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            Text("Contenu reçu", color = c.textPrimary, fontSize = 18.sp,
+            Text(stringResource(R.string.share_title), color = c.textPrimary, fontSize = 18.sp,
                 fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(4.dp))
             Text(
                 when (contenu) {
                     is PartageEntrant.Contenu.Fichier ->
-                        contenu.nom.ifBlank { "Fichier partagé" }
-                    is PartageEntrant.Contenu.Texte -> "Texte partagé"
+                        contenu.nom.ifBlank { contexte.getString(R.string.share_file_default) }
+                    is PartageEntrant.Contenu.Texte -> contexte.getString(R.string.share_text_default)
                 },
                 color = c.textSecondary, fontSize = 12.sp
             )
@@ -135,21 +138,19 @@ fun FeuillePartageEntrant() {
                 estAdresse -> Text(
                     // On le dit plutot que de fabriquer une carte contenant une
                     // URL, ce que personne ne veut.
-                    "Ce partage ne contient qu'une adresse Internet. Sankai Life " +
-                        "fonctionne hors ligne : partage plutôt le fichier " +
-                        "lui-même, ou colle directement tes cartes.",
+                    stringResource(R.string.share_url_hint),
                     color = c.textSecondary, fontSize = 13.sp
                 )
 
                 message.isNotBlank() -> Text(message, color = DangerRed, fontSize = 13.sp)
 
                 cartes.isEmpty() -> Text(
-                    "Analyse en cours…", color = c.textSecondary, fontSize = 13.sp
+                    stringResource(R.string.share_analyzing), color = c.textSecondary, fontSize = 13.sp
                 )
 
                 else -> {
                     Text(
-                        "${cartes.size} carte(s) reconnue(s)",
+                        pluralStringResource(R.plurals.share_cards_recognized, cartes.size, cartes.size),
                         color = SuccessGreen, fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -165,7 +166,7 @@ fun FeuillePartageEntrant() {
                         onValueChange = { nom = it },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        label = { Text("Nom du module") }
+                        label = { Text(stringResource(R.string.share_module_name)) }
                     )
                 }
             }
@@ -173,7 +174,7 @@ fun FeuillePartageEntrant() {
             Spacer(Modifier.height(16.dp))
             if (!termine && !estAdresse && cartes.isNotEmpty()) {
                 SankaiButton(
-                    "Importer",
+                    stringResource(R.string.action_import),
                     onClick = {
                         portee.launch {
                             runCatching {
@@ -181,16 +182,21 @@ fun FeuillePartageEntrant() {
                                     ModuleEngine.Manifeste(
                                         schemaVersion = 1,
                                         id = "partage-${System.currentTimeMillis()}",
-                                        nom = nom.ifBlank { "Module partagé" },
+                                        nom = nom.ifBlank { contexte.getString(R.string.share_module_default) },
                                         version = "1.0.0"
                                     ),
                                     cartes
                                 )
                             }.onSuccess {
-                                message = "« $it » importé — ${cartes.size} cartes."
+                                message = contexte.resources.getQuantityString(
+                                    R.plurals.share_imported_cards,
+                                    cartes.size,
+                                    it,
+                                    cartes.size
+                                )
                                 termine = true
                             }.onFailure {
-                                message = it.message ?: "Import impossible."
+                                message = it.message ?: contexte.getString(R.string.share_import_failed)
                             }
                         }
                     },
@@ -199,7 +205,7 @@ fun FeuillePartageEntrant() {
                 Spacer(Modifier.height(8.dp))
             }
             SankaiButton(
-                if (termine) "Fermer" else "Annuler",
+                if (termine) stringResource(R.string.action_close) else stringResource(R.string.action_cancel),
                 onClick = { PartageEntrant.consommer() },
                 secondary = true,
                 modifier = Modifier.fillMaxWidth()

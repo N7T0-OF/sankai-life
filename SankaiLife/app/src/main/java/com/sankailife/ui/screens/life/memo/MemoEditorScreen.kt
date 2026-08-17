@@ -22,7 +22,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.sp
+import com.sankailife.R
 import com.sankailife.ui.components.SankaiButton
 import com.sankailife.ui.components.SectionTitle
 import com.sankailife.ui.theme.*
@@ -48,7 +52,7 @@ private fun ReglageValeur(
         Text(libelle, color = c.textSecondary, fontSize = 13.sp)
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onMoins, modifier = Modifier.size(34.dp)) {
-                Icon(Icons.Filled.Remove, "Diminuer",
+                Icon(Icons.Filled.Remove, stringResource(R.string.memo_editor_decrease),
                     modifier = Modifier.size(18.dp), tint = c.textPrimary)
             }
             Text(
@@ -57,7 +61,7 @@ private fun ReglageValeur(
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
             IconButton(onClick = onPlus, modifier = Modifier.size(34.dp)) {
-                Icon(Icons.Filled.Add, "Augmenter",
+                Icon(Icons.Filled.Add, stringResource(R.string.memo_editor_increase),
                     modifier = Modifier.size(18.dp), tint = c.textPrimary)
             }
         }
@@ -110,14 +114,14 @@ fun MemoEditorScreen(profileId: Long, viewModel: MemoViewModel, onBack: () -> Un
     if (showPasteConfirm) {
         AlertDialog(
             onDismissRequest = { showPasteConfirm = false },
-            title = { Text("Importer $pasteLineCount phrases ?", color = c.textPrimary) },
-            text  = { Text("Les doublons seront ignorés automatiquement.", color = c.textSecondary) },
+            title = { Text(pluralStringResource(R.plurals.memo_editor_import_confirm, pasteLineCount, pasteLineCount), color = c.textPrimary) },
+            text  = { Text(stringResource(R.string.memo_editor_duplicates_ignored), color = c.textSecondary) },
             confirmButton = {
                 TextButton(onClick = { viewModel.pasteFromClipboard(clipboardContent); showPasteConfirm = false }) {
-                    Text("Importer", color = c.accent, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.memo_editor_import), color = c.accent, fontWeight = FontWeight.Bold)
                 }
             },
-            dismissButton = { TextButton(onClick = { showPasteConfirm = false }) { Text("Annuler") } },
+            dismissButton = { TextButton(onClick = { showPasteConfirm = false }) { Text(stringResource(R.string.action_cancel)) } },
             containerColor = c.surface2
         )
     }
@@ -127,7 +131,7 @@ fun MemoEditorScreen(profileId: Long, viewModel: MemoViewModel, onBack: () -> Un
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Éditeur mémo", color = c.textPrimary, fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.memo_editor_title), color = c.textPrimary, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(
                         onClick = ::sauvegarderEtRevenir,
@@ -142,7 +146,8 @@ fun MemoEditorScreen(profileId: Long, viewModel: MemoViewModel, onBack: () -> Un
                         enabled = !sauvegardeEnCours
                     ) {
                         Text(
-                            if (sauvegardeEnCours) "Sauvegarde…" else "💾 Sauver",
+                            if (sauvegardeEnCours) stringResource(R.string.memo_editor_saving)
+                            else stringResource(R.string.memo_editor_save),
                             color = c.accent,
                             fontWeight = FontWeight.Bold
                         )
@@ -158,11 +163,11 @@ fun MemoEditorScreen(profileId: Long, viewModel: MemoViewModel, onBack: () -> Un
         ) {
             // Nom du profil
             item {
-                SectionTitle("Nom du profil")
+                SectionTitle(stringResource(R.string.memo_editor_profile_name))
                 OutlinedTextField(
                     value = name,
                     onValueChange = { viewModel.setName(it) },
-                    placeholder = { Text("Ex: Motivation, Travail...", color = c.textDisabled) },
+                    placeholder = { Text(stringResource(R.string.memo_editor_name_placeholder), color = c.textDisabled) },
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = c.accent, unfocusedBorderColor = c.border,
@@ -175,17 +180,16 @@ fun MemoEditorScreen(profileId: Long, viewModel: MemoViewModel, onBack: () -> Un
 
             // Langue du contenu
             item {
-                SectionTitle("Langue du contenu")
+                SectionTitle(stringResource(R.string.memo_editor_content_language))
                 Text(
-                    "Sert à faire prononcer les cartes pendant la révision. " +
-                        "Laisse « Aucune » si le contenu n'est pas dans une " +
-                        "langue étrangère — une phrase lue avec la mauvaise " +
-                        "prononciation s'apprend de travers.",
+                    stringResource(R.string.memo_editor_language_hint),
                     color = c.textSecondary, fontSize = 12.sp,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    LANGUES.forEach { (code, libelle) ->
+                    val langues = stringArrayResource(R.array.memo_languages)
+                    LANGUES.forEachIndexed { index, code ->
+                        val libelle = langues[index]
                         val choisie = langue == code
                         Box(
                             Modifier.clip(RoundedCornerShape(10.dp))
@@ -210,17 +214,17 @@ fun MemoEditorScreen(profileId: Long, viewModel: MemoViewModel, onBack: () -> Un
 
             // Paramètres notif
             item {
-                SectionTitle("Notifications")
+                SectionTitle(stringResource(R.string.memo_editor_notifications))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     // Fréquence
                     Column(Modifier.weight(1f)) {
-                        Text("Fréquence", color = c.textSecondary, fontSize = 12.sp)
+                        Text(stringResource(R.string.memo_editor_frequency), color = c.textSecondary, fontSize = 12.sp)
                         Spacer(Modifier.height(4.dp))
                         Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
                             .background(c.surface2).border(1.dp, c.border, RoundedCornerShape(12.dp)).padding(12.dp)) {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically) {
-                                Text("${freq}×/jour", color = c.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.memo_editor_freq_format, freq), color = c.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                                 Row {
                                     IconButton(onClick = { if (freq > 1) viewModel.setFrequency(freq - 1) }, Modifier.size(32.dp)) {
                                         Icon(Icons.Filled.Remove, null, modifier = Modifier.size(16.dp), tint = c.textPrimary)
@@ -235,7 +239,8 @@ fun MemoEditorScreen(profileId: Long, viewModel: MemoViewModel, onBack: () -> Un
                     // Heure — désactivée en mode aléatoire, où elle n'a plus de sens
                     Column(Modifier.weight(1f)) {
                         Text(
-                            if (aleatoire) "Heure (ignorée)" else "Heure",
+                            if (aleatoire) stringResource(R.string.memo_editor_time_ignored)
+                            else stringResource(R.string.memo_editor_time),
                             color = c.textSecondary, fontSize = 12.sp
                         )
                         Spacer(Modifier.height(4.dp))
@@ -253,14 +258,14 @@ fun MemoEditorScreen(profileId: Long, viewModel: MemoViewModel, onBack: () -> Un
                 if (!aleatoire) {
                     Spacer(Modifier.height(12.dp))
                     ReglageValeur(
-                        libelle = "Heure",
+                        libelle = stringResource(R.string.memo_editor_time),
                         valeur = "%02d h".format(hour),
                         onMoins = { viewModel.setHour(hour - 1) },
                         onPlus = { viewModel.setHour(hour + 1) }
                     )
                     Spacer(Modifier.height(8.dp))
                     ReglageValeur(
-                        libelle = "Minutes",
+                        libelle = stringResource(R.string.memo_editor_minutes),
                         valeur = "%02d min".format(minute),
                         onMoins = { viewModel.setMinute(minute - 5) },
                         onPlus = { viewModel.setMinute(minute + 5) }
@@ -269,10 +274,10 @@ fun MemoEditorScreen(profileId: Long, viewModel: MemoViewModel, onBack: () -> Un
 
                 // Jours de la semaine
                 Spacer(Modifier.height(16.dp))
-                Text("Jours actifs", color = c.textSecondary, fontSize = 12.sp)
+                Text(stringResource(R.string.memo_editor_active_days), color = c.textSecondary, fontSize = 12.sp)
                 Spacer(Modifier.height(6.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    val libelles = listOf("L", "M", "M", "J", "V", "S", "D")
+                    val libelles = stringArrayResource(R.array.memo_days_short)
                     libelles.forEachIndexed { index, libelle ->
                         val jour = index + 1
                         val actif = jour in jours
@@ -306,10 +311,10 @@ fun MemoEditorScreen(profileId: Long, viewModel: MemoViewModel, onBack: () -> Un
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text("Heure aléatoire", color = c.textPrimary,
+                        Text(stringResource(R.string.memo_editor_random_time), color = c.textPrimary,
                             fontSize = 14.sp, fontWeight = FontWeight.Medium)
                         Text(
-                            "Une heure différente chaque jour, tirée dans la plage choisie",
+                            stringResource(R.string.memo_editor_random_hint),
                             color = c.textSecondary, fontSize = 11.sp
                         )
                     }
@@ -326,14 +331,14 @@ fun MemoEditorScreen(profileId: Long, viewModel: MemoViewModel, onBack: () -> Un
                 if (aleatoire) {
                     Spacer(Modifier.height(10.dp))
                     ReglageValeur(
-                        libelle = "Début de plage",
+                        libelle = stringResource(R.string.memo_editor_range_start),
                         valeur = "%02dh%02d".format(plageDebut / 60, plageDebut % 60),
                         onMoins = { viewModel.setRandomStart(plageDebut - 30) },
                         onPlus = { viewModel.setRandomStart(plageDebut + 30) }
                     )
                     Spacer(Modifier.height(8.dp))
                     ReglageValeur(
-                        libelle = "Fin de plage",
+                        libelle = stringResource(R.string.memo_editor_range_end),
                         valeur = "%02dh%02d".format(plageFin / 60, plageFin % 60),
                         onMoins = { viewModel.setRandomEnd(plageFin - 30) },
                         onPlus = { viewModel.setRandomEnd(plageFin + 30) }
@@ -341,7 +346,7 @@ fun MemoEditorScreen(profileId: Long, viewModel: MemoViewModel, onBack: () -> Un
                     if (plageFin <= plageDebut) {
                         Spacer(Modifier.height(6.dp))
                         Text(
-                            "La fin doit être après le début, sinon la plage est ignorée.",
+                            stringResource(R.string.memo_editor_range_invalid),
                             color = WarningAmber, fontSize = 11.sp
                         )
                     }
@@ -349,17 +354,16 @@ fun MemoEditorScreen(profileId: Long, viewModel: MemoViewModel, onBack: () -> Un
 
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Les heures silencieuses définies dans les paramètres " +
-                    "s'appliquent toujours, quel que soit le mode.",
+                    stringResource(R.string.memo_editor_quiet_hint),
                     color = c.textDisabled, fontSize = 11.sp
                 )
             }
 
             // Import clipboard
             item {
-                SectionTitle("Importer")
+                SectionTitle(stringResource(R.string.memo_editor_import_section))
                 SankaiButton(
-                    text = "📋 Coller depuis presse-papier",
+                    text = stringResource(R.string.memo_editor_paste),
                     onClick = {
                         val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                         val text = cm.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
@@ -379,9 +383,12 @@ fun MemoEditorScreen(profileId: Long, viewModel: MemoViewModel, onBack: () -> Un
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically) {
-                    Text("PHRASES".uppercase(), color = c.textSecondary, fontSize = 11.sp,
+                    Text(stringResource(R.string.memo_editor_phrases_header), color = c.textSecondary, fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold)
-                    Text("${lines.size} lignes", color = c.textSecondary, fontSize = 11.sp)
+                    Text(
+                        pluralStringResource(R.plurals.memo_editor_lines, lines.size, lines.size),
+                        color = c.textSecondary, fontSize = 11.sp
+                    )
                 }
                 Spacer(Modifier.height(8.dp))
             }
@@ -393,7 +400,7 @@ fun MemoEditorScreen(profileId: Long, viewModel: MemoViewModel, onBack: () -> Un
                     OutlinedTextField(
                         value = newLineText,
                         onValueChange = { viewModel.setNewLineText(it) },
-                        placeholder = { Text("Nouvelle phrase...", color = c.textDisabled, fontSize = 13.sp) },
+                        placeholder = { Text(stringResource(R.string.memo_editor_new_line), color = c.textDisabled, fontSize = 13.sp) },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
@@ -442,13 +449,4 @@ fun MemoEditorScreen(profileId: Long, viewModel: MemoViewModel, onBack: () -> Un
  * « portugais » ou « PT-br », qui ne correspondraient a aucune voix installee
  * et donneraient un bouton muet.
  */
-private val LANGUES = listOf(
-    "" to "Aucune",
-    "fr" to "Français",
-    "en" to "Anglais",
-    "es" to "Espagnol",
-    "pt" to "Portugais",
-    "de" to "Allemand",
-    "it" to "Italien",
-    "ja" to "Japonais"
-)
+private val LANGUES = listOf("", "fr", "en", "es", "pt", "de", "it", "ja")

@@ -1,5 +1,88 @@
 # Changelog Sankai Life
 
+## 1.88.0 - 17 aout 2026
+
+**Passe de localisation : la session de révision et les derniers écrans UI
+sont entièrement localisés.**
+
+- **Session de révision (Flashcards)** : titre, consignes d'exercice
+  (localisées par forme — reconnaissance, saisie, texte à trous, ordre,
+  mémoire — au lieu du texte du moteur), boutons Écouter/Lentement,
+  correction (« La réponse était »), intervalles de prochaine révision
+  (dans 10 min, demain, dans 3 jours…), écran de fin de session et
+  messages du ViewModel (mode erreurs/express/module).
+- **Exercice d'association** : instruction et états des mots
+  (trouvé / sélectionné / incorrect / à associer).
+- **Objectifs** : titre, résumé (avec pluriels « 1 terminé / 3 terminés »),
+  sections, action d'effacement, descriptions d'accessibilité.
+- **Personnalisation** : badges des palettes (Par défaut • Gratuit,
+  Dynamique Android, exigence Android 12).
+- **Capsules** : messages d'import de packs (lu, installé, refusé).
+- **Composant d'état** : libellé d'action par défaut « Réessayer ».
+- ~19 nouvelles clés en fr/en/pt. **La couche UI de l'application ne
+  contient plus aucun texte en dur** : il ne reste que du contenu
+  (noms de plantes, de Mimos, d'arènes, conseils) et les exceptions
+  techniques, dans `core/`.
+
+## 1.87.0 - 17 aout 2026
+
+**Passe de localisation : partage entrant, import de modules et
+bibliothèque locale entièrement localisés.**
+
+- **Partage entrant** : la feuille de partage (contenu reçu, analyse,
+  nom du module, succès/échec d'import) ne contient plus de texte en dur
+  — y compris les messages d'erreur affichés à l'utilisateur.
+- **Import de modules** : boutons, champs d'aperçu (Nom, Auteur, Version,
+  Cartes, Taille, Licence), avertissements et messages de fin d'action.
+- **Bibliothèque locale** : titres, détails des fiches reconstruits avec
+  la langue courante (« 3 niveaux · 12 cartes »), collage de cartes,
+  messages du moteur `BibliothequeLocale` (installation de collections,
+  niveaux, erreurs) localisés via son contexte.
+- ~70 nouvelles clés en fr/en/pt, avec pluriels corrects (cartes, niveaux,
+  modules) et la règle `ImpliedQuantity` du portugais respectée.
+- Toujours aucun changement de comportement : uniquement des textes
+  désormais traduits, qui suivent la langue du téléphone.
+
+## 1.86.0 - 17 aout 2026
+
+**Passe de localisation : Personnalisation et écrans Mémo entièrement
+localisés.**
+
+- **Personnalisation** : titre, compteur de thèmes (avec vrai pluriel),
+  avertissement couleurs système, onglets « Obtenus / À débloquer »,
+  états vides, états des cartes (Équipé, Verrouillé, Appuie pour équiper)
+  et niveau de déblocage. Le ViewModel ne porte plus de texte français :
+  il expose le niveau requis, le libellé est construit à l'affichage.
+- **Éditeur mémo** : titre, champs, langues du contenu (liste localisée),
+  jours de la semaine (initiales selon la langue), fréquence, plages
+  horaires, modes aléatoire et silencieux, import presse-papier, compteur
+  de phrases avec pluriel. ~40 nouvelles clés en fr/en/pt.
+- **Écran mémos et messages** : développer/réduire, dialogue de
+  désinstallation, pourcentage maîtrisé, messages de fin d'action du
+  ViewModel (désinstallé, échecs, limite de slots avec pluriel) — résolus
+  via `app.resources.getQuantityString`/`getString`, convention du projet.
+- Aucun changement de comportement : uniquement des textes désormais
+  traduits, qui suivent la langue du téléphone.
+
+## 1.85.0 - 17 aout 2026
+
+**Passe de localisation 100 % : l'écran Paramètres dans son ensemble ne
+contient plus un seul texte en dur.**
+
+- **Paramètres, Langue, Apparence, Notifications, Heures silencieuses,
+  Diagnostic, Liens, Données et sauvegarde, Mises à jour, À propos :
+  toutes les chaînes visibles sont externalisées** (~70 clés nouvelles
+  en français, anglais et portugais), y compris les textes des messages
+  de sauvegarde (export/restauration), le diagnostic des notifications
+  et la description du réglage de langue sur Android 12.
+- **Les libellés des sections de sauvegarde** (Profil, Paramètres, Mémos,
+  Jardin, Coffres) sont désormais traduits à l'affichage, au lieu d'être
+  figés en français dans le moteur.
+- **Vérification offline-first** : le seul réseau de l'application reste
+  les liens externes et la recherche de mise à jour, tous deux à la
+  demande. Aucune fonctionnalité principale ne dépend d'une connexion ;
+  une seule permission (notifications) est demandée, au démarrage.
+
 ## 1.84.0 - 17 aout 2026
 
 **Le « Sankai Moment » : la notification porte la découverte du jour elle-même.**

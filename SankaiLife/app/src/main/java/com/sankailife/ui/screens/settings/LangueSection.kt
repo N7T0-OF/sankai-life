@@ -77,8 +77,7 @@ fun LangueSection() {
             // Sur Android 12 et antérieur, l'application suit le système et
             // rien d'autre. Le dire vaut mieux qu'afficher des boutons inertes.
             Text(
-                "Ton téléphone suit automatiquement sa propre langue. " +
-                    "Le choix manuel demande Android 13 ou plus récent.",
+                stringResource(R.string.settings_language_android13_hint),
                 color = c.textDisabled, fontSize = 11.sp
             )
             return@Column

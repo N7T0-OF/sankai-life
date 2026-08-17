@@ -21,8 +21,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import com.sankailife.R
 import androidx.compose.ui.unit.sp
 import com.sankailife.core.data.db.entities.ObjectiveEntity
 import com.sankailife.ui.components.SankaiButton
@@ -49,12 +52,16 @@ fun ObjectivesScreen(viewModel: ObjectivesViewModel, onBack: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Retour", tint = c.textPrimary)
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back), tint = c.textPrimary)
                 }
                 Column(Modifier.weight(1f)) {
-                    Text("🎯 Objectifs", color = c.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.objectives_title), color = c.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     Text(
-                        "${enCours.size} en cours • ${termines.size} terminé${if (termines.size > 1) "s" else ""}",
+                        stringResource(
+                            R.string.objectives_summary,
+                            enCours.size,
+                            pluralStringResource(R.plurals.objectives_done, termines.size, termines.size)
+                        ),
                         color = c.textSecondary, fontSize = 12.sp
                     )
                 }
@@ -121,7 +128,7 @@ fun ObjectivesScreen(viewModel: ObjectivesViewModel, onBack: () -> Unit) {
                 }
 
                 if (enCours.isNotEmpty()) {
-                    item { SectionTitle("À faire") }
+                    item { SectionTitle(stringResource(R.string.objectives_todo)) }
                     items(enCours, key = { it.id }) { objectif ->
                         LigneObjectif(
                             objectif = objectif,
@@ -132,7 +139,7 @@ fun ObjectivesScreen(viewModel: ObjectivesViewModel, onBack: () -> Unit) {
                 }
 
                 if (termines.isNotEmpty()) {
-                    item { SectionTitle("Terminés") }
+                    item { SectionTitle(stringResource(R.string.objectives_done_section)) }
                     items(termines, key = { it.id }) { objectif ->
                         LigneObjectif(
                             objectif = objectif,
@@ -142,7 +149,7 @@ fun ObjectivesScreen(viewModel: ObjectivesViewModel, onBack: () -> Unit) {
                     }
                     item {
                         SankaiButton(
-                            "Effacer les objectifs terminés",
+                            stringResource(R.string.objectives_clear_done),
                             onClick = { viewModel.effacerTermines() },
                             secondary = true,
                             small = true,
@@ -176,7 +183,8 @@ private fun LigneObjectif(
         Icon(
             imageVector = if (objectif.isDone) Icons.Filled.CheckCircle
                           else Icons.Outlined.RadioButtonUnchecked,
-            contentDescription = if (objectif.isDone) "Terminé" else "À faire",
+            contentDescription = if (objectif.isDone) stringResource(R.string.objectives_done_cd)
+                                 else stringResource(R.string.objectives_todo),
             modifier = Modifier.size(22.dp),
             tint = if (objectif.isDone) SuccessGreen else AccentGold
         )

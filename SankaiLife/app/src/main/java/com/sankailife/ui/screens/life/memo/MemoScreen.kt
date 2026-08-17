@@ -188,13 +188,13 @@ fun MemoScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 SankaiButton(
-                                    "Tout développer",
+                                    stringResource(R.string.memo_expand_all),
                                     onClick = { viewModel.toutDeplier() },
                                     secondary = true, small = true,
                                     modifier = Modifier.weight(1f)
                                 )
                                 SankaiButton(
-                                    "Tout réduire",
+                                    stringResource(R.string.memo_collapse_all),
                                     onClick = { viewModel.toutReplier() },
                                     secondary = true, small = true,
                                     modifier = Modifier.weight(1f)
@@ -260,22 +260,24 @@ fun MemoScreen(
         aDesinstaller?.let { cible ->
             AlertDialog(
                 onDismissRequest = { viewModel.annulerDesinstallation() },
-                title = { Text("Désinstaller « ${cible.titre} » ?") },
+                title = { Text(stringResource(R.string.memo_uninstall_title, cible.titre)) },
                 text = {
                     Text(
-                        "${cible.profileIds.size} modules, ${cible.cartes} cartes.\n\n" +
-                            "La progression part avec : les boîtes de révision " +
-                            "vivent sur les cartes. Rien ne pourra être récupéré."
+                        stringResource(
+                            R.string.memo_uninstall_body,
+                            cible.profileIds.size,
+                            cible.cartes
+                        )
                     )
                 },
                 confirmButton = {
                     TextButton(onClick = { viewModel.confirmerDesinstallation() }) {
-                        Text("Désinstaller")
+                        Text(stringResource(R.string.memo_uninstall_action))
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { viewModel.annulerDesinstallation() }) {
-                        Text("Annuler")
+                        Text(stringResource(R.string.action_cancel))
                     }
                 }
             )
@@ -905,7 +907,7 @@ private fun EnteteParcours(
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "${(groupe.progression * 100).toInt()} % maîtrisé",
+                    stringResource(R.string.memo_mastery_percent, (groupe.progression * 100).toInt()),
                     color = c.textSecondary, fontSize = 11.sp
                 )
             }

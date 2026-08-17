@@ -117,10 +117,10 @@ fun FlashcardsScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Retour", tint = c.textPrimary)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back), tint = c.textPrimary)
             }
             Column(Modifier.weight(1f)) {
-                Text("🃏 Révision", color = c.textPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.flashcards_title), color = c.textPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 Text(etat.nomModule, color = c.textSecondary, fontSize = 12.sp)
             }
             if (!etat.terminee && etat.total > 0) {
@@ -156,7 +156,7 @@ fun FlashcardsScreen(
                 val carte = etat.carteCourante
                 if (carte == null) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Rien à réviser", color = c.textSecondary)
+                        Text(stringResource(R.string.flashcards_nothing_due), color = c.textSecondary)
                     }
                 } else if (etat.association != null) {
                     // L'association occupe l'ecran entier : elle porte quatre
@@ -221,7 +221,7 @@ fun FlashcardsScreen(
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 if (exercice != null) {
                                     Text(
-                                        exercice.consigne.uppercase(),
+                                        consigneLocalisee(exercice).uppercase(),
                                         color = AccentCyan, fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp
                                     )
@@ -338,13 +338,13 @@ fun FlashcardsScreen(
                                             haptics.click()
                                             voix.dire(carte.recto, carte.langue, vitesseVoix)
                                         }) {
-                                            Text("🔊  Écouter", color = AccentCyan, fontSize = 13.sp)
+                                            Text(stringResource(R.string.flashcards_listen), color = AccentCyan, fontSize = 13.sp)
                                         }
                                         TextButton(onClick = {
                                             haptics.click()
                                             voix.dire(carte.recto, carte.langue, "lente")
                                         }) {
-                                            Text("🐢  Lentement", color = AccentCyan, fontSize = 13.sp)
+                                            Text(stringResource(R.string.flashcards_slowly), color = AccentCyan, fontSize = 13.sp)
                                         }
                                     }
                                 }
@@ -356,7 +356,7 @@ fun FlashcardsScreen(
                                     Spacer(Modifier.height(16.dp))
                                     HorizontalDivider(color = c.border)
                                     Spacer(Modifier.height(12.dp))
-                                    Text("La réponse était", color = c.textSecondary, fontSize = 11.sp)
+                                    Text(stringResource(R.string.flashcards_answer_was), color = c.textSecondary, fontSize = 11.sp)
                                     Text(
                                         attendu, color = AccentGold, fontSize = 17.sp,
                                         fontWeight = FontWeight.SemiBold,
@@ -380,17 +380,17 @@ fun FlashcardsScreen(
                                 val juste = etat.correction == true
                                 Text(
                                     if (juste)
-                                        "Juste • prochaine révision " +
-                                            FlashcardEngine.libelleIntervalle(
-                                                FlashcardEngine.boiteSuivante(carte.box, true)
-                                            )
-                                    else "Cette carte reviendra bientôt",
+                                        stringResource(
+                                            R.string.flashcards_just_next,
+                                            intervalleLocalise(FlashcardEngine.boiteSuivante(carte.box, true))
+                                        )
+                                    else stringResource(R.string.flashcards_back_soon),
                                     color = if (juste) SuccessGreen else c.textSecondary,
                                     fontSize = 12.sp
                                 )
                                 Spacer(Modifier.height(10.dp))
                                 SankaiButton(
-                                    "Continuer",
+                                    stringResource(R.string.today_continue),
                                     onClick = {
                                         if (juste) haptics.success() else haptics.error()
                                         viewModel.repondre(juste)
@@ -404,7 +404,7 @@ fun FlashcardsScreen(
                             exercice is ExerciceEngine.Exercice.Reconnaissance -> Unit
 
                             exercice is ExerciceEngine.Exercice.Ordre -> SankaiButton(
-                                "Valider",
+                                stringResource(R.string.action_validate),
                                 onClick = { viewModel.valider(assemblage.joinToString(" ")) },
                                 enabled = assemblage.isNotEmpty(),
                                 modifier = Modifier.fillMaxWidth()
@@ -471,7 +471,7 @@ fun FlashcardsScreen(
                             }
 
                             else -> SankaiButton(
-                                "Valider",
+                                stringResource(R.string.action_validate),
                                 onClick = { viewModel.valider(saisie) },
                                 enabled = saisie.isNotBlank(),
                                 modifier = Modifier.fillMaxWidth()
@@ -531,7 +531,7 @@ private fun ChampReponse(
         onValueChange = onChange,
         enabled = actif,
         singleLine = true,
-        placeholder = { Text("Ta réponse", color = c.textDisabled, fontSize = 14.sp) },
+        placeholder = { Text(stringResource(R.string.flashcards_your_answer), color = c.textDisabled, fontSize = 14.sp) },
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
         keyboardActions = KeyboardActions(onDone = { onValider() }),
         colors = OutlinedTextFieldDefaults.colors(
@@ -545,6 +545,30 @@ private fun ChampReponse(
         modifier = Modifier.fillMaxWidth()
     )
 }
+
+/**
+ * Consigne d'exercice, localisée par forme : l'instruction dépend du type
+ * d'exercice, pas du texte porté par le moteur (qui reste en français).
+ */
+@Composable
+private fun consigneLocalisee(exercice: ExerciceEngine.Exercice): String = when (exercice) {
+    is ExerciceEngine.Exercice.Reconnaissance -> stringResource(R.string.exercise_recognition)
+    is ExerciceEngine.Exercice.Saisie -> stringResource(R.string.exercise_typing)
+    is ExerciceEngine.Exercice.TexteATrous -> stringResource(R.string.exercise_gap)
+    is ExerciceEngine.Exercice.Ordre -> stringResource(R.string.exercise_order)
+    is ExerciceEngine.Exercice.Memoire -> stringResource(R.string.exercise_recall)
+}
+
+/** Intervalle de la prochaine révision, libellé de la langue courante. */
+@Composable
+private fun intervalleLocalise(boite: Int): String =
+    when (boite.coerceIn(0, FlashcardEngine.NOMBRE_BOITES - 1)) {
+        0 -> stringResource(R.string.interval_10_min)
+        1 -> stringResource(R.string.interval_tomorrow)
+        2 -> stringResource(R.string.interval_3_days)
+        3 -> stringResource(R.string.interval_1_week)
+        else -> stringResource(R.string.interval_3_weeks)
+    }
 
 /**
  * Les morceaux à remettre dans l'ordre.
@@ -636,17 +660,20 @@ private fun EcranFin(
         Text(if (reussies + ratees > 0) "🎉" else "🃏", fontSize = 52.sp)
         Spacer(Modifier.height(12.dp))
         Text(
-            if (reussies + ratees > 0) "Session terminée" else "Rien à réviser",
+            if (reussies + ratees > 0) stringResource(R.string.flashcards_session_done)
+            else stringResource(R.string.flashcards_nothing_due),
             color = c.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold
         )
         Spacer(Modifier.height(8.dp))
 
         if (reussies + ratees > 0) {
-            Text("$reussies acquises • $ratees à revoir", color = c.textSecondary, fontSize = 14.sp)
+            Text(
+                stringResource(R.string.flashcards_summary, reussies, ratees),
+                color = c.textSecondary, fontSize = 14.sp
+            )
         } else {
             Text(
-                "Toutes tes cartes sont à jour. Reviens plus tard : " +
-                "elles reviendront d'elles-mêmes selon leur échéance.",
+                stringResource(R.string.flashcards_up_to_date),
                 color = c.textSecondary, fontSize = 13.sp, textAlign = TextAlign.Center
             )
         }
@@ -658,9 +685,9 @@ private fun EcranFin(
 
         Spacer(Modifier.height(28.dp))
         if (reussies + ratees > 0) {
-            SankaiButton("Continuer à réviser", onClick = onRejouer, modifier = Modifier.fillMaxWidth())
+            SankaiButton(stringResource(R.string.flashcards_keep_reviewing), onClick = onRejouer, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(10.dp))
         }
-        SankaiButton("Retour", onClick = onBack, secondary = true, modifier = Modifier.fillMaxWidth())
+        SankaiButton(stringResource(R.string.action_back), onClick = onBack, secondary = true, modifier = Modifier.fillMaxWidth())
     }
 }

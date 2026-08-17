@@ -25,9 +25,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sankailife.R
 import com.sankailife.SankaiApplication
 import com.sankailife.core.modules.BibliothequeLocale
 import com.sankailife.core.modules.FormatImportEngine
@@ -87,17 +90,17 @@ fun BibliothequeModules(
             Modifier.fillMaxWidth().padding(horizontal = 22.dp).padding(bottom = 30.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            Text("Bibliothèque", color = c.textPrimary, fontSize = 18.sp,
+            Text(stringResource(R.string.lib_title), color = c.textPrimary, fontSize = 18.sp,
                 fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(4.dp))
             Text(
-                "Livrée avec l'application. Rien à télécharger, rien à connecter.",
+                stringResource(R.string.lib_bundled_hint),
                 color = c.textSecondary, fontSize = 12.sp
             )
             Spacer(Modifier.height(16.dp))
 
             if (contenu.collections.isNotEmpty()) {
-                Text("PARCOURS COMPLETS", color = c.textSecondary,
+                Text(stringResource(R.string.lib_full_courses), color = c.textSecondary,
                     fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(8.dp))
                 contenu.collections.forEach { fiche ->
@@ -106,14 +109,14 @@ fun BibliothequeModules(
                         installe = false,
                         occupe = enCours != null,
                         enCours = enCours == fiche.id,
-                        libelle = "Tout installer",
+                        libelle = stringResource(R.string.lib_install_all),
                         onInstaller = { installer(fiche) }
                     )
                     HorizontalDivider(color = c.border)
                 }
                 Spacer(Modifier.height(18.dp))
                 Text(
-                    "Ou un niveau seul, si tu n'en veux qu'un :",
+                    stringResource(R.string.lib_one_level_hint),
                     color = c.textSecondary, fontSize = 12.sp
                 )
                 Spacer(Modifier.height(10.dp))
@@ -125,7 +128,7 @@ fun BibliothequeModules(
                     installe = nomsInstalles.any { it.trim().equals(fiche.nom.trim(), true) },
                     occupe = enCours != null,
                     enCours = enCours == fiche.id,
-                    libelle = "Installer",
+                    libelle = stringResource(R.string.action_install),
                     onInstaller = { installer(fiche) }
                 )
                 HorizontalDivider(color = c.border)
@@ -133,15 +136,14 @@ fun BibliothequeModules(
 
             Spacer(Modifier.height(20.dp))
             SankaiButton(
-                "📋  Coller des cartes",
+                stringResource(R.string.lib_paste_cards),
                 onClick = { collageOuvert = true },
                 secondary = true,
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(6.dp))
             Text(
-                "Depuis un tableur, un export Anki, un carnet de notes — colle le " +
-                    "texte, l'application reconnaît le format.",
+                stringResource(R.string.lib_paste_hint),
                 color = c.textDisabled, fontSize = 11.sp
             )
 
@@ -185,22 +187,41 @@ private fun Ligne(
                 fiche.nom, color = c.textPrimary, fontSize = 14.sp,
                 fontWeight = if (fiche.estCollection) FontWeight.Bold else FontWeight.SemiBold
             )
-            Text(fiche.details, color = c.textSecondary, fontSize = 12.sp)
+            Text(detailsLocalises(fiche), color = c.textSecondary, fontSize = 12.sp)
             if (fiche.description.isNotBlank()) {
                 Text(fiche.description, color = c.textDisabled, fontSize = 11.sp)
             }
             if (installe) {
-                Text("Déjà installé", color = SuccessGreen, fontSize = 11.sp)
+                Text(stringResource(R.string.lib_already_installed), color = SuccessGreen, fontSize = 11.sp)
             }
         }
         SankaiButton(
-            text = if (enCours) "…" else if (installe) "Réinstaller" else libelle,
+            text = if (enCours) "…" else if (installe) stringResource(R.string.lib_reinstall) else libelle,
             onClick = onInstaller,
             enabled = !occupe,
             secondary = installe,
             small = true
         )
     }
+}
+
+/**
+ * Détails d'une fiche, reconstruits avec les libellés de la langue courante
+ * (« 3 niveaux · 12 cartes » au lieu de textes figés en français).
+ */
+@Composable
+private fun detailsLocalises(fiche: BibliothequeLocale.Fiche): String {
+    val parties = buildList {
+        if (fiche.estCollection) {
+            add(pluralStringResource(R.plurals.lib_levels, fiche.contenus.size, fiche.contenus.size))
+            val bornes = fiche.niveaux.filter { it.isNotBlank() }
+            if (bornes.size >= 2) add("${bornes.first()} → ${bornes.last()}")
+        } else if (fiche.niveau.isNotBlank()) {
+            add(fiche.niveau)
+        }
+        add(pluralStringResource(R.plurals.lib_cards, fiche.cartes, fiche.cartes))
+    }
+    return parties.joinToString(" · ")
 }
 
 /**
@@ -218,6 +239,7 @@ private fun CollageCartes(
     onInstalle: (String) -> Unit
 ) {
     val c = MaterialTheme.sankaiColors
+    val contexte = LocalContext.current
     val portee = rememberCoroutineScope()
     var texte by remember { mutableStateOf("") }
     var nom by remember { mutableStateOf("") }
@@ -242,12 +264,11 @@ private fun CollageCartes(
             Modifier.fillMaxWidth().padding(horizontal = 22.dp).padding(bottom = 30.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            Text("Coller des cartes", color = c.textPrimary, fontSize = 18.sp,
+            Text(stringResource(R.string.lib_paste_title), color = c.textPrimary, fontSize = 18.sp,
                 fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(4.dp))
             Text(
-                "Une carte par ligne. Séparateur : | ou :: ou une tabulation, " +
-                    "ou une virgule si ça vient d'un tableur.",
+                stringResource(R.string.lib_paste_help),
                 color = c.textSecondary, fontSize = 12.sp
             )
             Spacer(Modifier.height(12.dp))
@@ -257,14 +278,15 @@ private fun CollageCartes(
                 onValueChange = { texte = it; erreur = "" },
                 modifier = Modifier.fillMaxWidth().height(180.dp),
                 placeholder = { Text("Olá | Bonjour\nObrigado | Merci") },
-                label = { Text("Contenu") }
+                label = { Text(stringResource(R.string.lib_paste_content)) }
             )
             Spacer(Modifier.height(10.dp))
 
             if (cartes.isNotEmpty()) {
                 Text(
-                    "${cartes.size} carte(s) reconnue(s)" +
-                        if (format == FormatImportEngine.Format.CSV) " — tableur" else "",
+                    pluralStringResource(R.plurals.share_cards_recognized, cartes.size, cartes.size) +
+                        if (format == FormatImportEngine.Format.CSV)
+                            stringResource(R.string.lib_spreadsheet_suffix) else "",
                     color = SuccessGreen, fontSize = 12.sp, fontWeight = FontWeight.SemiBold
                 )
                 Spacer(Modifier.height(4.dp))
@@ -283,11 +305,11 @@ private fun CollageCartes(
                     onValueChange = { nom = it },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    label = { Text("Nom du module") }
+                    label = { Text(stringResource(R.string.share_module_name)) }
                 )
             } else if (texte.isNotBlank()) {
                 Text(
-                    "Aucune carte reconnue. Vérifie qu'il y a bien une carte par ligne.",
+                    stringResource(R.string.lib_no_cards),
                     color = DangerRed, fontSize = 12.sp
                 )
             }
@@ -299,7 +321,7 @@ private fun CollageCartes(
 
             Spacer(Modifier.height(14.dp))
             SankaiButton(
-                "Créer le module",
+                stringResource(R.string.lib_create_module),
                 onClick = {
                     portee.launch {
                         runCatching {
@@ -307,7 +329,7 @@ private fun CollageCartes(
                                 com.sankailife.core.modules.ModuleEngine.Manifeste(
                                     schemaVersion = 1,
                                     id = "colle-${System.currentTimeMillis()}",
-                                    nom = nom.ifBlank { "Cartes collées" },
+                                    nom = nom.ifBlank { contexte.getString(R.string.lib_pasted_default) },
                                     version = "1.0.0",
                                     auteur = "",
                                     licence = ""
@@ -315,9 +337,16 @@ private fun CollageCartes(
                                 cartes
                             )
                         }.onSuccess {
-                            onInstalle("« $it » créé — ${cartes.size} cartes.")
+                            onInstalle(
+                                contexte.resources.getQuantityString(
+                                    R.plurals.lib_created,
+                                    cartes.size,
+                                    it,
+                                    cartes.size
+                                )
+                            )
                         }.onFailure {
-                            erreur = it.message ?: "Création impossible."
+                            erreur = it.message ?: contexte.getString(R.string.lib_create_failed)
                         }
                     }
                 },

@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.sankailife.BuildConfig
+import com.sankailife.R
 import com.sankailife.SankaiApplication
 import com.sankailife.core.data.repository.UserRepository
 import com.sankailife.core.domain.engine.ProgressSourceEngine
@@ -182,16 +183,17 @@ class CapsulesViewModel(private val app: SankaiApplication) : ViewModel() {
             val message = try {
                 val stream: InputStream? = app.contentResolver.openInputStream(uri)
                 if (stream == null) {
-                    "Impossible de lire ce fichier."
+                    app.getString(R.string.pack_unreadable)
                 } else {
                     stream.use { packStore.install(it) }
                     val nombre = packStore.states().filterIsInstance<CulturePackStore.State.Ready>().size
-                    if (nombre <= 1) "Pack installé." else "Pack installé ($nombre packs locaux)."
+                    if (nombre <= 1) app.getString(R.string.pack_installed)
+                    else app.getString(R.string.pack_installed_many, nombre)
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
-                error.message ?: "Pack refusé."
+                error.message ?: app.getString(R.string.pack_refused)
             }
             _state.value = _state.value.copy(importing = false, importMessage = message)
             load()

@@ -93,7 +93,7 @@ fun SettingsScreen(
         // TopBar
         Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = c.textSecondary) }
-            Text("Paramètres", color = c.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.settings_title), color = c.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         }
 
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
@@ -126,7 +126,7 @@ fun SettingsScreen(
                         FilterChip(
                             selected = dailyMinutes == minutes,
                             onClick = { viewModel.setDailyMinutes(minutes) },
-                            label = { Text("$minutes min", fontSize = 11.sp) },
+                            label = { Text(stringResource(R.string.settings_minutes_format, minutes), fontSize = 11.sp) },
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -139,10 +139,10 @@ fun SettingsScreen(
             }
 
             // Thème
-            SectionTitle("Langue")
+            SectionTitle(stringResource(R.string.settings_section_language))
             SettingsCard { LangueSection() }
 
-            SectionTitle("Apparence")
+            SectionTitle(stringResource(R.string.settings_section_appearance))
             val palette by viewModel.palette.collectAsStateWithLifecycle()
             val dynamiqueDispo = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
@@ -160,37 +160,43 @@ fun SettingsScreen(
             // preference de personne, pas de contenu. Quelqu'un qui revise dans
             // le train coupe la lecture une fois, pas six.
             SettingsCard {
-                Text("Audio d'apprentissage", color = c.textPrimary, fontSize = 14.sp,
+                Text(stringResource(R.string.settings_audio_title), color = c.textPrimary, fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Utilise la voix installée sur ton téléphone. Sans voix pour " +
-                        "une langue, l'écoute reste simplement indisponible.",
+                    stringResource(R.string.settings_audio_hint),
                     color = c.textSecondary, fontSize = 11.sp
                 )
                 Spacer(Modifier.height(10.dp))
-                SettingToggle("Lire chaque nouveau mot", lectureAuto) {
+                SettingToggle(stringResource(R.string.settings_audio_auto_read), lectureAuto) {
                     viewModel.setLectureAuto(it)
                 }
                 Spacer(Modifier.height(10.dp))
-                Text("Vitesse de lecture", color = c.textPrimary, fontSize = 13.sp)
+                Text(stringResource(R.string.settings_audio_speed), color = c.textPrimary, fontSize = 13.sp)
                 Spacer(Modifier.height(6.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("lente" to "Lente", "normale" to "Normale", "rapide" to "Rapide")
-                        .forEach { (cle, libelle) ->
-                            ChoixAudio(
-                                libelle = libelle,
-                                choisi = vitesseVoix == cle,
-                                modifier = Modifier.weight(1f),
-                                onClick = { viewModel.setVitesseVoix(cle) }
-                            )
-                        }
+                    listOf(
+                        "lente" to stringResource(R.string.settings_audio_slow),
+                        "normale" to stringResource(R.string.settings_audio_normal),
+                        "rapide" to stringResource(R.string.settings_audio_fast)
+                    ).forEach { (cle, libelle) ->
+                        ChoixAudio(
+                            libelle = libelle,
+                            choisi = vitesseVoix == cle,
+                            modifier = Modifier.weight(1f),
+                            onClick = { viewModel.setVitesseVoix(cle) }
+                        )
+                    }
                 }
                 Spacer(Modifier.height(10.dp))
-                Text("Répéter automatiquement", color = c.textPrimary, fontSize = 13.sp)
+                Text(stringResource(R.string.settings_audio_repeat), color = c.textPrimary, fontSize = 13.sp)
                 Spacer(Modifier.height(6.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(0 to "Jamais", 1 to "1 fois", 2 to "2 fois").forEach { (n, libelle) ->
+                    listOf(
+                        0 to stringResource(R.string.settings_audio_never),
+                        1 to stringResource(R.string.settings_audio_once),
+                        2 to stringResource(R.string.settings_audio_twice)
+                    ).forEach { (n, libelle) ->
                         ChoixAudio(
                             libelle = libelle,
                             choisi = repetitions == n,
@@ -206,17 +212,17 @@ fun SettingsScreen(
                 // ou l'on choisit clair, sombre ou AMOLED, et l'appeler theme
                 // laissait croire a un doublon de la collection alors que les
                 // deux reglages ne font pas la meme chose.
-                Text("Mode d'affichage", color = c.textPrimary, fontSize = 14.sp,
+                Text(stringResource(R.string.settings_display_mode), color = c.textPrimary, fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(10.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     // AMOLED est un mode a part, pas une nuance de sombre : il eteint
                     // reellement les pixels d'une dalle OLED.
                     listOf(
-                        "dark" to "🌑 Sombre",
-                        "amoled" to "⬛ AMOLED",
-                        "light" to "☀️ Clair",
-                        "auto" to "⚡ Auto"
+                        "dark" to stringResource(R.string.settings_theme_dark),
+                        "amoled" to stringResource(R.string.settings_theme_amoled),
+                        "light" to stringResource(R.string.settings_theme_light),
+                        "auto" to stringResource(R.string.settings_theme_auto)
                     ).forEach { (mode, label) ->
                         Box(
                             Modifier.weight(1f).clip(RoundedCornerShape(10.dp))
@@ -233,11 +239,11 @@ fun SettingsScreen(
                 // nulle part ailleurs. Un raccourci ici remettait deux chemins
                 // pour une meme chose, ce qu'on venait de corriger.
                 Spacer(Modifier.height(12.dp))
-                SettingToggle("Afficher labels navigation", showLabels) { viewModel.setShowNavLabels(it) }
-                SettingToggle("Mode économie batterie", battery) { viewModel.setBatterySaver(it) }
+                SettingToggle(stringResource(R.string.settings_show_nav_labels), showLabels) { viewModel.setShowNavLabels(it) }
+                SettingToggle(stringResource(R.string.settings_battery_saver), battery) { viewModel.setBatterySaver(it) }
             }
 
-            SectionTitle("Notifications")
+            SectionTitle(stringResource(R.string.settings_section_notifications))
             SettingsCard {
                 SettingToggle(stringResource(R.string.settings_notifications_active), notifs) { viewModel.setNotifications(it) }
                 SettingToggle(stringResource(R.string.settings_interface_vibrations), vibrations) { viewModel.setVibrations(it) }
@@ -296,76 +302,76 @@ fun SettingsScreen(
                 }
             }
 
-            SectionTitle("Heures silencieuses")
+            SectionTitle(stringResource(R.string.settings_section_quiet_hours))
             SettingsCard {
-                SettingToggle("Activer les heures silencieuses", quietOn) { viewModel.setQuietEnabled(it) }
+                SettingToggle(stringResource(R.string.settings_quiet_enable), quietOn) { viewModel.setQuietEnabled(it) }
                 Text(
-                    "Aucun mémo ni rappel pendant cette plage. L'application reste " +
-                    "utilisable : Android ne permet pas à une app de s'éteindre seule.",
+                    stringResource(R.string.settings_quiet_hint),
                     color = c.textSecondary, fontSize = 11.sp
                 )
                 if (quietOn) {
                     Spacer(Modifier.height(12.dp))
-                    SelecteurHeure("Début", quietStart) { viewModel.setQuietStart(it) }
+                    SelecteurHeure(stringResource(R.string.settings_quiet_start), quietStart) { viewModel.setQuietStart(it) }
                     Spacer(Modifier.height(8.dp))
-                    SelecteurHeure("Fin", quietEnd) { viewModel.setQuietEnd(it) }
+                    SelecteurHeure(stringResource(R.string.settings_quiet_end), quietEnd) { viewModel.setQuietEnd(it) }
                     if (quietStart > quietEnd) {
                         Spacer(Modifier.height(6.dp))
                         Text(
-                            "La plage traverse minuit : de ${QuietHours.formater(quietStart)} " +
-                            "à ${QuietHours.formater(quietEnd)} le lendemain.",
+                            stringResource(
+                                R.string.settings_quiet_midnight,
+                                QuietHours.formater(quietStart),
+                                QuietHours.formater(quietEnd)
+                            ),
                             color = c.textSecondary, fontSize = 11.sp
                         )
                     }
                 }
             }
 
-            SectionTitle("Diagnostic des notifications")
+            SectionTitle(stringResource(R.string.settings_section_diagnostic))
             SettingsCard {
-                LigneDiagnostic("Permission notifications", diag.notificationsAutorisees)
-                LigneDiagnostic("Alarmes exactes", diag.alarmesExactes)
+                LigneDiagnostic(stringResource(R.string.settings_diag_permission), diag.notificationsAutorisees)
+                LigneDiagnostic(stringResource(R.string.settings_diag_exact_alarms), diag.alarmesExactes)
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    if (diag.prochaine.isBlank()) "Aucune notification programmée"
-                    else "Prochaine : ${diag.prochaine}",
+                    if (diag.prochaine.isBlank()) stringResource(R.string.settings_diag_none_scheduled)
+                    else stringResource(R.string.settings_diag_next, diag.prochaine),
                     color = c.textSecondary, fontSize = 12.sp
                 )
                 if (!diag.alarmesExactes) {
                     Spacer(Modifier.height(10.dp))
                     Text(
-                        "Sans cette autorisation, un mémo prévu à 22h00 peut arriver " +
-                        "avec quelques minutes de retard.",
+                        stringResource(R.string.settings_diag_exact_alarm_hint),
                         color = WarningAmber, fontSize = 11.sp
                     )
                     Spacer(Modifier.height(8.dp))
-                    SankaiButton("Autoriser les alarmes exactes",
+                    SankaiButton(stringResource(R.string.settings_diag_allow_exact),
                         onClick = { viewModel.ouvrirReglageAlarmes(contexte) },
                         small = true, modifier = Modifier.fillMaxWidth())
                 }
                 Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SankaiButton("Notification test", onClick = { viewModel.envoyerNotificationTest(contexte) },
+                    SankaiButton(stringResource(R.string.settings_diag_test), onClick = { viewModel.envoyerNotificationTest(contexte) },
                         small = true, secondary = true, modifier = Modifier.weight(1f))
-                    SankaiButton("Reprogrammer", onClick = { viewModel.reprogrammerTout(contexte) },
+                    SankaiButton(stringResource(R.string.settings_diag_reschedule), onClick = { viewModel.reprogrammerTout(contexte) },
                         small = true, secondary = true, modifier = Modifier.weight(1f))
                 }
             }
 
-            SectionTitle("Liens")
+            SectionTitle(stringResource(R.string.settings_section_links))
             SettingsCard {
                 SettingLink(
                     url = "https://haunt.gg/souanpt",
-                    label = "Site Souanpt", emoji = "🌐", enabled = enLigne
+                    label = stringResource(R.string.settings_link_site), emoji = "🌐", enabled = enLigne
                 )
                 SettingLink(
                     url = "https://ko-fi.com/souanpt",
-                    label = "Soutenir sur Ko-fi", emoji = "☕", enabled = enLigne
+                    label = stringResource(R.string.settings_link_kofi), emoji = "☕", enabled = enLigne
                 )
                 if (!enLigne) {
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "Ces liens sont les seules parties de l'app qui ont besoin " +
-                        "d'internet. Tout le reste fonctionne hors ligne.",
+                        stringResource(R.string.settings_links_offline_hint),
                         color = c.textSecondary, fontSize = 11.sp
                     )
                 }
@@ -374,7 +380,7 @@ fun SettingsScreen(
             // La sauvegarde vient AVANT la réinitialisation, délibérément :
             // quelqu'un qui vient effacer sa progression doit voir d'abord
             // qu'il peut la mettre à l'abri.
-            SectionTitle("Données et sauvegarde")
+            SectionTitle(stringResource(R.string.settings_section_data))
             SettingsCard { SauvegardeSection() }
 
             SettingsCard {
@@ -389,10 +395,10 @@ fun SettingsScreen(
                 }
             }
 
-            SectionTitle("Mises à jour")
+            SectionTitle(stringResource(R.string.settings_section_updates))
             SettingsCard {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Version installée", color = c.textPrimary, fontSize = 14.sp)
+                    Text(stringResource(R.string.settings_version_installed), color = c.textPrimary, fontSize = 14.sp)
                     Text(viewModel.versionInstallee, color = c.textSecondary,
                         fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 }
@@ -430,13 +436,14 @@ fun SettingsScreen(
                 when {
                     etatMaj.disponible != null && !etatMaj.telechargement ->
                         SankaiButton(
-                            "⬇  Télécharger et installer",
+                            stringResource(R.string.settings_update_download_install),
                             onClick = { viewModel.telechargerMaj(contexte) },
                             modifier = Modifier.fillMaxWidth()
                         )
                     else ->
                         SankaiButton(
-                            if (etatMaj.recherche) "Recherche…" else "🔄  Rechercher une mise à jour",
+                            if (etatMaj.recherche) stringResource(R.string.settings_update_searching)
+                            else stringResource(R.string.settings_update_search),
                             onClick = { viewModel.rechercherMaj() },
                             enabled = !etatMaj.recherche && !etatMaj.telechargement && enLigne,
                             secondary = true,
@@ -446,17 +453,16 @@ fun SettingsScreen(
 
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "Android demandera toujours ta confirmation avant d'installer. " +
-                    "Aucune mise à jour ne s'installe en silence.",
+                    stringResource(R.string.settings_update_silent_hint),
                     color = c.textDisabled, fontSize = 11.sp
                 )
             }
 
-            SectionTitle("À propos")
+            SectionTitle(stringResource(R.string.settings_section_about))
             SettingsCard {
                 Text("Sankai Life", color = c.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                Text("Version ${viewModel.versionInstallee}", color = c.textSecondary, fontSize = 12.sp)
-                Text("Par Souanpt", color = c.textSecondary, fontSize = 12.sp)
+                Text(stringResource(R.string.settings_about_version, viewModel.versionInstallee), color = c.textSecondary, fontSize = 12.sp)
+                Text(stringResource(R.string.settings_about_author), color = c.textSecondary, fontSize = 12.sp)
             }
             Spacer(Modifier.height(32.dp))
         }
@@ -494,7 +500,7 @@ private fun LigneDiagnostic(libelle: String, ok: Boolean) {
     ) {
         Text(libelle, color = c.textPrimary, fontSize = 13.sp)
         Text(
-            if (ok) "✓ accordée" else "✗ refusée",
+            if (ok) stringResource(R.string.settings_diag_granted) else stringResource(R.string.settings_diag_denied),
             color = if (ok) SuccessGreen else DangerRed,
             fontSize = 13.sp, fontWeight = FontWeight.SemiBold
         )
@@ -556,7 +562,7 @@ fun SettingLink(url: String, label: String, emoji: String, enabled: Boolean) {
                 fontSize = 14.sp, fontWeight = FontWeight.Medium
             )
             Text(
-                if (enabled) url.removePrefix("https://") else "Connexion requise",
+                if (enabled) url.removePrefix("https://") else stringResource(R.string.settings_link_offline),
                 color = c.textSecondary, fontSize = 11.sp
             )
         }

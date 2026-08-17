@@ -18,10 +18,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sankailife.R
 import com.sankailife.ui.theme.sankaiColors
 
 /**
@@ -106,7 +108,7 @@ fun EmptyStateCard(
 @Composable
 fun ErrorStateCard(
     message: String,
-    libelleAction: String = "Réessayer",
+    libelleAction: String = stringResource(R.string.action_retry),
     onAction: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {

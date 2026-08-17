@@ -11,9 +11,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sankailife.R
 import com.sankailife.SankaiApplication
 import com.sankailife.core.modules.ModuleEngine
 import com.sankailife.core.modules.ModuleRepository
@@ -55,13 +57,13 @@ fun ImportModuleBouton() {
         portee.launch {
             runCatching { depot.inspecter(uri) }
                 .onSuccess { (v, lignes) -> verdict = v; cartes = lignes }
-                .onFailure { avis = Avis(it.message ?: "Fichier illisible.", succes = false) }
+                .onFailure { avis = Avis(it.message ?: contexte.getString(R.string.share_file_unreadable), succes = false) }
         }
     }
 
     Column(Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
         SankaiButton(
-            "📦  Importer un module",
+            stringResource(R.string.import_module_button),
             onClick = { choisir.launch(arrayOf("application/zip", "*/*")) },
             secondary = true,
             modifier = Modifier.fillMaxWidth()
@@ -74,15 +76,14 @@ fun ImportModuleBouton() {
         // hotes autorises, une verification d'empreinte et un message d'erreur
         // hors-ligne pour livrer ce qui pouvait deja etre la.
         SankaiButton(
-            "📚  Bibliothèque",
+            stringResource(R.string.import_module_library),
             onClick = { catalogueOuvert = true },
             secondary = true,
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.height(6.dp))
         Text(
-            "Tout fonctionne hors ligne, sans compte : un module est un fichier " +
-                "qu'on peut copier, sauvegarder et envoyer comme on veut.",
+            stringResource(R.string.import_module_offline_hint),
             color = c.textDisabled, fontSize = 11.sp
         )
         avis?.let {
@@ -102,7 +103,7 @@ fun ImportModuleBouton() {
             nomsInstalles = installes,
             onFermer = { catalogueOuvert = false },
             onInstalle = {
-                avis = Avis("Module installé. Retrouve-le dans l'Académie.", succes = true)
+                avis = Avis(contexte.getString(R.string.import_module_installed_library), succes = true)
             }
         )
     }
@@ -112,7 +113,7 @@ fun ImportModuleBouton() {
             Column(
                 Modifier.fillMaxWidth().padding(horizontal = 22.dp).padding(bottom = 30.dp)
             ) {
-                Text("Importer un module", color = c.textPrimary,
+                Text(stringResource(R.string.import_module_title), color = c.textPrimary,
                     fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(14.dp))
 
@@ -123,12 +124,21 @@ fun ImportModuleBouton() {
 
                     is ModuleEngine.Verdict.Utilisable -> {
                         val m = v.apercu.manifeste
-                        LigneInfo("Nom", m.nom)
-                        LigneInfo("Auteur", m.auteur.ifBlank { "non déclaré" })
-                        LigneInfo("Version", m.version.ifBlank { "—" })
-                        LigneInfo("Cartes", "${v.apercu.nombreCartes}")
-                        LigneInfo("Taille", "${v.apercu.octets / 1024} ko")
-                        LigneInfo("Licence", m.licence.ifBlank { "non déclarée" })
+                        LigneInfo(stringResource(R.string.import_module_field_name), m.nom)
+                        LigneInfo(
+                            stringResource(R.string.import_module_field_author),
+                            m.auteur.ifBlank { contexte.getString(R.string.import_module_author_unknown) }
+                        )
+                        LigneInfo(stringResource(R.string.import_module_field_version), m.version.ifBlank { "—" })
+                        LigneInfo(stringResource(R.string.import_module_field_cards), "${v.apercu.nombreCartes}")
+                        LigneInfo(
+                            stringResource(R.string.import_module_field_size),
+                            contexte.getString(R.string.import_module_size_kb, v.apercu.octets / 1024)
+                        )
+                        LigneInfo(
+                            stringResource(R.string.import_module_field_license),
+                            m.licence.ifBlank { contexte.getString(R.string.import_module_license_unknown) }
+                        )
 
                         if (m.description.isNotBlank()) {
                             Spacer(Modifier.height(10.dp))
@@ -142,26 +152,29 @@ fun ImportModuleBouton() {
 
                         Spacer(Modifier.height(14.dp))
                         Text(
-                            "Un module ne contient que des données : ni script, ni " +
-                                "code. Il s'ajoute à tes mémos sans rien remplacer.",
+                            stringResource(R.string.import_module_safe_hint),
                             color = c.textDisabled, fontSize = 11.sp
                         )
 
                         Spacer(Modifier.height(16.dp))
                         SankaiButton(
-                            "Installer",
+                            stringResource(R.string.action_install),
                             onClick = {
                                 verdict = null
                                 portee.launch {
                                     avis = runCatching { depot.installer(m, cartes) }
                                         .fold(
                                             onSuccess = { nom ->
-                                                Avis("« $nom » installé, désactivé par défaut.",
-                                                    succes = true)
+                                                Avis(
+                                                    contexte.getString(R.string.import_module_installed, nom),
+                                                    succes = true
+                                                )
                                             },
                                             onFailure = { e ->
-                                                Avis(e.message ?: "Échec de l'installation.",
-                                                    succes = false)
+                                                Avis(
+                                                    e.message ?: contexte.getString(R.string.import_module_install_failed),
+                                                    succes = false
+                                                )
                                             }
                                         )
                                 }

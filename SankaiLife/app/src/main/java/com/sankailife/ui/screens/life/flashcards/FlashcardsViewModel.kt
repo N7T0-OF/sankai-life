@@ -217,17 +217,17 @@ class FlashcardsViewModel(application: Application) : AndroidViewModel(applicati
             _etat.value = EtatSession(
                 chargement = false,
                 nomModule = when {
-                    modeErreurs -> "Mes erreurs"
-                    modeExpress -> "Révision express"
-                    else -> profil?.name.orEmpty().ifBlank { "Mémo" }
+                    modeErreurs -> app.getString(R.string.memo_errors_title)
+                    modeExpress -> app.getString(R.string.academy_express_title)
+                    else -> profil?.name.orEmpty().ifBlank { app.getString(R.string.memo_default_name) }
                 },
                 cartes = cartes,
                 terminee = cartes.isEmpty(),
                 messageFin = when {
                     cartes.isNotEmpty() -> ""
-                    modeErreurs -> "Aucune carte ne te résiste pour l'instant"
-                    modeExpress -> "Rien à réviser pour l'instant"
-                    else -> "Aucune carte à réviser pour l'instant"
+                    modeErreurs -> app.getString(R.string.flashcards_no_errors)
+                    modeExpress -> app.getString(R.string.flashcards_nothing_express)
+                    else -> app.getString(R.string.flashcards_nothing_module)
                 },
                 exercice = null
             ).avecExercice(0)

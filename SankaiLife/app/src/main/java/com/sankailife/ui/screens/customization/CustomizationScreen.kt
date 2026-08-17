@@ -24,6 +24,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import com.sankailife.R
 import com.sankailife.core.haptics.LocalHaptics
 import com.sankailife.ui.theme.sankaiColors
 
@@ -48,21 +51,19 @@ fun CustomizationScreen(viewModel: CustomizationViewModel, onBack: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Retour", tint = c.textPrimary)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back), tint = c.textPrimary)
             }
             Column(Modifier.weight(1f)) {
-                Text("Personnalisation", color = c.textPrimary,
+                Text(stringResource(R.string.customization_title), color = c.textPrimary,
                     fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                Text("$obtenus thèmes obtenus", color = c.textSecondary, fontSize = 12.sp)
+                Text(pluralStringResource(R.plurals.customization_themes_obtained, obtenus, obtenus), color = c.textSecondary, fontSize = 12.sp)
             }
         }
 
         // L'avertissement n'apparait que quand le conflit existe reellement.
         if (couleursSysteme) {
             Text(
-                "Les couleurs de ton téléphone sont actives : elles remplacent " +
-                    "l'accent du thème équipé. Choisis « Sankai classique » dans " +
-                    "les paramètres d'apparence pour voir tes thèmes.",
+                stringResource(R.string.customization_system_colors_hint),
                 color = c.textSecondary, fontSize = 12.sp,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
             )
@@ -84,7 +85,11 @@ fun CustomizationScreen(viewModel: CustomizationViewModel, onBack: () -> Unit) {
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        cat.libelle,
+                        stringResource(
+                            if (cat == CustomizationViewModel.Categorie.OBTENUS)
+                                R.string.customization_cat_obtained
+                            else R.string.customization_cat_locked
+                        ),
                         color = if (actif) c.textPrimary else c.textSecondary,
                         fontSize = 13.sp,
                         fontWeight = if (actif) FontWeight.SemiBold else FontWeight.Normal
@@ -103,8 +108,8 @@ fun CustomizationScreen(viewModel: CustomizationViewModel, onBack: () -> Unit) {
                 Spacer(Modifier.height(10.dp))
                 Text(
                     if (categorie == CustomizationViewModel.Categorie.OBTENUS)
-                        "Aucun thème obtenu pour l'instant"
-                    else "Tous les thèmes sont débloqués",
+                        stringResource(R.string.customization_none_obtained)
+                    else stringResource(R.string.customization_all_unlocked),
                     color = c.textSecondary, fontSize = 14.sp, textAlign = TextAlign.Center
                 )
             }
@@ -226,9 +231,9 @@ private fun CarteTheme(ui: CustomizationViewModel.ThemeUi, onClick: () -> Unit) 
                 )
                 Spacer(Modifier.weight(1f))
                 when {
-                    ui.equipe -> Icon(Icons.Filled.Check, "Équipé",
+                    ui.equipe -> Icon(Icons.Filled.Check, stringResource(R.string.customization_equipped),
                         tint = accent, modifier = Modifier.size(18.dp))
-                    !ui.debloque -> Icon(Icons.Filled.Lock, "Verrouillé",
+                    !ui.debloque -> Icon(Icons.Filled.Lock, stringResource(R.string.customization_locked),
                         tint = c.textDisabled, modifier = Modifier.size(16.dp))
                 }
             }
@@ -241,9 +246,11 @@ private fun CarteTheme(ui: CustomizationViewModel.ThemeUi, onClick: () -> Unit) 
             )
             Text(
                 when {
-                    ui.equipe -> "Équipé"
-                    ui.debloque -> "Appuie pour équiper"
-                    else -> ui.conditionDeblocage
+                    ui.equipe -> stringResource(R.string.customization_equipped)
+                    ui.debloque -> stringResource(R.string.customization_tap_to_equip)
+                    else -> ui.niveauDeblocage?.let {
+                        stringResource(R.string.customization_unlock_level, it)
+                    } ?: ""
                 },
                 color = if (ui.equipe) accent else c.textSecondary,
                 fontSize = 11.sp

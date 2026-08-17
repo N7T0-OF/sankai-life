@@ -24,10 +24,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import com.sankailife.R
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sankailife.core.learning.domain.AssociationEngine
@@ -63,7 +65,7 @@ fun ExerciceAssociation(
 
     Column(modifier.fillMaxWidth()) {
         Text(
-            "Associe chaque mot à son équivalent",
+            stringResource(R.string.exercise_associate_instruction),
             color = c.textSecondary, fontSize = 13.sp,
             modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center
         )
@@ -129,10 +131,10 @@ private fun Etiquette(
     )
 
     val etatLu = when {
-        trouvee -> "trouvé"
-        choisie -> "sélectionné"
-        fautive -> "incorrect"
-        else -> "à associer"
+        trouvee -> stringResource(R.string.exercise_assoc_found)
+        choisie -> stringResource(R.string.exercise_assoc_selected)
+        fautive -> stringResource(R.string.exercise_assoc_incorrect)
+        else -> stringResource(R.string.exercise_assoc_to_match)
     }
 
     Box(

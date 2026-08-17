@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.*
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.sankailife.R
 import com.sankailife.SankaiApplication
 import com.sankailife.core.data.db.entities.MemoLineEntity
 import com.sankailife.core.data.db.entities.MemoProfileEntity
@@ -163,10 +164,14 @@ class MemoViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             runCatching { cible.profileIds.forEach { deleteProfile(it) } }
                 .onSuccess {
-                    _message.value = "« ${cible.titre} » désinstallé — " +
-                        "${cible.profileIds.size} modules, ${cible.cartes} cartes."
+                    _message.value = app.getString(
+                        R.string.memo_uninstalled,
+                        cible.titre,
+                        cible.profileIds.size,
+                        cible.cartes
+                    )
                 }
-                .onFailure { _message.value = "Désinstallation impossible." }
+                .onFailure { _message.value = app.getString(R.string.memo_uninstall_failed) }
         }
     }
 
@@ -269,7 +274,7 @@ class MemoViewModel(application: Application) : AndroidViewModel(application) {
 
                 val entity = (existant ?: MemoProfileEntity()).copy(
                     id = if (id > 0) id else 0L,
-                    name = _profileName.value.ifBlank { "Mémo" },
+                    name = _profileName.value.ifBlank { app.getString(R.string.memo_default_name) },
                     frequencyPerDay = _frequency.value,
                     scheduledHour = _hour.value,
                     scheduledMinute = _minute.value,
@@ -293,7 +298,7 @@ class MemoViewModel(application: Application) : AndroidViewModel(application) {
             _sauvegardeEnCours.value = false
             resultat.fold(
                 onSuccess = { onSaved() },
-                onFailure = { _message.value = "Impossible d'enregistrer ce mémo" }
+                onFailure = { _message.value = app.getString(R.string.memo_save_failed) }
             )
         }
     }
@@ -306,9 +311,10 @@ class MemoViewModel(application: Application) : AndroidViewModel(application) {
      * qu'il doit la rouvrir pour la remplir.
      */
     fun createNewProfile(onCreated: (Long) -> Unit = {}) = viewModelScope.launch {
-        val newId = dao.upsertProfile(MemoProfileEntity(name = "Nouveau mémo"))
+        val nouveauNom = app.getString(R.string.memo_new_name)
+        val newId = dao.upsertProfile(MemoProfileEntity(name = nouveauNom))
         _currentProfileId.value = newId
-        _profileName.value = "Nouveau mémo"
+        _profileName.value = nouveauNom
         _currentLines.value = emptyList()
         onCreated(newId)
     }
@@ -380,10 +386,14 @@ class MemoViewModel(application: Application) : AndroidViewModel(application) {
     fun toggleProfile(profileId: Long, active: Boolean) = viewModelScope.launch {
         when (val resultat = activation.definirActif(profileId, active)) {
             MemoActivationRepository.Resultat.MisAJour -> replanifier()
-            is MemoActivationRepository.Resultat.LimiteAtteinte ->
-                _message.value = "${resultat.slots} slot(s) actif(s) maximum — achète un slot dans Mode Vie"
+            is            MemoActivationRepository.Resultat.LimiteAtteinte ->
+                _message.value = app.resources.getQuantityString(
+                    R.plurals.memo_slots_limit,
+                    resultat.slots,
+                    resultat.slots
+                )
             MemoActivationRepository.Resultat.ProfilIntrouvable ->
-                _message.value = "Ce profil mémo n'existe plus"
+                _message.value = app.getString(R.string.memo_profile_gone)
         }
     }
 

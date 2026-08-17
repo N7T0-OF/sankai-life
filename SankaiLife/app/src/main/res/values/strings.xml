@@ -343,4 +343,324 @@
     <string name="academy_express_desc">2 difficiles · 1 ancienne · 1 nouvelle · ≈ 2 min</string>
     <string name="academy_discovery_title">Découverte du jour</string>
     <string name="academy_discovery_desc">Une idée culturelle, sans fil infini.</string>
+
+    <!-- Paramètres : langue -->
+    <string name="settings_section_language">Langue</string>
+    <string name="settings_language_android13_hint">Ton téléphone suit automatiquement sa propre langue. Le choix manuel demande Android 13 ou plus récent.</string>
+
+    <!-- Paramètres : apparence et audio -->
+    <string name="settings_section_appearance">Apparence</string>
+    <string name="settings_audio_title">Audio d’apprentissage</string>
+    <string name="settings_audio_hint">Utilise la voix installée sur ton téléphone. Sans voix pour une langue, l’écoute reste simplement indisponible.</string>
+    <string name="settings_audio_auto_read">Lire chaque nouveau mot</string>
+    <string name="settings_audio_speed">Vitesse de lecture</string>
+    <string name="settings_audio_slow">Lente</string>
+    <string name="settings_audio_normal">Normale</string>
+    <string name="settings_audio_fast">Rapide</string>
+    <string name="settings_audio_repeat">Répéter automatiquement</string>
+    <string name="settings_audio_never">Jamais</string>
+    <string name="settings_audio_once">1 fois</string>
+    <string name="settings_audio_twice">2 fois</string>
+    <string name="settings_display_mode">Mode d’affichage</string>
+    <string name="settings_theme_dark">🌑 Sombre</string>
+    <string name="settings_theme_amoled">⬛ AMOLED</string>
+    <string name="settings_theme_light">☀️ Clair</string>
+    <string name="settings_theme_auto">⚡ Auto</string>
+    <string name="settings_show_nav_labels">Afficher labels navigation</string>
+    <string name="settings_battery_saver">Mode économie batterie</string>
+    <string name="settings_minutes_format">%1$d min</string>
+
+    <!-- Paramètres : notifications -->
+    <string name="settings_section_notifications">Notifications</string>
+    <string name="settings_section_quiet_hours">Heures silencieuses</string>
+    <string name="settings_quiet_enable">Activer les heures silencieuses</string>
+    <string name="settings_quiet_hint">Aucun mémo ni rappel pendant cette plage. L’application reste utilisable : Android ne permet pas à une app de s’éteindre seule.</string>
+    <string name="settings_quiet_start">Début</string>
+    <string name="settings_quiet_end">Fin</string>
+    <string name="settings_quiet_midnight">La plage traverse minuit : de %1$s à %2$s le lendemain.</string>
+
+    <!-- Paramètres : diagnostic -->
+    <string name="settings_section_diagnostic">Diagnostic des notifications</string>
+    <string name="settings_diag_permission">Permission notifications</string>
+    <string name="settings_diag_exact_alarms">Alarmes exactes</string>
+    <string name="settings_diag_none_scheduled">Aucune notification programmée</string>
+    <string name="settings_diag_next">Prochaine : %1$s</string>
+    <string name="settings_diag_exact_alarm_hint">Sans cette autorisation, un mémo prévu à 22h00 peut arriver avec quelques minutes de retard.</string>
+    <string name="settings_diag_allow_exact">Autoriser les alarmes exactes</string>
+    <string name="settings_diag_test">Notification test</string>
+    <string name="settings_diag_reschedule">Reprogrammer</string>
+    <string name="settings_diag_granted">✓ accordée</string>
+    <string name="settings_diag_denied">✗ refusée</string>
+
+    <!-- Paramètres : liens -->
+    <string name="settings_section_links">Liens</string>
+    <string name="settings_link_site">Site Souanpt</string>
+    <string name="settings_link_kofi">Soutenir sur Ko-fi</string>
+    <string name="settings_link_offline">Connexion requise</string>
+    <string name="settings_links_offline_hint">Ces liens sont les seules parties de l’app qui ont besoin d’internet. Tout le reste fonctionne hors ligne.</string>
+
+    <!-- Paramètres : données -->
+    <string name="settings_section_data">Données et sauvegarde</string>
+    <string name="settings_backup_intro">Ta progression, tes mémos et ton jardin dans un seul fichier. Aucun compte, aucune connexion : tu choisis où il est rangé.</string>
+    <string name="settings_backup_export">Exporter</string>
+    <string name="settings_backup_restore">Restaurer</string>
+    <string name="settings_backup_written">Sauvegarde écrite (%1$d ko).</string>
+    <string name="settings_backup_failed">Échec : %1$s</string>
+    <string name="settings_backup_unreadable">Fichier illisible.</string>
+    <string name="settings_backup_restore_cancelled">Restauration annulée : la sauvegarde de sécurité est obligatoire.</string>
+    <string name="settings_backup_restored">Sauvegarde de sécurité créée • Restauré : %1$s</string>
+    <string name="settings_backup_retutorial">Revoir le tutoriel</string>
+    <string name="settings_backup_restore_title">Restaurer une sauvegarde</string>
+    <string name="settings_backup_created">Créée le %1$s</string>
+    <plurals name="settings_backup_cards">
+        <item quantity="one">%1$d carte de révision</item>
+        <item quantity="other">%1$d cartes de révision</item>
+    </plurals>
+    <string name="settings_backup_to_restore">À RESTAURER</string>
+    <string name="settings_backup_merge_hint">Les mémos importés s’ajoutent aux tiens, ils ne les remplacent pas. Avant de modifier le profil, Android te demandera où écrire la sauvegarde de sécurité.</string>
+    <string name="settings_backup_restore_now">Restaurer maintenant</string>
+    <string name="settings_backup_section_profile">Profil et progression</string>
+    <string name="settings_backup_section_settings">Paramètres</string>
+    <string name="settings_backup_section_memos">Mémos et flash cards</string>
+    <string name="settings_backup_section_garden">Jardin, parcelles et Mimos</string>
+    <string name="settings_backup_section_chests">Coffres et défis</string>
+
+    <!-- Paramètres : mises à jour et à propos -->
+    <string name="settings_section_updates">Mises à jour</string>
+    <string name="settings_version_installed">Version installée</string>
+    <string name="settings_update_download_install">⬇  Télécharger et installer</string>
+    <string name="settings_update_search">🔄  Rechercher une mise à jour</string>
+    <string name="settings_update_silent_hint">Android demandera toujours ta confirmation avant d’installer. Aucune mise à jour ne s’installe en silence.</string>
+    <string name="settings_section_about">À propos</string>
+    <string name="settings_about_version">Version %1$s</string>
+    <string name="settings_about_author">Par Souanpt</string>
+
+    <!-- Personnalisation -->
+    <string name="customization_title">Personnalisation</string>
+    <plurals name="customization_themes_obtained">
+        <item quantity="one">%1$d thème obtenu</item>
+        <item quantity="other">%1$d thèmes obtenus</item>
+    </plurals>
+    <string name="customization_system_colors_hint">Les couleurs de ton téléphone sont actives : elles remplacent l’accent du thème équipé. Choisis « Sankai classique » dans les paramètres d’apparence pour voir tes thèmes.</string>
+    <string name="customization_cat_obtained">Obtenus</string>
+    <string name="customization_cat_locked">À débloquer</string>
+    <string name="customization_none_obtained">Aucun thème obtenu pour l’instant</string>
+    <string name="customization_all_unlocked">Tous les thèmes sont débloqués</string>
+    <string name="customization_equipped">Équipé</string>
+    <string name="customization_locked">Verrouillé</string>
+    <string name="customization_tap_to_equip">Appuie pour équiper</string>
+    <string name="customization_unlock_level">Niveau %1$d</string>
+
+    <!-- Éditeur mémo -->
+    <string name="memo_editor_title">Éditeur mémo</string>
+    <string name="memo_editor_saving">Sauvegarde…</string>
+    <string name="memo_editor_save">💾 Sauver</string>
+    <string name="memo_editor_profile_name">Nom du profil</string>
+    <string name="memo_editor_name_placeholder">Ex: Motivation, Travail...</string>
+    <string name="memo_editor_content_language">Langue du contenu</string>
+    <string name="memo_editor_language_hint">Sert à faire prononcer les cartes pendant la révision. Laisse « Aucune » si le contenu n’est pas dans une langue étrangère — une phrase lue avec la mauvaise prononciation s’apprend de travers.</string>
+    <string name="memo_editor_notifications">Notifications</string>
+    <string name="memo_editor_frequency">Fréquence</string>
+    <string name="memo_editor_freq_format">%1$d×/jour</string>
+    <string name="memo_editor_time_ignored">Heure (ignorée)</string>
+    <string name="memo_editor_time">Heure</string>
+    <string name="memo_editor_minutes">Minutes</string>
+    <string name="memo_editor_active_days">Jours actifs</string>
+    <string-array name="memo_days_short">
+        <item>L</item><item>M</item><item>M</item><item>J</item><item>V</item><item>S</item><item>D</item>
+    </string-array>
+    <string name="memo_editor_random_time">Heure aléatoire</string>
+    <string name="memo_editor_random_hint">Une heure différente chaque jour, tirée dans la plage choisie</string>
+    <string name="memo_editor_range_start">Début de plage</string>
+    <string name="memo_editor_range_end">Fin de plage</string>
+    <string name="memo_editor_range_invalid">La fin doit être après le début, sinon la plage est ignorée.</string>
+    <string name="memo_editor_quiet_hint">Les heures silencieuses définies dans les paramètres s’appliquent toujours, quel que soit le mode.</string>
+    <string name="memo_editor_import_section">Importer</string>
+    <string name="memo_editor_paste">📋 Coller depuis presse-papier</string>
+    <string name="memo_editor_phrases_header">PHRASES</string>
+    <string name="memo_editor_new_line">Nouvelle phrase...</string>
+    <string name="memo_editor_decrease">Diminuer</string>
+    <string name="memo_editor_increase">Augmenter</string>
+    <string-array name="memo_languages">
+        <item>Aucune</item><item>Français</item><item>Anglais</item><item>Espagnol</item><item>Portugais</item><item>Allemand</item><item>Italien</item><item>Japonais</item>
+    </string-array>
+    <plurals name="memo_editor_import_confirm">
+        <item quantity="one">Importer %1$d phrase ?</item>
+        <item quantity="other">Importer %1$d phrases ?</item>
+    </plurals>
+    <string name="memo_editor_duplicates_ignored">Les doublons seront ignorés automatiquement.</string>
+    <string name="memo_editor_import">Importer</string>
+    <plurals name="memo_editor_lines">
+        <item quantity="one">%1$d ligne</item>
+        <item quantity="other">%1$d lignes</item>
+    </plurals>
+
+    <!-- Écran mémos -->
+    <string name="memo_expand_all">Tout développer</string>
+    <string name="memo_collapse_all">Tout réduire</string>
+    <string name="memo_uninstall_title">Désinstaller « %1$s » ?</string>
+    <string name="memo_uninstall_body">%1$d modules, %2$d cartes.\n\nLa progression part avec : les boîtes de révision vivent sur les cartes. Rien ne pourra être récupéré.</string>
+    <string name="memo_uninstall_action">Désinstaller</string>
+    <string name="memo_mastery_percent">%1$d % maîtrisé</string>
+
+    <!-- Messages mémos -->
+    <string name="memo_uninstalled">« %1$s » désinstallé — %2$d modules, %3$d cartes.</string>
+    <string name="memo_uninstall_failed">Désinstallation impossible.</string>
+    <string name="memo_save_failed">Impossible d’enregistrer ce mémo</string>
+    <string name="memo_new_name">Nouveau mémo</string>
+    <plurals name="memo_slots_limit">
+        <item quantity="one">1 slot actif maximum — achète un slot dans Mode Vie</item>
+        <item quantity="other">%1$d slots actifs maximum — achète un slot dans Mode Vie</item>
+    </plurals>
+    <string name="memo_profile_gone">Ce profil mémo n’existe plus</string>
+
+    <!-- Actions génériques -->
+    <string name="action_close">Fermer</string>
+    <string name="action_import">Importer</string>
+    <string name="action_install">Installer</string>
+
+    <!-- Partage entrant -->
+    <string name="share_title">Contenu reçu</string>
+    <string name="share_cards_default">Cartes partagées</string>
+    <string name="share_file_default">Fichier partagé</string>
+    <string name="share_text_default">Texte partagé</string>
+    <string name="share_file_unreadable">Fichier illisible.</string>
+    <string name="share_content_unreadable">Contenu illisible.</string>
+    <string name="share_url_hint">Ce partage ne contient qu’une adresse Internet. Sankai Life fonctionne hors ligne : partage plutôt le fichier lui-même, ou colle directement tes cartes.</string>
+    <string name="share_analyzing">Analyse en cours…</string>
+    <plurals name="share_cards_recognized">
+        <item quantity="one">%1$d carte reconnue</item>
+        <item quantity="other">%1$d cartes reconnues</item>
+    </plurals>
+    <string name="share_module_name">Nom du module</string>
+    <string name="share_module_default">Module partagé</string>
+    <plurals name="share_imported_cards">
+        <item quantity="one">« %1$s » importé — %2$d carte.</item>
+        <item quantity="other">« %1$s » importé — %2$d cartes.</item>
+    </plurals>
+    <string name="share_import_failed">Import impossible.</string>
+
+    <!-- Import de module -->
+    <string name="import_module_button">📦  Importer un module</string>
+    <string name="import_module_library">📚  Bibliothèque</string>
+    <string name="import_module_offline_hint">Tout fonctionne hors ligne, sans compte : un module est un fichier qu’on peut copier, sauvegarder et envoyer comme on veut.</string>
+    <string name="import_module_title">Importer un module</string>
+    <string name="import_module_installed_library">Module installé. Retrouve-le dans Apprendre.</string>
+    <string name="import_module_field_name">Nom</string>
+    <string name="import_module_field_author">Auteur</string>
+    <string name="import_module_field_version">Version</string>
+    <string name="import_module_field_cards">Cartes</string>
+    <string name="import_module_field_size">Taille</string>
+    <string name="import_module_field_license">Licence</string>
+    <string name="import_module_author_unknown">non déclaré</string>
+    <string name="import_module_license_unknown">non déclarée</string>
+    <string name="import_module_size_kb">%1$d ko</string>
+    <string name="import_module_safe_hint">Un module ne contient que des données : ni script, ni code. Il s’ajoute à tes mémos sans rien remplacer.</string>
+    <string name="import_module_installed">« %1$s » installé, désactivé par défaut.</string>
+    <string name="import_module_install_failed">Échec de l’installation.</string>
+
+    <!-- Bibliothèque locale -->
+    <string name="lib_title">Bibliothèque</string>
+    <string name="lib_bundled_hint">Livrée avec l’application. Rien à télécharger, rien à connecter.</string>
+    <string name="lib_full_courses">PARCOURS COMPLETS</string>
+    <string name="lib_install_all">Tout installer</string>
+    <string name="lib_one_level_hint">Ou un niveau seul, si tu n’en veux qu’un :</string>
+    <string name="lib_paste_cards">📋  Coller des cartes</string>
+    <string name="lib_paste_hint">Depuis un tableur, un export Anki, un carnet de notes — colle le texte, l’application reconnaît le format.</string>
+    <string name="lib_already_installed">Déjà installé</string>
+    <string name="lib_reinstall">Réinstaller</string>
+    <string name="lib_paste_title">Coller des cartes</string>
+    <string name="lib_paste_help">Une carte par ligne. Séparateur : | ou :: ou une tabulation, ou une virgule si ça vient d’un tableur.</string>
+    <string name="lib_paste_content">Contenu</string>
+    <string name="lib_spreadsheet_suffix"> — tableur</string>
+    <string name="lib_no_cards">Aucune carte reconnue. Vérifie qu’il y a bien une carte par ligne.</string>
+    <string name="lib_create_module">Créer le module</string>
+    <string name="lib_pasted_default">Cartes collées</string>
+    <plurals name="lib_created">
+        <item quantity="one">« %1$s » créé — %2$d carte.</item>
+        <item quantity="other">« %1$s » créé — %2$d cartes.</item>
+    </plurals>
+    <string name="lib_create_failed">Création impossible.</string>
+    <plurals name="lib_levels">
+        <item quantity="one">%1$d niveau</item>
+        <item quantity="other">%1$d niveaux</item>
+    </plurals>
+    <plurals name="lib_cards">
+        <item quantity="one">%1$d carte</item>
+        <item quantity="other">%1$d cartes</item>
+    </plurals>
+    <string name="lib_collection_empty">Aucun module lisible dans cette collection.</string>
+    <string name="lib_collection_installed">« %1$s » installé — %2$d niveaux, %3$d cartes.</string>
+    <string name="lib_install_failed">Installation impossible.</string>
+    <string name="lib_no_level_chosen">Aucun niveau choisi.</string>
+    <string name="lib_levels_missing">Ces niveaux sont introuvables dans le paquet.</string>
+    <plurals name="lib_module_installed">
+        <item quantity="one">« %1$s » installé — %2$d carte.</item>
+        <item quantity="other">« %1$s » installé — %2$d cartes.</item>
+    </plurals>
+    <plurals name="lib_levels_installed">
+        <item quantity="one">%1$d niveau installé — %2$d carte</item>
+        <item quantity="other">%1$d niveaux installés — %2$d cartes</item>
+    </plurals>
+
+    <!-- Session de révision -->
+    <string name="action_validate">Valider</string>
+    <string name="flashcards_title">🃏 Révision</string>
+    <string name="flashcards_nothing_due">Rien à réviser</string>
+    <string name="flashcards_listen">🔊  Écouter</string>
+    <string name="flashcards_slowly">🐢  Lentement</string>
+    <string name="flashcards_answer_was">La réponse était</string>
+    <string name="flashcards_just_next">Juste • prochaine révision %1$s</string>
+    <string name="flashcards_back_soon">Cette carte reviendra bientôt</string>
+    <string name="flashcards_your_answer">Ta réponse</string>
+    <string name="flashcards_session_done">Session terminée</string>
+    <string name="flashcards_summary">%1$d acquises • %2$d à revoir</string>
+    <string name="flashcards_up_to_date">Toutes tes cartes sont à jour. Reviens plus tard : elles reviendront d’elles-mêmes selon leur échéance.</string>
+    <string name="flashcards_keep_reviewing">Continuer à réviser</string>
+    <string name="flashcards_no_errors">Aucune carte ne te résiste pour l’instant</string>
+    <string name="flashcards_nothing_express">Rien à réviser pour l’instant</string>
+    <string name="flashcards_nothing_module">Aucune carte à réviser pour l’instant</string>
+    <string name="exercise_recognition">Choisis la bonne réponse</string>
+    <string name="exercise_typing">Écris la réponse</string>
+    <string name="exercise_gap">Complète le mot manquant</string>
+    <string name="exercise_order">Remets la réponse dans l’ordre</string>
+    <string name="exercise_recall">Souviens-toi</string>
+    <string name="interval_10_min">dans 10 min</string>
+    <string name="interval_tomorrow">demain</string>
+    <string name="interval_3_days">dans 3 jours</string>
+    <string name="interval_1_week">dans 1 semaine</string>
+    <string name="interval_3_weeks">dans 3 semaines</string>
+
+    <!-- Objectifs -->
+    <string name="objectives_title">🎯 Objectifs</string>
+    <string name="objectives_summary">%1$d en cours • %2$s</string>
+    <plurals name="objectives_done">
+        <item quantity="one">%1$d terminé</item>
+        <item quantity="other">%1$d terminés</item>
+    </plurals>
+    <string name="objectives_todo">À faire</string>
+    <string name="objectives_done_section">Terminés</string>
+    <string name="objectives_done_cd">Terminé</string>
+    <string name="objectives_clear_done">Effacer les objectifs terminés</string>
+
+    <!-- Exercice d'association -->
+    <string name="exercise_associate_instruction">Associe chaque mot à son équivalent</string>
+    <string name="exercise_assoc_found">trouvé</string>
+    <string name="exercise_assoc_selected">sélectionné</string>
+    <string name="exercise_assoc_incorrect">incorrect</string>
+    <string name="exercise_assoc_to_match">à associer</string>
+
+    <!-- Personnalisation : badges -->
+    <string name="customization_badge_default">Par défaut • Gratuit</string>
+    <string name="customization_badge_dynamic">Dynamique Android • Gratuit</string>
+    <string name="customization_badge_android12">Demande Android 12 ou plus récent</string>
+
+    <!-- Packs culturels -->
+    <string name="pack_unreadable">Impossible de lire ce fichier.</string>
+    <string name="pack_installed">Pack installé.</string>
+    <string name="pack_installed_many">Pack installé (%1$d packs locaux).</string>
+    <string name="pack_refused">Pack refusé.</string>
+
+    <!-- Générique -->
+    <string name="action_retry">Réessayer</string>
 </resources>

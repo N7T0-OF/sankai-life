@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.sankailife.R
 import com.sankailife.SankaiApplication
 import com.sankailife.core.data.repository.UserRepository
 import com.sankailife.core.domain.model.ALL_THEMES
@@ -33,16 +34,17 @@ class CustomizationViewModel(application: Application) : AndroidViewModel(applic
     private val userRepo = UserRepository(app.database)
 
     /** Onglets : les thèmes utilisables d'abord, les verrouillés ensuite. */
-    enum class Categorie(val libelle: String) {
-        OBTENUS("Obtenus"),
-        A_DEBLOQUER("À débloquer")
+    enum class Categorie {
+        OBTENUS,
+        A_DEBLOQUER
     }
 
     data class ThemeUi(
         val theme: Theme,
         val debloque: Boolean,
         val equipe: Boolean,
-        val conditionDeblocage: String
+        /** Niveau requis pour débloquer, si le thème est verrouillé par un niveau. */
+        val niveauDeblocage: Int?
     )
 
     val user: StateFlow<UserState> = userRepo.userFlow
@@ -78,11 +80,8 @@ class CustomizationViewModel(application: Application) : AndroidViewModel(applic
                     theme = theme,
                     debloque = ok,
                     equipe = theme.id == equipe,
-                    conditionDeblocage = when {
-                        ok -> ""
-                        theme.unlockType == "level" -> "Niveau ${theme.unlockLevel}"
-                        else -> ""
-                    }
+                    niveauDeblocage = if (ok) null
+                    else if (theme.unlockType == "level") theme.unlockLevel else null
                 )
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -132,13 +131,13 @@ class CustomizationViewModel(application: Application) : AndroidViewModel(applic
         listOf(
             PaletteUi(
                 id = "sankai", nom = "Sankai classique",
-                badge = "Par défaut • Gratuit",
+                badge = app.getString(R.string.customization_badge_default),
                 active = !systeme || !dynamiqueDispo, disponible = true
             ),
             PaletteUi(
                 id = "systeme", nom = "Couleurs du téléphone",
-                badge = if (dynamiqueDispo) "Dynamique Android • Gratuit"
-                else "Demande Android 12 ou plus récent",
+                badge = if (dynamiqueDispo) app.getString(R.string.customization_badge_dynamic)
+                else app.getString(R.string.customization_badge_android12),
                 active = systeme && dynamiqueDispo, disponible = dynamiqueDispo
             )
         )

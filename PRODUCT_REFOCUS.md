@@ -111,6 +111,33 @@ hiérarchie, pas encore la composition physique de l'APK.
   distribué avec droits et provenance.
 - Le pack source `classics-fr-v1` contient trois textes du domaine public,
   leurs sources, une licence et les empreintes des fichiers.
+- **Localisation 100 % de l'écran Paramètres** : plus aucun texte en dur
+  dans Paramètres, Langue, Apparence, Notifications, Heures silencieuses,
+  Diagnostic, Liens, Données et sauvegarde, Mises à jour et À propos
+  (~70 nouvelles clés en fr/en/pt, dont les messages de sauvegarde et les
+  libellés de sections de restauration, traduits à l'affichage).
+- **Localisation 100 % de Personnalisation et des écrans Mémo** : thèmes
+  (catégories, états, niveaux de déblocage), éditeur mémo (langues, jours
+  de la semaine, fréquences, plages, import) et messages d'action du
+  ViewModel (~80 nouvelles clés en fr/en/pt, avec pluriels corrects).
+- **Localisation du partage entrant, de l'import de modules et de la
+  bibliothèque locale** : feuille de partage, champs d'aperçu, collage de
+  cartes et messages du moteur `BibliothequeLocale` (~70 nouvelles clés
+  en fr/en/pt). Les détails des fiches sont reconstruits avec la langue
+  courante au lieu de textes figés.
+- **Vérification offline-first** : le seul réseau est les liens externes et
+  la recherche de mise à jour, tous deux à la demande ; aucune fonction
+  principale ne dépend d'une connexion, une seule permission demandée.
+
+## Règle de développement (17 août)
+
+Avant d'ajouter une fonctionnalité, vérifier si Android la fournit déjà ; si
+oui, l'intégrer plutôt que la recréer. Toute nouveauté doit renforcer
+l'apprentissage, la culture, la curiosité, la déconnexion ou la progression
+personnelle — jamais une mécanique conçue pour augmenter le temps passé dans
+l'application. Tout doit fonctionner hors connexion, l'interface doit suivre
+la langue du système, et aucun contenu critique ne doit dépendre d'un compte,
+d'un serveur ou d'Internet.
 
 ## Ce qui n'est pas encore fait
 

@@ -17,9 +17,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sankailife.R
 import com.sankailife.SankaiApplication
 import com.sankailife.core.data.sauvegarde.SauvegardeEngine
 import com.sankailife.core.data.sauvegarde.SauvegardeRepository
@@ -56,6 +59,12 @@ fun SauvegardeSection() {
         mutableStateOf<Pair<Uri, Set<SauvegardeEngine.Section>>?>(null)
     }
 
+    // Libellés localisés, résolus une fois dans la composition pour être
+    // utilisables aussi dans les coroutines (succès de restauration).
+    val libellesSection = SauvegardeEngine.Section.entries.associateWith { s ->
+        stringResource(sectionStringRes(s))
+    }
+
     val creerFichier = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/zip")
     ) { uri ->
@@ -63,8 +72,8 @@ fun SauvegardeSection() {
         portee.launch {
             message = runCatching { depot.exporter(uri) }
                 .fold(
-                    onSuccess = { "Sauvegarde écrite (${it / 1024} ko)." },
-                    onFailure = { "Échec : ${it.message}" }
+                    onSuccess = { contexte.getString(R.string.settings_backup_written, it / 1024) },
+                    onFailure = { contexte.getString(R.string.settings_backup_failed, it.message) }
                 )
         }
     }
@@ -77,7 +86,7 @@ fun SauvegardeSection() {
             fichierChoisi = uri
             val nouvelApercu = runCatching { depot.inspecter(uri) }.getOrNull()
             apercu = nouvelApercu
-            if (nouvelApercu == null) message = "Fichier illisible."
+            if (nouvelApercu == null) message = contexte.getString(R.string.settings_backup_unreadable)
             else {
                 message = null
                 sections = nouvelApercu.sections.toSet()
@@ -91,7 +100,7 @@ fun SauvegardeSection() {
         val attente = restaurationEnAttente
         restaurationEnAttente = null
         if (destinationSecurite == null || attente == null) {
-            message = "Restauration annulée : la sauvegarde de sécurité est obligatoire."
+            message = contexte.getString(R.string.settings_backup_restore_cancelled)
             return@rememberLauncherForActivityResult
         }
         portee.launch {
@@ -99,18 +108,19 @@ fun SauvegardeSection() {
                 depot.restaurer(attente.first, attente.second, destinationSecurite)
             }.fold(
                 onSuccess = { faites ->
-                    "Sauvegarde de sécurité créée • Restauré : " +
-                        faites.joinToString { s -> s.libelle }
+                    contexte.getString(
+                        R.string.settings_backup_restored,
+                        faites.joinToString { s -> libellesSection[s] ?: s.libelle }
+                    )
                 },
-                onFailure = { e -> "Échec : ${e.message}" }
+                onFailure = { e -> contexte.getString(R.string.settings_backup_failed, e.message) }
             )
         }
     }
 
     Column(Modifier.fillMaxWidth()) {
         Text(
-            "Ta progression, tes mémos et ton jardin dans un seul fichier. " +
-                "Aucun compte, aucune connexion : tu choisis où il est rangé.",
+            stringResource(R.string.settings_backup_intro),
             color = c.textSecondary, fontSize = 12.sp
         )
         Spacer(Modifier.height(12.dp))
@@ -118,14 +128,14 @@ fun SauvegardeSection() {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(Modifier.weight(1f)) {
                 SankaiButton(
-                    "Exporter",
+                    stringResource(R.string.settings_backup_export),
                     onClick = { creerFichier.launch(SauvegardeRepository.nomProposé()) },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
             Box(Modifier.weight(1f)) {
                 SankaiButton(
-                    "Restaurer",
+                    stringResource(R.string.settings_backup_restore),
                     onClick = { ouvrirFichier.launch(arrayOf("*/*")) },
                     secondary = true,
                     modifier = Modifier.fillMaxWidth()
@@ -143,7 +153,7 @@ fun SauvegardeSection() {
         // seul après une mise à jour : réexpliquer l'application à quelqu'un
         // qui l'utilise depuis des mois serait le prendre pour un débutant.
         Text(
-            "Revoir le tutoriel",
+            stringResource(R.string.settings_backup_retutorial),
             color = c.accent,
             fontSize = 13.sp,
             modifier = Modifier
@@ -163,7 +173,7 @@ fun SauvegardeSection() {
             Column(
                 Modifier.fillMaxWidth().padding(horizontal = 22.dp).padding(bottom = 30.dp)
             ) {
-                Text("Restaurer une sauvegarde", color = c.textPrimary,
+                Text(stringResource(R.string.settings_backup_restore_title), color = c.textPrimary,
                     fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(12.dp))
 
@@ -173,10 +183,12 @@ fun SauvegardeSection() {
                     }
 
                     is SauvegardeEngine.Verdict.Utilisable -> {
-                        Text("Créée le ${v.manifeste.creeLe.take(10)}",
+                        Text(stringResource(R.string.settings_backup_created, v.manifeste.creeLe.take(10)),
                             color = c.textSecondary, fontSize = 12.sp)
-                        Text("${a.nombreCartes} carte(s) de révision",
-                            color = c.textSecondary, fontSize = 12.sp)
+                        Text(
+                            pluralStringResource(R.plurals.settings_backup_cards, a.nombreCartes, a.nombreCartes),
+                            color = c.textSecondary, fontSize = 12.sp
+                        )
 
                         v.reserve?.let { r ->
                             Spacer(Modifier.height(10.dp))
@@ -184,7 +196,7 @@ fun SauvegardeSection() {
                         }
 
                         Spacer(Modifier.height(16.dp))
-                        Text("À RESTAURER", color = c.textSecondary, fontSize = 10.sp,
+                        Text(stringResource(R.string.settings_backup_to_restore), color = c.textSecondary, fontSize = 10.sp,
                             fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp)
                         Spacer(Modifier.height(8.dp))
 
@@ -212,7 +224,7 @@ fun SauvegardeSection() {
                             ) {
                                 Text(if (choisie) "☑" else "☐", fontSize = 15.sp)
                                 Spacer(Modifier.width(10.dp))
-                                Text(section.libelle,
+                                Text(stringResource(sectionStringRes(section)),
                                     color = if (choisie) c.accent else c.textSecondary,
                                     fontSize = 13.sp)
                             }
@@ -220,15 +232,13 @@ fun SauvegardeSection() {
 
                         Spacer(Modifier.height(14.dp))
                         Text(
-                            "Les mémos importés s'ajoutent aux tiens, ils ne les " +
-                                "remplacent pas. Avant de modifier le profil, Android " +
-                                "te demandera où écrire la sauvegarde de sécurité.",
+                            stringResource(R.string.settings_backup_merge_hint),
                             color = c.textDisabled, fontSize = 11.sp
                         )
 
                         Spacer(Modifier.height(16.dp))
                         SankaiButton(
-                            "Restaurer maintenant",
+                            stringResource(R.string.settings_backup_restore_now),
                             enabled = sections.isNotEmpty(),
                             onClick = {
                                 val uri = fichierChoisi ?: return@SankaiButton
@@ -245,4 +255,13 @@ fun SauvegardeSection() {
             }
         }
     }
+}
+
+/** Libellé localisé d'une section de sauvegarde. */
+private fun sectionStringRes(section: SauvegardeEngine.Section): Int = when (section) {
+    SauvegardeEngine.Section.PROFIL -> R.string.settings_backup_section_profile
+    SauvegardeEngine.Section.REGLAGES -> R.string.settings_backup_section_settings
+    SauvegardeEngine.Section.MEMOS -> R.string.settings_backup_section_memos
+    SauvegardeEngine.Section.JARDIN -> R.string.settings_backup_section_garden
+    SauvegardeEngine.Section.COFFRES -> R.string.settings_backup_section_chests
 }
