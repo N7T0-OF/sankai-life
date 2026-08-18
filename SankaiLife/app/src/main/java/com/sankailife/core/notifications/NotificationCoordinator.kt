@@ -51,5 +51,13 @@ object NotificationCoordinator {
         } else {
             RevisionAlarmReceiver.annuler(app)
         }
+
+        // Le mot du jour est une alarme distincte : sa propre heure, sa propre
+        // catégorie. Couper la catégorie retire aussi le réveil.
+        if (prefs.notifyMotDuJour.first()) {
+            MotDuJourAlarmReceiver.programmerProchaine(app, prefs.motDuJourHeure.first())
+        } else {
+            MotDuJourAlarmReceiver.annuler(app)
+        }
     }
 }

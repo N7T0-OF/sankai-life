@@ -10,6 +10,8 @@
 
 
     <string name="notif_review_title">Hora de rever</string>
+    <string name="notif_word_title">🌱 Palavra do dia</string>
+    <string name="notif_word_body">« %1$s » — %2$s</string>
     <string name="notif_review_one">1 cartão à tua espera.</string>
     <string name="notif_review_many">%1$d cartões à tua espera.</string>
 
@@ -115,6 +117,8 @@
     <string name="wellbeing_notify_learning">Aprendizagem</string>
     <string name="wellbeing_notify_memo">Memos</string>
     <string name="wellbeing_notify_culture">Cápsula cultural</string>
+    <string name="settings_notify_word">Palavra do dia</string>
+    <string name="settings_notify_word_hour">Hora da palavra do dia</string>
     <string name="wellbeing_notify_focus">Foco</string>
     <string name="settings_notifications_active">Notificações ativas</string>
     <string name="settings_interface_vibrations">Vibrações da interface</string>

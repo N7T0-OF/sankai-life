@@ -34,6 +34,7 @@ object SankaiNotifications {
     const val DESTINATION_MEMO = "memo"
     const val DESTINATION_CAPSULES = "capsules"
     const val DESTINATION_ACADEMY = "academy"
+    const val DESTINATION_MOT_DU_JOUR = "mot_du_jour"
 
     /**
      * Android 13+ exige une permission runtime. Sans elle on n'envoie rien :

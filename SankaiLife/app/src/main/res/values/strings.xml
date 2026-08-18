@@ -28,6 +28,8 @@
 
     <!-- Notifications -->
     <string name="notif_review_title">C\'est l\'heure de réviser</string>
+    <string name="notif_word_title">🌱 Mot du jour</string>
+    <string name="notif_word_body">« %1$s » — %2$s</string>
     <string name="notif_review_one">1 carte t\'attend.</string>
     <string name="notif_review_many">%1$d cartes t\'attendent.</string>
 
@@ -134,6 +136,8 @@
     <string name="wellbeing_notify_learning">Apprentissage</string>
     <string name="wellbeing_notify_memo">Mémos</string>
     <string name="wellbeing_notify_culture">Capsule culturelle</string>
+    <string name="settings_notify_word">Mot du jour</string>
+    <string name="settings_notify_word_hour">Heure du mot du jour</string>
     <string name="wellbeing_notify_focus">Focus</string>
     <string name="settings_notifications_active">Notifications actives</string>
     <string name="settings_interface_vibrations">Vibrations de l’interface</string>

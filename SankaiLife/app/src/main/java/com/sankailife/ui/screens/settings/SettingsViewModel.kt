@@ -50,7 +50,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
     val notifyCulture: StateFlow<Boolean> = prefs.notifyCulture
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    val notifyMotDuJour: StateFlow<Boolean> = prefs.notifyMotDuJour
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+    val motDuJourHeure: StateFlow<Int> = prefs.motDuJourHeure
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 9 * 60)
 
     val couleursSysteme: StateFlow<Boolean> = prefs.couleursSysteme
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
@@ -115,6 +118,17 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
     fun setNotifyCulture(v: Boolean) = viewModelScope.launch {
         prefs.setNotifyCulture(v)
+        NotificationCoordinator.reconcile(app)
+    }
+    fun setNotifyMotDuJour(v: Boolean) = viewModelScope.launch {
+        prefs.setNotifyMotDuJour(v)
+        NotificationCoordinator.reconcile(app)
+    }
+
+    // Changer l'heure du mot du jour invalide l'alarme posée : on reprogramme,
+    // sinon le mot arriverait à l'ancienne heure.
+    fun setMotDuJourHeure(minutes: Int) = viewModelScope.launch {
+        prefs.setMotDuJourHeure(minutes)
         NotificationCoordinator.reconcile(app)
     }
 

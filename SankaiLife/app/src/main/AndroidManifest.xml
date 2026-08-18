@@ -150,6 +150,11 @@
             android:name=".core.notifications.RevisionAlarmReceiver"
             android:exported="false" />
 
+        <!-- Mot du jour : une découverte quotidienne discrète. -->
+        <receiver
+            android:name=".core.notifications.MotDuJourAlarmReceiver"
+            android:exported="false" />
+
         <!-- Reprend les catégories locales après une pause choisie. -->
         <receiver
             android:name=".core.notifications.NotificationResumeReceiver"

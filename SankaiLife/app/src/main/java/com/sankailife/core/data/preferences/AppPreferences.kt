@@ -58,6 +58,11 @@ class AppPreferences(private val context: Context) {
         val NOTIFY_FOCUS    = booleanPreferencesKey("notify_focus")
         val NOTIFY_GARDEN   = booleanPreferencesKey("notify_garden")
 
+        // Le mot du jour est une découverte quotidienne discrète : active par
+        // défaut, à une heure choisie, une seule fois par jour.
+        val NOTIFY_MOT_DU_JOUR = booleanPreferencesKey("notify_mot_du_jour")
+        val MOT_DU_JOUR_HEURE  = intPreferencesKey("mot_du_jour_heure_minutes")
+
         val CULTURE_ORIENTATION = stringPreferencesKey("culture_orientation")
         val CULTURE_STYLE       = stringPreferencesKey("culture_style")
 
@@ -225,6 +230,18 @@ class AppPreferences(private val context: Context) {
     val notifyCulture: Flow<Boolean> = pref(Keys.NOTIFY_CULTURE, false)
     val notifyFocus: Flow<Boolean> = pref(Keys.NOTIFY_FOCUS, true)
     val notifyGarden: Flow<Boolean> = pref(Keys.NOTIFY_GARDEN, false)
+
+    /**
+     * Notification quotidienne du mot du jour.
+     *
+     * Active par défaut : c'est la « petite découverte du jour » — une chose à
+     * lire, puis à fermer. L'heure, elle, reste à 9 h tant que personne ne l'a
+     * changée.
+     */
+    val notifyMotDuJour: Flow<Boolean> = pref(Keys.NOTIFY_MOT_DU_JOUR, true)
+
+    /** Heure du mot du jour, en minutes depuis minuit. */
+    val motDuJourHeure: Flow<Int> = pref(Keys.MOT_DU_JOUR_HEURE, 9 * 60)
     val cultureOrientation: Flow<String> = pref(Keys.CULTURE_ORIENTATION, "mixed")
     val cultureStyle: Flow<String> = pref(Keys.CULTURE_STYLE, "mixed")
 
@@ -329,6 +346,14 @@ class AppPreferences(private val context: Context) {
         context.dataStore.edit { it[Keys.NOTIFY_FOCUS] = enabled }
     suspend fun setNotifyGarden(enabled: Boolean) =
         context.dataStore.edit { it[Keys.NOTIFY_GARDEN] = enabled }
+
+    suspend fun setNotifyMotDuJour(enabled: Boolean) =
+        context.dataStore.edit { it[Keys.NOTIFY_MOT_DU_JOUR] = enabled }
+
+    suspend fun setMotDuJourHeure(minutes: Int) =
+        context.dataStore.edit {
+            it[Keys.MOT_DU_JOUR_HEURE] = minutes.coerceIn(0, 24 * 60 - 1)
+        }
 
     suspend fun setCultureOrientation(value: String) =
         context.dataStore.edit { it[Keys.CULTURE_ORIENTATION] = value }

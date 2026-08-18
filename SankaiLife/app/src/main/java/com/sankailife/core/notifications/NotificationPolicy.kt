@@ -10,7 +10,8 @@ enum class NotificationCategory {
     LEARNING,
     MEMO,
     CULTURE,
-    FOCUS
+    FOCUS,
+    MOT_DU_JOUR
 }
 
 data class NotificationPolicyInput(
@@ -59,6 +60,7 @@ object NotificationPolicy {
             NotificationCategory.MEMO -> prefs.notifyMemo.first()
             NotificationCategory.CULTURE -> prefs.notifyCulture.first()
             NotificationCategory.FOCUS -> prefs.notifyFocus.first()
+            NotificationCategory.MOT_DU_JOUR -> prefs.notifyMotDuJour.first()
         }
         val allowed = notificationAllowed(
             NotificationPolicyInput(

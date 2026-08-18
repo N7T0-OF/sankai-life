@@ -63,6 +63,8 @@ fun SettingsScreen(
     val notifyLearning by viewModel.notifyLearning.collectAsStateWithLifecycle()
     val notifyMemo by viewModel.notifyMemo.collectAsStateWithLifecycle()
     val notifyCulture by viewModel.notifyCulture.collectAsStateWithLifecycle()
+    val notifyMotDuJour by viewModel.notifyMotDuJour.collectAsStateWithLifecycle()
+    val motDuJourHeure by viewModel.motDuJourHeure.collectAsStateWithLifecycle()
     val diag        by viewModel.diagnostic.collectAsStateWithLifecycle()
     val enLigne     by viewModel.isOnline.collectAsStateWithLifecycle()
     val etatMaj     by viewModel.maj.collectAsStateWithLifecycle()
@@ -272,6 +274,16 @@ fun SettingsScreen(
                     }
                     SettingToggle(stringResource(R.string.wellbeing_notify_culture), notifyCulture) {
                         viewModel.setNotifyCulture(it)
+                    }
+                    SettingToggle(stringResource(R.string.settings_notify_word), notifyMotDuJour) {
+                        viewModel.setNotifyMotDuJour(it)
+                    }
+                    if (notifyMotDuJour) {
+                        Spacer(Modifier.height(8.dp))
+                        SelecteurHeure(
+                            stringResource(R.string.settings_notify_word_hour),
+                            motDuJourHeure
+                        ) { viewModel.setMotDuJourHeure(it) }
                     }
                     Spacer(Modifier.height(10.dp))
                     Text(

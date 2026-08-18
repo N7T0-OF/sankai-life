@@ -215,6 +215,7 @@ class MainActivity : ComponentActivity() {
         ) ?: return
         if (route in setOf(
                 "memo", "capsules", "academy",
+                com.sankailife.core.notifications.SankaiNotifications.DESTINATION_MOT_DU_JOUR,
                 // Route de la révision libre, utilisée par le widget.
                 "flashcards/${com.sankailife.ui.screens.life.flashcards.FlashcardsViewModel.PROFIL_ERREURS}"
             )
