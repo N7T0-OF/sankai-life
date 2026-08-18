@@ -1,0 +1,319 @@
+[
+  {
+    "id": "p-01",
+    "type": "proverbe",
+    "texte": "Petit à petit, l'oiseau fait son nid.",
+    "langue": "fr",
+    "drapeau": "🇫🇷",
+    "contexte": "Proverbe français — la constance l'emporte sur la hâte."
+  },
+  {
+    "id": "p-02",
+    "type": "proverbe",
+    "texte": "Qui vivra verra.",
+    "langue": "fr",
+    "drapeau": "🇫🇷",
+    "contexte": "Proverbe français — le temps répondra aux questions du jour."
+  },
+  {
+    "id": "p-03",
+    "type": "proverbe",
+    "texte": "Après la pluie, le beau temps.",
+    "langue": "fr",
+    "drapeau": "🇫🇷",
+    "contexte": "Proverbe français — les jours difficiles ne durent pas."
+  },
+  {
+    "id": "p-04",
+    "type": "proverbe",
+    "texte": "C'est en forgeant qu'on devient forgeron.",
+    "langue": "fr",
+    "drapeau": "🇫🇷",
+    "contexte": "Proverbe français — on apprend par la pratique."
+  },
+  {
+    "id": "p-05",
+    "type": "proverbe",
+    "texte": "Qui sème le vent récolte la tempête.",
+    "langue": "fr",
+    "drapeau": "🇫🇷",
+    "contexte": "Proverbe français — toute action a ses conséquences."
+  },
+  {
+    "id": "p-06",
+    "type": "proverbe",
+    "texte": "L'habit ne fait pas le moine.",
+    "langue": "fr",
+    "drapeau": "🇫🇷",
+    "contexte": "Proverbe français — les apparences sont trompeuses."
+  },
+  {
+    "id": "p-07",
+    "type": "proverbe",
+    "texte": "Une hirondelle ne fait pas le printemps.",
+    "langue": "fr",
+    "drapeau": "🇫🇷",
+    "contexte": "Sagesse attribuée à Aristote, Éthique à Nicomaque (IVe siècle av. J.-C.)."
+  },
+  {
+    "id": "p-08",
+    "type": "proverbe",
+    "texte": "Tout vient à point à qui sait attendre.",
+    "langue": "fr",
+    "drapeau": "🇫🇷",
+    "contexte": "Proverbe français — la patience est une vertu."
+  },
+  {
+    "id": "p-09",
+    "type": "proverbe",
+    "texte": "L'union fait la force.",
+    "langue": "fr",
+    "drapeau": "🇫🇷",
+    "contexte": "Sagesse d'Ésope, La Fable du faisceau de flèches (VIe siècle av. J.-C.)."
+  },
+  {
+    "id": "p-10",
+    "type": "proverbe",
+    "texte": "Les petits ruisseaux font les grandes rivières.",
+    "langue": "fr",
+    "drapeau": "🇫🇷",
+    "contexte": "Proverbe français — les efforts modestes et répétés finissent par compter."
+  },
+  {
+    "id": "p-11",
+    "type": "proverbe",
+    "texte": "Devagar se vai ao longe.",
+    "langue": "pt",
+    "drapeau": "🇵🇹",
+    "contexte": "Proverbe portugais — « Lentement, on va loin. »"
+  },
+  {
+    "id": "p-12",
+    "type": "proverbe",
+    "texte": "Quem não arrisca, não petisca.",
+    "langue": "pt",
+    "drapeau": "🇵🇹",
+    "contexte": "Proverbe portugais — « Qui ne risque rien n'a rien. »"
+  },
+  {
+    "id": "p-13",
+    "type": "proverbe",
+    "texte": "Água mole em pedra dura, tanto bate até que fura.",
+    "langue": "pt",
+    "drapeau": "🇵🇹",
+    "contexte": "Proverbe portugais — « Goutte à goutte, l'eau creuse la pierre. »"
+  },
+  {
+    "id": "p-14",
+    "type": "proverbe",
+    "texte": "The early bird catches the worm.",
+    "langue": "en",
+    "drapeau": "🇬🇧",
+    "contexte": "Proverbe anglais — « L'oiseau matinal attrape le ver. »"
+  },
+  {
+    "id": "p-15",
+    "type": "proverbe",
+    "texte": "Chi va piano, va sano e va lontano.",
+    "langue": "it",
+    "drapeau": "🇮🇹",
+    "contexte": "Proverbe italien — « Qui va doucement, va sainement et va loin. »"
+  },
+  {
+    "id": "p-16",
+    "type": "proverbe",
+    "texte": "Übung macht den Meister.",
+    "langue": "de",
+    "drapeau": "🇩🇪",
+    "contexte": "Proverbe allemand — « C'est en s'exerçant qu'on devient maître. »"
+  },
+  {
+    "id": "p-17",
+    "type": "proverbe",
+    "texte": "Más vale tarde que nunca.",
+    "langue": "es",
+    "drapeau": "🇪🇸",
+    "contexte": "Proverbe espagnol — « Mieux vaut tard que jamais. »"
+  },
+  {
+    "id": "p-18",
+    "type": "proverbe",
+    "texte": "Un voyage de mille lieues commence toujours par un premier pas.",
+    "langue": "fr",
+    "drapeau": "🌍",
+    "contexte": "Attribué à Lao Tseu, Tao Te King (VIe siècle av. J.-C.)."
+  },
+  {
+    "id": "p-19",
+    "type": "proverbe",
+    "texte": "Cueille le jour présent, sans te fier au lendemain.",
+    "langue": "la",
+    "drapeau": "🌍",
+    "auteur": "Horace",
+    "oeuvre": "Odes",
+    "annee": "23 av. J.-C.",
+    "contexte": "« Carpe diem » — sagesse latine, domaine public."
+  },
+  {
+    "id": "p-20",
+    "type": "proverbe",
+    "texte": "La nuit porte conseil.",
+    "langue": "fr",
+    "drapeau": "🇫🇷",
+    "contexte": "Proverbe français — le repos éclaire les décisions."
+  },
+  {
+    "id": "po-01",
+    "type": "poeme",
+    "texte": "Apprenez que tout flatteur / Vit aux dépens de celui qui l'écoute.",
+    "langue": "fr",
+    "drapeau": "🇫🇷",
+    "auteur": "Jean de La Fontaine",
+    "oeuvre": "Le Corbeau et le Renard, Fables",
+    "annee": "1668",
+    "contexte": "Domaine public — la fable la plus célèbre de La Fontaine."
+  },
+  {
+    "id": "po-02",
+    "type": "poeme",
+    "texte": "Vous chantiez ? j'en suis fort aise. / Eh bien ! dansez maintenant.",
+    "langue": "fr",
+    "drapeau": "🇫🇷",
+    "auteur": "Jean de La Fontaine",
+    "oeuvre": "La Cigale et la Fourmi, Fables",
+    "annee": "1668",
+    "contexte": "Domaine public — la leçon de l'été mal préparé."
+  },
+  {
+    "id": "po-03",
+    "type": "poeme",
+    "texte": "Ô temps, suspends ton vol ! et vous, heures propices, / Suspendez votre cours !",
+    "langue": "fr",
+    "drapeau": "🇫🇷",
+    "auteur": "Alphonse de Lamartine",
+    "oeuvre": "Le Lac, Méditations poétiques",
+    "annee": "1820",
+    "contexte": "Domaine public — la fuite du temps, thème romantique."
+  },
+  {
+    "id": "po-04",
+    "type": "poeme",
+    "texte": "Demain, dès l'aube, à l'heure où blanchit la campagne, / Je partirai. Vois-tu, je sais que tu m'attends.",
+    "langue": "fr",
+    "drapeau": "🇫🇷",
+    "auteur": "Victor Hugo",
+    "oeuvre": "Les Contemplations",
+    "annee": "1856",
+    "contexte": "Domaine public — poème écrit en souvenir de sa fille Léopoldine."
+  },
+  {
+    "id": "po-05",
+    "type": "poeme",
+    "texte": "Les sanglots longs / Des violons / De l'automne / Blessent mon cœur / D'une langueur / Monotone.",
+    "langue": "fr",
+    "drapeau": "🇫🇷",
+    "auteur": "Paul Verlaine",
+    "oeuvre": "Poèmes saturniens",
+    "annee": "1866",
+    "contexte": "Domaine public — poème devenu l'indicatif de Radio Londres en 1944."
+  },
+  {
+    "id": "po-06",
+    "type": "poeme",
+    "texte": "Ô douleur ! ô douleur ! Le Temps mange la vie.",
+    "langue": "fr",
+    "drapeau": "🇫🇷",
+    "auteur": "Charles Baudelaire",
+    "oeuvre": "L'Ennemi, Les Fleurs du mal",
+    "annee": "1857",
+    "contexte": "Domaine public — le jardin de la jeunesse ravagé par le temps."
+  },
+  {
+    "id": "po-07",
+    "type": "poeme",
+    "texte": "On n'est pas sérieux, quand on a dix-sept ans.",
+    "langue": "fr",
+    "drapeau": "🇫🇷",
+    "auteur": "Arthur Rimbaud",
+    "oeuvre": "Roman, Cahiers de Douai",
+    "annee": "1870",
+    "contexte": "Domaine public — l'insouciance de l'adolescence."
+  },
+  {
+    "id": "po-08",
+    "type": "poeme",
+    "texte": "Vienne la nuit sonne l'heure, / Les jours s'en vont je demeure.",
+    "langue": "fr",
+    "drapeau": "🇫🇷",
+    "auteur": "Guillaume Apollinaire",
+    "oeuvre": "Le Pont Mirabeau, Alcools",
+    "annee": "1912",
+    "contexte": "Domaine public — l'amour qui passe, le temps qui coule."
+  },
+  {
+    "id": "po-09",
+    "type": "poeme",
+    "texte": "Rien ne nous rend si grands qu'une grande douleur.",
+    "langue": "fr",
+    "drapeau": "🇫🇷",
+    "auteur": "Alfred de Musset",
+    "oeuvre": "La Nuit de mai",
+    "annee": "1835",
+    "contexte": "Domaine public — la douleur comme matière de création."
+  },
+  {
+    "id": "po-10",
+    "type": "poeme",
+    "texte": "Shall I compare thee to a summer's day? / Thou art more lovely and more temperate.",
+    "langue": "en",
+    "drapeau": "🇬🇧",
+    "auteur": "William Shakespeare",
+    "oeuvre": "Sonnet 18",
+    "annee": "1609",
+    "contexte": "Domaine public — « Te comparerai-je à un jour d'été ? Tu es plus aimable et plus tempéré. »"
+  },
+  {
+    "id": "po-11",
+    "type": "poeme",
+    "texte": "Hope is the thing with feathers / That perches in the soul.",
+    "langue": "en",
+    "drapeau": "🇬🇧",
+    "auteur": "Emily Dickinson",
+    "oeuvre": "Hope is the thing with feathers",
+    "annee": "1891",
+    "contexte": "Domaine public — l'espoir comme un oiseau dans l'âme."
+  },
+  {
+    "id": "po-12",
+    "type": "poeme",
+    "texte": "Amor é fogo que arde sem se ver; / É ferida que dói e não se sente.",
+    "langue": "pt",
+    "drapeau": "🇵🇹",
+    "auteur": "Luís de Camões",
+    "oeuvre": "Sonnet, Rimas",
+    "annee": "1595",
+    "contexte": "Domaine public — « L'amour est un feu qui brûle sans se voir ; une blessure qui fait mal et ne se sent pas. »"
+  },
+  {
+    "id": "po-13",
+    "type": "poeme",
+    "texte": "Ó mar salgado, quanto do teu sal / São lágrimas de Portugal!",
+    "langue": "pt",
+    "drapeau": "🇵🇹",
+    "auteur": "Fernando Pessoa",
+    "oeuvre": "Mar Português, Mensagem",
+    "annee": "1934",
+    "contexte": "Domaine public — « Ô mer salée, que de ton sel / Sont des larmes du Portugal ! »"
+  },
+  {
+    "id": "po-14",
+    "type": "poeme",
+    "texte": "Über allen Gipfeln / Ist Ruh, / In allen Wipfeln / Spürest du / Kaum einen Hauch.",
+    "langue": "de",
+    "drapeau": "🇩🇪",
+    "auteur": "Johann Wolfgang von Goethe",
+    "oeuvre": "Wandrers Nachtlied",
+    "annee": "1780",
+    "contexte": "Domaine public — « Sur tous les sommets est le repos, dans toutes les cimes tu sens à peine un souffle. »"
+  }
+]

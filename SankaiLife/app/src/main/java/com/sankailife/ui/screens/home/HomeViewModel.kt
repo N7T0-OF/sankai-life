@@ -12,6 +12,9 @@ import com.sankailife.core.culture.DailyDiscovery
 import com.sankailife.core.motdujour.MotDuJour
 import com.sankailife.core.motdujour.MotDuJourSelector
 import com.sankailife.core.motdujour.MotDuJourStore
+import com.sankailife.core.poesie.PoesieDuJour
+import com.sankailife.core.poesie.PoesieDuJourSelector
+import com.sankailife.core.poesie.PoesieDuJourStore
 import com.sankailife.core.data.db.entities.MemoProfileEntity
 import com.sankailife.core.data.repository.UserRepository
 import com.sankailife.core.domain.model.UserState
@@ -129,6 +132,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     /** Le mot de demain, pour la ligne « prochaine découverte ». */
     val motDemain: StateFlow<MotDuJour?> = motsDuJour
         .map { MotDuJourSelector.suivant(it, LocalDate.now()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** Le catalogue des découvertes littéraires, lu depuis l'asset embarqué. */
+    private val textesPoesie: StateFlow<List<PoesieDuJour>> = flow {
+        emit(PoesieDuJourStore.lire(app))
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Le proverbe ou le poème d'aujourd'hui, stable toute la journée. */
+    val poesieDuJour: StateFlow<PoesieDuJour?> = textesPoesie
+        .map { PoesieDuJourSelector.selectionner(it, LocalDate.now()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     init {

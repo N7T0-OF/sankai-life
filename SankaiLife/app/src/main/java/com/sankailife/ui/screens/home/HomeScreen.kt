@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sankailife.R
 import com.sankailife.core.culture.CultureEntryType
+import com.sankailife.core.poesie.TypeTexte
 import com.sankailife.ui.components.SankaiButton
 import com.sankailife.ui.components.SankaiGlassCard
 import com.sankailife.ui.navigation.Screen
@@ -58,6 +59,7 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
     val decouverte by viewModel.decouverte.collectAsStateWithLifecycle()
     val motDuJour by viewModel.motDuJour.collectAsStateWithLifecycle()
     val motDemain by viewModel.motDemain.collectAsStateWithLifecycle()
+    val poesieDuJour by viewModel.poesieDuJour.collectAsStateWithLifecycle()
     val colors = MaterialTheme.sankaiColors
     val activity = LocalContext.current as? Activity
 
@@ -172,6 +174,55 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
             }
 
             Spacer(Modifier.height(gap))
+
+            // Le proverbe ou le poème du jour, en une ligne compacte : la
+            // découverte littéraire reste à un geste, sans alourdir l'écran.
+            val poesie = poesieDuJour
+            if (poesie != null) {
+                SankaiGlassCard(
+                    modifier = Modifier.fillMaxWidth().weight(0.4f),
+                    onClick = { onNavigate(Screen.PoesieDuJour.route) },
+                    contentPadding = PaddingValues(if (compact) 10.dp else 12.dp)
+                ) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            if (poesie.type == TypeTexte.POEME) "📜" else "💭",
+                            fontSize = 16.sp
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                stringResource(
+                                    if (poesie.type == TypeTexte.POEME) R.string.home_poem
+                                    else R.string.home_proverb
+                                ),
+                                color = colors.textPrimary,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                poesie.texte,
+                                color = colors.textSecondary,
+                                fontSize = 11.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            tint = colors.accent,
+                            modifier = Modifier.width(16.dp)
+                        )
+                    }
+                }
+                Spacer(Modifier.height(gap))
+            }
 
             // La découverte culturelle du jour, en second plan : la capsule
             // (poème, proverbe, histoire…) reste à un geste.
