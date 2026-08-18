@@ -18,9 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.School
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,8 +26,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
@@ -45,24 +41,20 @@ import com.sankailife.core.culture.CultureEntryType
 import com.sankailife.ui.components.SankaiButton
 import com.sankailife.ui.components.SankaiGlassCard
 import com.sankailife.ui.navigation.Screen
-import com.sankailife.ui.theme.SuccessGreen
 import com.sankailife.ui.theme.sankaiColors
 
 /**
- * « Accueil » : le tableau de bord minimal de Sankai, au centre de la
- * navigation.
+ * « Accueil » : une découverte à lire, puis la vraie vie.
  *
- * Une découverte à lire, un parcours à continuer, ce qui a réellement été
- * fait — puis une sortie explicite. Aucun compteur de rareté, aucun streak,
- * aucune urgence fabriquée. L'écran tient sur un téléphone sans défilement.
+ * Rien ne retient : un bonjour, la découverte du jour, une mini-révision si
+ * des cartes attendent, et une sortie explicite. L'écran tient sur un
+ * téléphone sans défilement.
  */
 @Composable
 fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
     val dueCards by viewModel.dueCards.collectAsStateWithLifecycle()
-    val dailyMinutes by viewModel.dailyMinutes.collectAsStateWithLifecycle()
     val todayCompleted by viewModel.todayCompleted.collectAsStateWithLifecycle()
     val xpDuJour by viewModel.xpDuJour.collectAsStateWithLifecycle()
-    val suite by viewModel.suite.collectAsStateWithLifecycle()
     val decouverte by viewModel.decouverte.collectAsStateWithLifecycle()
     val colors = MaterialTheme.sankaiColors
     val activity = LocalContext.current as? Activity
@@ -90,9 +82,9 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
             ) {
                 Column(Modifier.weight(1f)) {
                     Text(
-                        "Sankai",
+                        stringResource(R.string.home_greeting),
                         color = colors.textPrimary,
-                        fontSize = if (compact) 20.sp else 23.sp,
+                        fontSize = if (compact) 22.sp else 26.sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -103,7 +95,7 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
                         fontSize = 12.sp,
                         maxLines = 1
                     )
-                    // L'XP d'aujourd'hui : ce que tu as réellement fait, pas
+                    // L'XP d'aujourd'hui : ce qui a réellement été fait, pas
                     // un compteur d'ouverture. Affiché seulement quand il y en
                     // a — un « +0 XP » serait un reproche, pas une donnée.
                     if (xpDuJour > 0) {
@@ -122,7 +114,7 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
             // Carte principale : la découverte du jour. Une chose à lire,
             // puis à refermer — le « Sankai Moment ».
             SankaiGlassCard(
-                modifier = Modifier.fillMaxWidth().weight(1.25f),
+                modifier = Modifier.fillMaxWidth().weight(1.3f),
                 onClick = { onNavigate(Screen.Capsules.route) },
                 selectionne = decouverte != null,
                 contentPadding = PaddingValues(if (compact) 12.dp else 16.dp)
@@ -132,10 +124,7 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
                         Icon(Icons.Filled.AutoStories, contentDescription = null, tint = colors.accentSecondary)
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            decouverte?.let {
-                                "${cultureTypeLabel(it.type)} · " +
-                                    stringResource(R.string.home_discover_title)
-                            }?.uppercase() ?: stringResource(R.string.home_discover_title).uppercase(),
+                            stringResource(R.string.home_discover_title).uppercase(),
                             color = colors.accentSecondary,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
@@ -147,6 +136,15 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
                     Spacer(Modifier.height(8.dp))
                     val capsule = decouverte
                     if (capsule != null) {
+                        Text(
+                            "${cultureTypeLabel(capsule.type)} · " +
+                                stringResource(R.string.home_discover_title),
+                            color = colors.textSecondary,
+                            fontSize = 11.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(Modifier.height(4.dp))
                         Text(
                             capsule.title,
                             color = colors.textPrimary,
@@ -182,146 +180,66 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
 
             Spacer(Modifier.height(gap))
 
-            // Progression : ce qu'on continue, une seule chose.
-            SankaiGlassCard(
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                onClick = {
-                    val s = suite
-                    if (s != null) {
-                        onNavigate(Screen.Session.createRoute(s.module.memoProfileId, s.unite.id))
-                    } else {
-                        onNavigate(Screen.Academy.route)
-                    }
-                },
-                contentPadding = PaddingValues(if (compact) 12.dp else 14.dp)
-            ) {
-                Column(Modifier.fillMaxWidth()) {
-                    Text(
-                        stringResource(R.string.home_progress_title).uppercase(),
-                        color = colors.accent,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    val s = suite
-                    if (s != null) {
-                        Text(
-                            s.module.nom.ifBlank { stringResource(R.string.memo_default_name) },
-                            color = colors.textPrimary,
-                            fontSize = if (compact) 15.sp else 17.sp,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            s.resume,
-                            color = colors.textSecondary,
-                            fontSize = 12.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        LinearProgressIndicator(
-                            progress = { s.progression.coerceIn(0f, 1f) },
-                            modifier = Modifier.fillMaxWidth().height(6.dp)
-                                .clip(androidx.compose.foundation.shape.RoundedCornerShape(3.dp)),
-                            color = colors.accent,
-                            trackColor = colors.surface3
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                stringResource(R.string.home_continue),
-                                color = colors.accent,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowForward,
-                                contentDescription = null,
-                                tint = colors.accent,
-                                modifier = Modifier.width(18.dp)
-                            )
-                        }
-                    } else {
-                        Text(
-                            stringResource(R.string.home_progress_none),
-                            color = colors.textSecondary,
-                            fontSize = 13.sp
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        SankaiButton(
-                            text = stringResource(R.string.home_progress_cta),
-                            onClick = { onNavigate(Screen.Academy.route) },
-                            small = true,
-                            secondary = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(gap))
-
-            // Activité réelle : ce qui a été fait, pas ce qui reste à faire.
-            if (!todayCompleted) {
+            // Mini-révision : le plus court des apprentissages, uniquement si
+            // des cartes attendent. Rien d'inventé quand tout est à jour.
+            if (!todayCompleted && dueCards > 0) {
                 SankaiGlassCard(
-                    modifier = Modifier.fillMaxWidth().weight(0.9f),
-                    onClick = if (dueCards > 0) ({ onNavigate(Screen.Academy.route) }) else null,
-                    contentPadding = PaddingValues(if (compact) 12.dp else 14.dp)
-                ) {
-                    Column(Modifier.fillMaxWidth()) {
-                        Text(
-                            stringResource(R.string.home_activity_title).uppercase(),
-                            color = colors.textPrimary,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        if (dueCards > 0) {
-                            LigneActivite(
-                                icon = Icons.Filled.CheckCircle,
-                                couleur = SuccessGreen,
-                                texte = pluralStringResource(
-                                    R.plurals.today_due_cards,
-                                    dueCards,
-                                    dueCards
-                                )
-                            )
-                        }
-                        if (xpDuJour > 0) {
-                            LigneActivite(
-                                icon = Icons.Filled.School,
-                                couleur = colors.accent,
-                                texte = stringResource(R.string.today_xp_earned, xpDuJour)
-                            )
-                        }
-                        if (dueCards == 0 && xpDuJour == 0 && dailyMinutes == 0) {
-                            Text(
-                                stringResource(R.string.home_activity_nothing),
-                                color = colors.textSecondary,
-                                fontSize = 12.sp
-                            )
-                        }
-                    }
-                }
-            } else {
-                SankaiGlassCard(
-                    modifier = Modifier.fillMaxWidth().weight(0.9f),
-                    onClick = null,
+                    modifier = Modifier.fillMaxWidth().weight(0.6f),
+                    onClick = { onNavigate(Screen.Academy.route) },
                     contentPadding = PaddingValues(if (compact) 12.dp else 14.dp)
                 ) {
                     Row(
-                        Modifier.fillMaxWidth().align(Alignment.Center),
+                        Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
                             Icons.Filled.CheckCircle,
                             contentDescription = null,
-                            tint = SuccessGreen,
+                            tint = colors.accent,
+                            modifier = Modifier.width(20.dp)
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                stringResource(R.string.home_mini_review),
+                                color = colors.textPrimary,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                pluralStringResource(
+                                    R.plurals.today_due_cards,
+                                    dueCards,
+                                    dueCards
+                                ),
+                                color = colors.textSecondary,
+                                fontSize = 12.sp
+                            )
+                        }
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            tint = colors.accent,
+                            modifier = Modifier.width(18.dp)
+                        )
+                    }
+                }
+            } else if (todayCompleted) {
+                // Tout est fait : on le dit simplement, sans proposer de
+                // « continuer » pour rien.
+                SankaiGlassCard(
+                    modifier = Modifier.fillMaxWidth().weight(0.6f),
+                    onClick = null,
+                    contentPadding = PaddingValues(if (compact) 12.dp else 14.dp)
+                ) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Filled.CheckCircle,
+                            contentDescription = null,
+                            tint = colors.accent,
                             modifier = Modifier.width(20.dp)
                         )
                         Spacer(Modifier.width(10.dp))
@@ -331,17 +249,21 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold
                         )
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            stringResource(R.string.home_activity_learned),
-                            color = colors.textSecondary,
-                            fontSize = 12.sp,
-                            textAlign = TextAlign.End,
-                            modifier = Modifier.weight(1f)
-                        )
                     }
                 }
             }
+
+            Spacer(Modifier.height(gap))
+
+            // La prochaine découverte : une ligne calme, pas une file
+            // d'attente. Une seule chose à venir.
+            Text(
+                stringResource(R.string.home_next_discovery),
+                color = colors.textSecondary,
+                fontSize = 12.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
 
             Spacer(Modifier.height(gap))
             SankaiButton(
@@ -354,25 +276,6 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
                 modifier = Modifier.fillMaxWidth()
             )
         }
-    }
-}
-
-@Composable
-private fun LigneActivite(icon: ImageVector, couleur: androidx.compose.ui.graphics.Color, texte: String) {
-    val colors = MaterialTheme.sankaiColors
-    Row(
-        Modifier.fillMaxWidth().padding(vertical = 3.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(icon, contentDescription = null, tint = couleur, modifier = Modifier.width(18.dp))
-        Spacer(Modifier.width(10.dp))
-        Text(
-            texte,
-            color = colors.textPrimary,
-            fontSize = 13.sp,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
     }
 }
 

@@ -165,7 +165,9 @@ class AppPreferences(private val context: Context) {
             }
         }
 
-    val themeMode: Flow<String>       = pref(Keys.THEME_MODE, "dark")
+    // « auto » par défaut : l'application suit le mode clair/sombre du
+    // téléphone. Dynamic Color fournit la palette (cf. couleursSysteme).
+    val themeMode: Flow<String>       = pref(Keys.THEME_MODE, "auto")
 
     /**
      * Reprendre les couleurs du téléphone (Material You).

@@ -243,6 +243,25 @@ interface MemoDao {
     fun statsMemorisation(maintenant: Long, boiteMax: Int): Flow<StatsMemorisation>
 
     /**
+     * État de la mémorisation pour les cartes d'une langue donnée.
+     *
+     * La langue vit sur le profil mémo (BCP-47) ; la carte porte seulement le
+     * `profileId`. Le préfixe permet de grouper « pt » et « pt-BR », et le
+     * reste de la requête suit `statsMemorisation` : mêmes règles, même forme.
+     */
+    @Query("""
+        SELECT COUNT(*) AS total,
+               IFNULL(SUM(CASE WHEN box >= :boiteMax THEN 1 ELSE 0 END), 0) AS maitrisees,
+               IFNULL(SUM(CASE WHEN nextReviewAtMillis <= :maintenant THEN 1 ELSE 0 END), 0) AS dues,
+               IFNULL(SUM(reviewCount), 0) AS revisions,
+               IFNULL(SUM(successCount), 0) AS reussites,
+               IFNULL(SUM(CASE WHEN reviewCount > 0 THEN 1 ELSE 0 END), 0) AS entamees
+        FROM memo_line
+        WHERE profileId IN (SELECT id FROM memo_profile WHERE langue LIKE :prefixe || '%')
+    """)
+    fun statsParLangue(prefixe: String, maintenant: Long, boiteMax: Int): Flow<StatsMemorisation>
+
+    /**
      * Cartes assez révisées pour qu'un taux d'échec veuille dire quelque chose.
      *
      * Le tri fin — taux, priorité, taille de session — est fait par

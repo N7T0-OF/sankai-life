@@ -6,6 +6,8 @@ import androidx.annotation.StringRes
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +20,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -29,7 +32,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -41,6 +43,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -57,8 +61,12 @@ import com.sankailife.core.culture.ContentRightsStatus
 import com.sankailife.core.culture.CultureEntryType
 import com.sankailife.core.culture.DailyCultureEntry
 import com.sankailife.ui.components.SankaiButton
-import com.sankailife.ui.components.SankaiCard
-import com.sankailife.ui.theme.sankaiColors
+import com.sankailife.ui.theme.CultureBg
+import com.sankailife.ui.theme.CultureBlue
+import com.sankailife.ui.theme.CultureBorder
+import com.sankailife.ui.theme.CultureCard
+import com.sankailife.ui.theme.CultureInk
+import com.sankailife.ui.theme.CultureInkSoft
 
 /**
  * Lecture calme d'une unique capsule quotidienne.
@@ -66,6 +74,11 @@ import com.sankailife.ui.theme.sankaiColors
  * Pas de carrousel, pagination, score ou recommandation suivante : le seul
  * mouvement possible dans le contenu est de retourner la carte pour lire sa
  * provenance.
+ *
+ * La page garde une palette claire et fixe (papier chaud, carte blanche,
+ * encre), volontairement lumineuse même en thème sombre — c'est l'identité
+ * de la lecture culturelle dans les maquettes, et le correctif de l'écran
+ * qui apparaissait sombre.
  */
 @Composable
 fun CapsulesScreen(
@@ -73,7 +86,6 @@ fun CapsulesScreen(
     onBack: () -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val colors = MaterialTheme.sankaiColors
     val snackbar = remember { SnackbarHostState() }
     val saveError = stringResource(R.string.culture_save_error)
     val entry = state.entry
@@ -98,7 +110,7 @@ fun CapsulesScreen(
         }
     }
 
-    Box(Modifier.fillMaxSize().background(colors.background)) {
+    Box(Modifier.fillMaxSize().background(CultureBg)) {
         Column(Modifier.fillMaxSize()) {
             Header(
                 onBack = onBack,
@@ -113,17 +125,17 @@ fun CapsulesScreen(
 
             when {
                 state.loading -> CenteredState {
-                    CircularProgressIndicator(color = colors.accent)
+                    CircularProgressIndicator(color = CultureBlue)
                     Spacer(Modifier.height(16.dp))
                     Text(
                         stringResource(R.string.culture_loading),
-                        color = colors.textSecondary
+                        color = CultureInkSoft
                     )
                 }
                 state.loadError -> CenteredState {
                     Text(
                         stringResource(R.string.culture_error_title),
-                        color = colors.textPrimary,
+                        color = CultureInk,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center
@@ -131,7 +143,7 @@ fun CapsulesScreen(
                     Spacer(Modifier.height(8.dp))
                     Text(
                         stringResource(R.string.culture_error_body),
-                        color = colors.textSecondary,
+                        color = CultureInkSoft,
                         textAlign = TextAlign.Center
                     )
                     Spacer(Modifier.height(20.dp))
@@ -143,7 +155,7 @@ fun CapsulesScreen(
                 state.empty || entry == null -> CenteredState {
                     Text(
                         stringResource(R.string.culture_empty_title),
-                        color = colors.textPrimary,
+                        color = CultureInk,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center
@@ -151,7 +163,7 @@ fun CapsulesScreen(
                     Spacer(Modifier.height(8.dp))
                     Text(
                         stringResource(R.string.culture_empty_body),
-                        color = colors.textSecondary,
+                        color = CultureInkSoft,
                         textAlign = TextAlign.Center
                     )
                 }
@@ -178,7 +190,6 @@ private fun Header(
     onImporter: () -> Unit,
     importEnabled: Boolean
 ) {
-    val colors = MaterialTheme.sankaiColors
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -187,19 +198,19 @@ private fun Header(
             Icon(
                 Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = stringResource(R.string.action_back),
-                tint = colors.textPrimary
+                tint = CultureInk
             )
         }
         Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 stringResource(R.string.culture_title),
-                color = colors.textPrimary,
+                color = CultureInk,
                 fontSize = 19.sp,
                 fontWeight = FontWeight.Bold
             )
             Text(
                 stringResource(R.string.culture_subtitle),
-                color = colors.textSecondary,
+                color = CultureInkSoft,
                 fontSize = 11.sp
             )
         }
@@ -212,7 +223,7 @@ private fun Header(
                         if (favorite) R.string.culture_favorite_remove
                         else R.string.culture_favorite_add
                     ),
-                    tint = if (favorite) colors.accent else colors.textSecondary
+                    tint = if (favorite) CultureBlue else CultureInkSoft
                 )
             }
         } else {
@@ -232,7 +243,7 @@ private fun Header(
         ) {
             Text(
                 stringResource(R.string.culture_import_pack),
-                color = if (importEnabled) colors.accent else colors.textDisabled,
+                color = if (importEnabled) CultureBlue else CultureInkSoft.copy(alpha = 0.5f),
                 fontSize = 12.sp
             )
         }
@@ -255,7 +266,6 @@ private fun CapsuleContent(
     detailsVisible: Boolean,
     onToggleDetails: () -> Unit
 ) {
-    val colors = MaterialTheme.sankaiColors
     val voice = rememberVoix()
     val canRead = entry.body != null && voice.disponiblePour(entry.languageCode)
 
@@ -272,7 +282,7 @@ private fun CapsuleContent(
     ) {
         Text(
             stringResource(R.string.culture_today_label),
-            color = colors.accent,
+            color = CultureBlue,
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.4.sp
@@ -280,7 +290,7 @@ private fun CapsuleContent(
         Spacer(Modifier.height(6.dp))
         Text(
             stringResource(typeLabel(entry.type)),
-            color = colors.textSecondary,
+            color = CultureInkSoft,
             fontSize = 13.sp
         )
         Spacer(Modifier.height(12.dp))
@@ -309,20 +319,29 @@ private fun CapsuleContent(
                     if (detailsVisible) R.string.culture_flip_to_text
                     else R.string.culture_flip_to_details
                 ),
-                color = colors.textSecondary,
+                color = CultureInkSoft,
                 fontSize = 12.sp
             )
             // L'écoute reste un bouton compact : une icône, pas un bandeau.
             if (canRead) {
-                IconButton(
-                    onClick = { entry.body?.let { voice.dire(it, entry.languageCode) } },
-                    modifier = Modifier.size(44.dp)
+                Box(
+                    Modifier
+                        .size(44.dp)
+                        .clip(RoundedCornerShape(22.dp))
+                        .background(CultureBlue.copy(alpha = 0.08f))
+                        .border(1.dp, CultureBlue.copy(alpha = 0.30f), RoundedCornerShape(22.dp)),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        Icons.Filled.VolumeUp,
-                        contentDescription = stringResource(R.string.culture_listen),
-                        tint = colors.accent
-                    )
+                    IconButton(
+                        onClick = { entry.body?.let { voice.dire(it, entry.languageCode) } },
+                        modifier = Modifier.size(44.dp)
+                    ) {
+                        Icon(
+                            Icons.Filled.VolumeUp,
+                            contentDescription = stringResource(R.string.culture_listen),
+                            tint = CultureBlue
+                        )
+                    }
                 }
             }
         }
@@ -330,7 +349,7 @@ private fun CapsuleContent(
         Spacer(Modifier.height(12.dp))
         Text(
             stringResource(R.string.culture_end_note),
-            color = colors.textSecondary,
+            color = CultureInkSoft,
             fontSize = 12.sp,
             fontStyle = FontStyle.Italic,
             textAlign = TextAlign.Center
@@ -378,7 +397,7 @@ private fun CarteRetournable(
                     alpha = if (rectoVisible) 1f else 0f
                 }
         ) {
-            SankaiCard(modifier = Modifier.fillMaxSize(), onClick = onFlip) { ReadingFace(entry) }
+            CarteCulture(modifier = Modifier.fillMaxSize(), onClick = onFlip) { ReadingFace(entry) }
         }
         Box(
             Modifier
@@ -388,14 +407,32 @@ private fun CarteRetournable(
                     alpha = if (rectoVisible) 0f else 1f
                 }
         ) {
-            SankaiCard(modifier = Modifier.fillMaxSize(), onClick = onFlip) { DetailsFace(entry) }
+            CarteCulture(modifier = Modifier.fillMaxSize(), onClick = onFlip) { DetailsFace(entry) }
         }
+    }
+}
+
+/** La carte blanche de lecture, dans le papier chaud de l'écran. */
+@Composable
+private fun CarteCulture(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(
+        modifier = modifier
+            .shadow(10.dp, RoundedCornerShape(26.dp), clip = false)
+            .clip(RoundedCornerShape(26.dp))
+            .background(CultureCard)
+            .border(1.dp, CultureBorder, RoundedCornerShape(26.dp))
+            .clickable(onClick = onClick)
+    ) {
+        Column(modifier = Modifier.fillMaxSize().padding(20.dp), content = content)
     }
 }
 
 @Composable
 private fun ReadingFace(entry: DailyCultureEntry) {
-    val colors = MaterialTheme.sankaiColors
     Column(
         // Le texte long défile à l'intérieur de la carte, jamais la page.
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
@@ -404,15 +441,16 @@ private fun ReadingFace(entry: DailyCultureEntry) {
     ) {
         Text(
             entry.title,
-            color = colors.textPrimary,
+            color = CultureInk,
             fontSize = 25.sp,
             lineHeight = 32.sp,
+            fontFamily = FontFamily.Serif,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center
         )
         entry.author?.let { author ->
             Spacer(Modifier.height(8.dp))
-            Text(author, color = colors.textSecondary, fontSize = 14.sp)
+            Text(author, color = CultureInkSoft, fontSize = 14.sp)
         }
         entry.body?.let { body ->
             Spacer(Modifier.height(28.dp))
@@ -420,7 +458,7 @@ private fun ReadingFace(entry: DailyCultureEntry) {
                 Text(
                     body,
                     modifier = Modifier.fillMaxWidth(),
-                    color = colors.textPrimary,
+                    color = CultureInk,
                     fontSize = 18.sp,
                     lineHeight = 30.sp,
                     fontFamily = FontFamily.Serif,
@@ -437,7 +475,6 @@ private fun ReadingFace(entry: DailyCultureEntry) {
 
 @Composable
 private fun DetailsFace(entry: DailyCultureEntry) {
-    val colors = MaterialTheme.sankaiColors
     val authorYears = listOfNotNull(
         entry.authorBirthYear?.toString(),
         entry.authorDeathYear?.toString()
@@ -448,15 +485,15 @@ private fun DetailsFace(entry: DailyCultureEntry) {
     ) {
         Text(
             entry.author ?: stringResource(R.string.culture_author_unknown),
-            color = colors.textPrimary,
+            color = CultureInk,
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold
         )
         authorYears?.let {
-            Text(it, color = colors.textSecondary, fontSize = 13.sp)
+            Text(it, color = CultureInkSoft, fontSize = 13.sp)
         }
         Spacer(Modifier.height(18.dp))
-        HorizontalDivider(color = colors.border)
+        HorizontalDivider(color = CultureBorder)
         Spacer(Modifier.height(12.dp))
 
         entry.workDate?.let {
@@ -487,18 +524,17 @@ private fun DetailsFace(entry: DailyCultureEntry) {
 
 @Composable
 private fun DetailRow(label: String, value: String) {
-    val colors = MaterialTheme.sankaiColors
     Column(Modifier.fillMaxWidth().padding(vertical = 7.dp)) {
         Text(
             label,
-            color = colors.textSecondary,
+            color = CultureInkSoft,
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold
         )
         Spacer(Modifier.height(2.dp))
         Text(
             value,
-            color = colors.textPrimary,
+            color = CultureInk,
             fontSize = 14.sp,
             lineHeight = 21.sp
         )

@@ -74,6 +74,47 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
 
     data class Regularite(val sept: Int = 0, val trente: Int = 0, val quatreVingtDix: Int = 0)
 
+    /** Progression de la langue principale, pour la carte de tête du profil. */
+    data class LangueProgression(val libelle: String, val pourcentage: Int)
+
+    /**
+     * La langue principale, telle que déclarée par les modules : la première
+     * langue non vide, dans l'ordre des modules. Aucune devinette — un module
+     * sans langue déclarée ne compte pas.
+     */
+    private fun fluxLanguePrincipale(): Flow<String?> =
+        app.database.learningDao().observerModules()
+            .map { modules -> modules.asSequence().map { it.langue }.firstOrNull { it.isNotBlank() } }
+            .distinctUntilChanged()
+
+    /**
+     * Progression de la langue principale (ex. « Portugais »), en pourcentage
+     * de cartes maîtrisées. `null` tant qu'aucune langue n'est déclarée : la
+     * carte n'est alors pas affichée, plutôt que de montrer un 0 % qui ne
+     * veut rien dire.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val languePrincipale: StateFlow<LangueProgression?> = fluxLanguePrincipale()
+        .flatMapLatest { langue ->
+            if (langue == null) {
+                flowOf(null)
+            } else {
+                app.database.memoDao().statsParLangue(
+                    prefixe = langue.trim().lowercase().substringBefore('-'),
+                    maintenant = System.currentTimeMillis(),
+                    boiteMax = MemorisationEngine.BOITE_MAITRISEE
+                ).map { stats ->
+                    LangueProgression(
+                        libelle = libelleLangue(langue),
+                        pourcentage = if (stats.total > 0) {
+                            (stats.maitrisees * 100 / stats.total).coerceIn(0, 100)
+                        } else 0
+                    )
+                }
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     /**
      * Une dimension de la « progression réelle » : une barre descriptive,
      * jamais une obligation. Chaque dimension raconte ce que l'utilisateur
@@ -197,4 +238,22 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     companion object {
         fun factory(app: SankaiApplication) = viewModelFactory { initializer { ProfileViewModel(app) } }
     }
+}
+
+/**
+ * Nom lisible d'un code BCP-47 (« pt », « pt-BR », « es »…).
+ *
+ * L'interface vit en français, anglais et portugais ; les noms de langues
+ * restent dans la langue du contenu — on apprend « Português », pas une
+ * traduction. Un code inconnu s'affiche tel quel plutôt que d'inventer.
+ */
+private fun libelleLangue(code: String): String = when (code.trim().lowercase().substringBefore('-')) {
+    "pt" -> "Português"
+    "es" -> "Español"
+    "en" -> "English"
+    "fr" -> "Français"
+    "de" -> "Deutsch"
+    "it" -> "Italiano"
+    "nl" -> "Nederlands"
+    else -> code.trim()
 }

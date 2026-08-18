@@ -66,7 +66,7 @@ class MainActivity : ComponentActivity() {
         lireDestination(intent)
 
         setContent {
-            val themeMode by app.preferences.themeMode.collectAsState(initial = "dark")
+            val themeMode by app.preferences.themeMode.collectAsState(initial = "auto")
             val vibrations by app.preferences.vibrations.collectAsState(initial = true)
             val requestedRoute by navigationRequest.collectAsState()
 

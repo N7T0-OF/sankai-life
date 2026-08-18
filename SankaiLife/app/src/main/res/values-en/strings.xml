@@ -238,6 +238,11 @@
     <string name="stats_life_time_disclaimer">Sankai shows your choice here without claiming to scientifically measure time “saved”.</string>
     <string name="profile_rhythm_summary">Personal rhythm · %1$d %% over 7 days</string>
     <string name="profile_level">Level %1$d</string>
+    <string name="profile_level_xp">Level %1$d · %2$s XP</string>
+    <string name="profile_menu_title">Menu</string>
+    <string name="profile_menu_export">Export my data</string>
+    <string name="profile_metric_culture">Culture</string>
+    <string name="profile_metric_memos">Memos</string>
     <string name="profile_metric_rhythm">7-day rhythm</string>
     <string name="profile_metric_focus">Focus</string>
     <string name="profile_metric_reviews">Reviews</string>
@@ -686,6 +691,9 @@
     <string name="nav_today">Home</string>
     <string name="nav_culture">Culture</string>
 
+    <string name="home_greeting">Hello 👋</string>
+    <string name="home_mini_review">Mini review</string>
+    <string name="home_next_discovery">🌱 Next discovery: tomorrow.</string>
     <string name="home_intro">One small discovery today.</string>
     <string name="home_discover_title">Discovery of the day</string>
     <string name="home_discover_action">Discover</string>
