@@ -1,5 +1,6 @@
 package com.sankailife.core.domain.engine
 
+import java.util.concurrent.TimeUnit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -71,6 +72,43 @@ class JugementFlashcardTest {
         assertTrue(J.DIFFICILE.reussi)
         assertTrue(J.CORRECT.reussi)
         assertTrue(J.FACILE.reussi)
+    }
+
+    @Test
+    fun `les intervalles suivent la progression 1-3-7-14-30 jours`() {
+        // La mission de Sankai : une carte revient demain, dans 3 jours, dans
+        // 7, dans 14, puis dans 30. Les paliers doivent être strictement
+        // croissants — une répétition espacée qui rapprocherait les échéances
+        // n'espacerait rien.
+        val maintenant = 0L
+        val echeances = (0 until FlashcardEngine.NOMBRE_BOITES).map {
+            FlashcardEngine.prochaineRevision(it, maintenant)
+        }
+        assertEquals(FlashcardEngine.NOMBRE_BOITES, echeances.size)
+        for (i in 1 until echeances.size) {
+            assertTrue("palier $i non croissant", echeances[i] > echeances[i - 1])
+        }
+        // Le dernier palier est un mois, pas une durée au hasard : c'est la
+        // maîtrise, et c'est l'échéance la plus lointaine.
+        assertEquals(
+            TimeUnit.DAYS.toMillis(30),
+            echeances.last() - maintenant
+        )
+    }
+
+    @Test
+    fun `la maitrise est la derniere boite`() {
+        // Six boîtes de 0 à 5 : la maîtrise est la boîte 5, et plus aucune
+        // réponse ne fait déborder une carte hors du système.
+        assertEquals(5, FlashcardEngine.NOMBRE_BOITES - 1)
+        assertEquals(
+            5,
+            FlashcardEngine.boiteSuivante(5, FlashcardEngine.Jugement.CORRECT)
+        )
+        assertEquals(
+            5,
+            FlashcardEngine.boiteSuivante(4, FlashcardEngine.Jugement.FACILE)
+        )
     }
 
     @Test

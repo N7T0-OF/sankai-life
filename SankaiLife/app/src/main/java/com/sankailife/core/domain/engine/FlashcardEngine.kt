@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit
  */
 object FlashcardEngine {
 
-    const val NOMBRE_BOITES = 5
+    const val NOMBRE_BOITES = 6
 
     /** Nombre de cartes proposées dans une session. Court exprès. */
     const val CARTES_PAR_SESSION = 20
@@ -59,14 +59,17 @@ object FlashcardEngine {
 
     /**
      * Intervalle avant la prochaine révision, par boîte.
-     * 10 min → 1 j → 3 j → 7 j → 21 j.
+     * 10 min → 1 j → 3 j → 7 j → 14 j → 30 j : la progression lente est ce
+     * qui fait tenir une carte en mémoire, chaque palier allongeant la
+     * distance avant le rappel suivant.
      */
     private val INTERVALLES_MINUTES = longArrayOf(
         10,
         TimeUnit.DAYS.toMinutes(1),
         TimeUnit.DAYS.toMinutes(3),
         TimeUnit.DAYS.toMinutes(7),
-        TimeUnit.DAYS.toMinutes(21)
+        TimeUnit.DAYS.toMinutes(14),
+        TimeUnit.DAYS.toMinutes(30)
     )
 
     /**
@@ -172,13 +175,20 @@ object FlashcardEngine {
         return maintenantMillis + TimeUnit.MINUTES.toMillis(INTERVALLES_MINUTES[index])
     }
 
-    /** Libellé lisible de l'échéance, pour l'écran de révision. */
+    /**
+     * Libellé lisible de l'échéance, pour l'écran de révision.
+     *
+     * La dernière boîte — la maîtrise — espace la révision d'un mois : c'est
+     * l'échéance la plus lointaine que Sankai propose, et elle reste
+     * révisable si la carte revient échue.
+     */
     fun libelleIntervalle(boite: Int): String = when (boite.coerceIn(0, NOMBRE_BOITES - 1)) {
         0 -> "dans 10 min"
         1 -> "demain"
         2 -> "dans 3 jours"
         3 -> "dans 1 semaine"
-        else -> "dans 3 semaines"
+        4 -> "dans 2 semaines"
+        else -> "dans 1 mois"
     }
 
     /** Progression d'un module : part des cartes en boîte haute. */

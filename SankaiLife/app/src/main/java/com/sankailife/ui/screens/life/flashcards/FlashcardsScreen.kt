@@ -440,7 +440,10 @@ fun FlashcardsScreen(
                                             BoutonReponse(
                                                 stringResource(R.string.cards_judge_again),
                                                 DangerRed,
-                                                Modifier.weight(1f)
+                                                Modifier.weight(1f),
+                                                echeance = echeanceJugement(
+                                                    FlashcardEngine.Jugement.A_REVOIR, carte.box
+                                                )
                                             ) {
                                                 haptics.error()
                                                 viewModel.repondre(FlashcardEngine.Jugement.A_REVOIR)
@@ -448,7 +451,10 @@ fun FlashcardsScreen(
                                             BoutonReponse(
                                                 stringResource(R.string.cards_judge_hard),
                                                 WarningAmber,
-                                                Modifier.weight(1f)
+                                                Modifier.weight(1f),
+                                                echeance = echeanceJugement(
+                                                    FlashcardEngine.Jugement.DIFFICILE, carte.box
+                                                )
                                             ) {
                                                 haptics.click()
                                                 viewModel.repondre(FlashcardEngine.Jugement.DIFFICILE)
@@ -461,7 +467,10 @@ fun FlashcardsScreen(
                                             BoutonReponse(
                                                 stringResource(R.string.cards_judge_ok),
                                                 InfoBlue,
-                                                Modifier.weight(1f)
+                                                Modifier.weight(1f),
+                                                echeance = echeanceJugement(
+                                                    FlashcardEngine.Jugement.CORRECT, carte.box
+                                                )
                                             ) {
                                                 haptics.click()
                                                 viewModel.repondre(FlashcardEngine.Jugement.CORRECT)
@@ -469,7 +478,10 @@ fun FlashcardsScreen(
                                             BoutonReponse(
                                                 stringResource(R.string.cards_judge_easy),
                                                 SuccessGreen,
-                                                Modifier.weight(1f)
+                                                Modifier.weight(1f),
+                                                echeance = echeanceJugement(
+                                                    FlashcardEngine.Jugement.FACILE, carte.box
+                                                )
                                             ) {
                                                 haptics.success()
                                                 viewModel.repondre(FlashcardEngine.Jugement.FACILE)
@@ -576,8 +588,26 @@ private fun intervalleLocalise(boite: Int): String =
         1 -> stringResource(R.string.interval_tomorrow)
         2 -> stringResource(R.string.interval_3_days)
         3 -> stringResource(R.string.interval_1_week)
-        else -> stringResource(R.string.interval_3_weeks)
+        4 -> stringResource(R.string.interval_2_weeks)
+        else -> stringResource(R.string.interval_1_month)
     }
+
+/**
+ * Échéance que produit un jugement sur la carte courante.
+ *
+ * « À revoir » revient dans la session ; les autres jugements renvoient à une
+ * boîte, donc à un intervalle. Montrer l'échéance sous chaque bouton rend le
+ * geste honnête : on choisit ce qu'on sait, pas une couleur.
+ */
+@Composable
+private fun echeanceJugement(jugement: FlashcardEngine.Jugement, boiteActuelle: Int): String {
+    if (jugement == FlashcardEngine.Jugement.A_REVOIR) {
+        return stringResource(R.string.flashcards_review_now)
+    }
+    return intervalleLocalise(
+        FlashcardEngine.boiteSuivante(boiteActuelle, jugement)
+    )
+}
 
 /**
  * Les morceaux à remettre dans l'ordre.
@@ -637,6 +667,7 @@ private fun BoutonReponse(
     texte: String,
     couleur: androidx.compose.ui.graphics.Color,
     modifier: Modifier,
+    echeance: String,
     onClick: () -> Unit
 ) {
     Box(
@@ -645,10 +676,18 @@ private fun BoutonReponse(
             .background(couleur.copy(alpha = 0.16f))
             .border(1.dp, couleur.copy(alpha = 0.5f), RoundedCornerShape(14.dp))
             .clickable { onClick() }
-            .padding(vertical = 16.dp),
+            .padding(vertical = 12.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(texte, color = couleur, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(texte, color = couleur, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(3.dp))
+            Text(
+                echeance,
+                color = couleur.copy(alpha = 0.75f),
+                fontSize = 11.sp
+            )
+        }
     }
 }
 

@@ -644,7 +644,9 @@
     <string name="interval_tomorrow">demain</string>
     <string name="interval_3_days">dans 3 jours</string>
     <string name="interval_1_week">dans 1 semaine</string>
-    <string name="interval_3_weeks">dans 3 semaines</string>
+    <string name="interval_2_weeks">dans 2 semaines</string>
+    <string name="interval_1_month">dans 1 mois</string>
+    <string name="flashcards_review_now">revient en fin de session</string>
 
     <!-- Objectifs -->
     <string name="objectives_title">🎯 Objectifs</string>
