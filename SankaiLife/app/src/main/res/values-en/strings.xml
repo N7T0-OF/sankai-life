@@ -693,7 +693,19 @@
 
     <string name="home_greeting">Hello 👋</string>
     <string name="home_mini_review">Mini review</string>
+    <string name="home_mot_du_jour">Word of the day</string>
+    <string name="home_culture_discovery">Cultural discovery</string>
     <string name="home_next_discovery">🌱 Next discovery: tomorrow.</string>
+    <string name="mot_du_jour_title">Word of the day</string>
+    <string name="mot_du_jour_definition">Definition</string>
+    <string name="mot_du_jour_example">Example</string>
+    <string name="mot_du_jour_origin">Origin</string>
+    <string name="mot_du_jour_listen">Listen</string>
+    <string name="mot_du_jour_favorite_add">Add to favorites</string>
+    <string name="mot_du_jour_favorite_remove">Remove from favorites</string>
+    <string name="mot_du_jour_tomorrow">🌱 Tomorrow: %1$s</string>
+    <string name="mot_du_jour_done">That\'s all for today</string>
+    <string name="mot_du_jour_none">No word available today.</string>
     <string name="home_intro">One small discovery today.</string>
     <string name="home_discover_title">Discovery of the day</string>
     <string name="home_discover_action">Discover</string>

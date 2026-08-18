@@ -9,6 +9,9 @@ import com.sankailife.SankaiApplication
 import com.sankailife.core.culture.CultureLocalState
 import com.sankailife.core.culture.DailyCultureEntry
 import com.sankailife.core.culture.DailyDiscovery
+import com.sankailife.core.motdujour.MotDuJour
+import com.sankailife.core.motdujour.MotDuJourSelector
+import com.sankailife.core.motdujour.MotDuJourStore
 import com.sankailife.core.data.db.entities.MemoProfileEntity
 import com.sankailife.core.data.repository.UserRepository
 import com.sankailife.core.domain.model.UserState
@@ -25,6 +28,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
@@ -111,6 +115,21 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     /** La capsule du jour, la même que l'écran Culture et la notification. */
     private val _decouverte = MutableStateFlow<DailyCultureEntry?>(null)
     val decouverte: StateFlow<DailyCultureEntry?> = _decouverte.asStateFlow()
+
+    /** Le catalogue du mot du jour, lu depuis l'asset embarqué. */
+    private val motsDuJour: StateFlow<List<MotDuJour>> = flow {
+        emit(MotDuJourStore.lire(app))
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Le mot d'aujourd'hui, stable toute la journée, sans réseau. */
+    val motDuJour: StateFlow<MotDuJour?> = motsDuJour
+        .map { MotDuJourSelector.selectionner(it, LocalDate.now()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** Le mot de demain, pour la ligne « prochaine découverte ». */
+    val motDemain: StateFlow<MotDuJour?> = motsDuJour
+        .map { MotDuJourSelector.suivant(it, LocalDate.now()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     init {
         // L'accueil initialise seulement le profil. Il ne crée plus en

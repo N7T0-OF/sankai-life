@@ -61,6 +61,9 @@ class AppPreferences(private val context: Context) {
         val CULTURE_ORIENTATION = stringPreferencesKey("culture_orientation")
         val CULTURE_STYLE       = stringPreferencesKey("culture_style")
 
+        // Mot du jour : favoris persistés, par identifiant de mot.
+        val MOT_DU_JOUR_FAVORIS = stringSetPreferencesKey("mot_du_jour_favoris")
+
         // Compteurs par source d'activité : la clé porte la date pour qu'une
         // journée passée ne puisse pas être rejouée le lendemain.
         val SOURCE_XP_PREFIX = "source_xp_"
@@ -224,6 +227,17 @@ class AppPreferences(private val context: Context) {
     val notifyGarden: Flow<Boolean> = pref(Keys.NOTIFY_GARDEN, false)
     val cultureOrientation: Flow<String> = pref(Keys.CULTURE_ORIENTATION, "mixed")
     val cultureStyle: Flow<String> = pref(Keys.CULTURE_STYLE, "mixed")
+
+    /** Les mots du jour mis en favori, par identifiant. */
+    val motDuJourFavoris: Flow<Set<String>> =
+        context.dataStore.data.map { it[Keys.MOT_DU_JOUR_FAVORIS] ?: emptySet() }
+
+    suspend fun basculerMotDuJourFavori(id: String) =
+        context.dataStore.edit { prefs ->
+            val cle = Keys.MOT_DU_JOUR_FAVORIS
+            val actuels = prefs[cle] ?: emptySet()
+            prefs[cle] = if (id in actuels) actuels - id else actuels + id
+        }
 
     /** Les trois réglages ci-dessus regroupés, tels que les consomme le planificateur. */
     val heuresSilencieuses: Flow<QuietHours> =

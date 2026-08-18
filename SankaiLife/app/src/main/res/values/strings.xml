@@ -713,7 +713,19 @@
 
     <string name="home_greeting">Bonjour 👋</string>
     <string name="home_mini_review">Mini-révision</string>
+    <string name="home_mot_du_jour">Mot du jour</string>
+    <string name="home_culture_discovery">Découverte culturelle</string>
     <string name="home_next_discovery">🌱 Prochaine découverte : demain.</string>
+    <string name="mot_du_jour_title">Mot du jour</string>
+    <string name="mot_du_jour_definition">Définition</string>
+    <string name="mot_du_jour_example">Exemple</string>
+    <string name="mot_du_jour_origin">Origine</string>
+    <string name="mot_du_jour_listen">Écouter</string>
+    <string name="mot_du_jour_favorite_add">Ajouter aux favoris</string>
+    <string name="mot_du_jour_favorite_remove">Retirer des favoris</string>
+    <string name="mot_du_jour_tomorrow">🌱 Demain : %1$s</string>
+    <string name="mot_du_jour_done">C\'est tout pour aujourd\'hui</string>
+    <string name="mot_du_jour_none">Aucun mot disponible aujourd\'hui.</string>
     <string name="home_intro">Une petite découverte aujourd\'hui.</string>
     <string name="home_discover_title">Découverte du jour</string>
     <string name="home_discover_action">Découvrir</string>

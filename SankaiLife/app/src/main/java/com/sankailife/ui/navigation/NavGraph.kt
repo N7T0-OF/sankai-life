@@ -34,6 +34,8 @@ import com.sankailife.ui.screens.life.flashcards.FlashcardsScreen
 import com.sankailife.ui.screens.life.flashcards.FlashcardsViewModel
 import com.sankailife.ui.screens.profile.ProfileScreen
 import com.sankailife.ui.screens.profile.ProfileViewModel
+import com.sankailife.ui.screens.home.MotDuJourScreen
+import com.sankailife.ui.screens.home.MotDuJourViewModel
 import com.sankailife.ui.screens.settings.SettingsScreen
 import com.sankailife.ui.screens.settings.SettingsViewModel
 
@@ -113,7 +115,7 @@ fun SankaiNavGraph(
     val noBottomBarRoutes = setOf(
         Screen.Settings.route, Screen.MemoEditor.route, Screen.Flashcards.route,
         Screen.Customization.route, Screen.AllStats.route,
-        Screen.Parcours.route, Screen.Session.route
+        Screen.Parcours.route, Screen.Session.route, Screen.MotDuJour.route
     )
     val showBottom = currentRoute !in noBottomBarRoutes
 
@@ -246,6 +248,10 @@ fun SankaiNavGraph(
             composable(Screen.Profile.route) {
                 val vm: ProfileViewModel = viewModel(factory = ProfileViewModel.factory(app))
                 ProfileScreen(viewModel = vm, onNavigate = { navController.navigate(it) })
+            }
+            composable(Screen.MotDuJour.route) {
+                val vm: MotDuJourViewModel = viewModel(factory = MotDuJourViewModel.factory(app))
+                MotDuJourScreen(viewModel = vm, onBack = { navController.popBackStack() })
             }
             composable(Screen.Settings.route) {
                 SettingsScreen(

@@ -36,4 +36,6 @@ sealed class Screen(val route: String) {
     }
     object Profile     : Screen("profile")
     object Settings    : Screen("settings")
+    /** Le mot du jour : un mot, une définition, puis la vraie vie. */
+    object MotDuJour   : Screen("mot_du_jour")
 }

@@ -56,6 +56,8 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
     val todayCompleted by viewModel.todayCompleted.collectAsStateWithLifecycle()
     val xpDuJour by viewModel.xpDuJour.collectAsStateWithLifecycle()
     val decouverte by viewModel.decouverte.collectAsStateWithLifecycle()
+    val motDuJour by viewModel.motDuJour.collectAsStateWithLifecycle()
+    val motDemain by viewModel.motDemain.collectAsStateWithLifecycle()
     val colors = MaterialTheme.sankaiColors
     val activity = LocalContext.current as? Activity
 
@@ -111,12 +113,12 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
 
             Spacer(Modifier.height(gap))
 
-            // Carte principale : la découverte du jour. Une chose à lire,
-            // puis à refermer — le « Sankai Moment ».
+            // Carte principale : le mot du jour. Un mot, une définition, une
+            // sortie — le « Sankai Moment ».
             SankaiGlassCard(
                 modifier = Modifier.fillMaxWidth().weight(1.3f),
-                onClick = { onNavigate(Screen.Capsules.route) },
-                selectionne = decouverte != null,
+                onClick = { onNavigate(Screen.MotDuJour.route) },
+                selectionne = motDuJour != null,
                 contentPadding = PaddingValues(if (compact) 12.dp else 16.dp)
             ) {
                 Column(Modifier.fillMaxWidth()) {
@@ -124,7 +126,7 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
                         Icon(Icons.Filled.AutoStories, contentDescription = null, tint = colors.accentSecondary)
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            stringResource(R.string.home_discover_title).uppercase(),
+                            stringResource(R.string.home_mot_du_jour).uppercase(),
                             color = colors.accentSecondary,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
@@ -134,28 +136,19 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
                         )
                     }
                     Spacer(Modifier.height(8.dp))
-                    val capsule = decouverte
-                    if (capsule != null) {
+                    val mot = motDuJour
+                    if (mot != null) {
                         Text(
-                            "${cultureTypeLabel(capsule.type)} · " +
-                                stringResource(R.string.home_discover_title),
-                            color = colors.textSecondary,
-                            fontSize = 11.sp,
+                            mot.mot,
+                            color = colors.textPrimary,
+                            fontSize = if (compact) 26.sp else 30.sp,
+                            fontWeight = FontWeight.Bold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            capsule.title,
-                            color = colors.textPrimary,
-                            fontSize = if (compact) 19.sp else 22.sp,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            capsule.body?.replace('\n', ' ')?.trim()?.take(110) ?: "",
+                            mot.definition,
                             color = colors.textSecondary,
                             fontSize = 13.sp,
                             maxLines = 2,
@@ -164,13 +157,13 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
                         Spacer(Modifier.height(10.dp))
                         SankaiButton(
                             text = stringResource(R.string.home_discover_action),
-                            onClick = { onNavigate(Screen.Capsules.route) },
+                            onClick = { onNavigate(Screen.MotDuJour.route) },
                             small = true,
                             modifier = Modifier.fillMaxWidth()
                         )
                     } else {
                         Text(
-                            stringResource(R.string.home_discover_none),
+                            stringResource(R.string.mot_du_jour_none),
                             color = colors.textSecondary,
                             fontSize = 13.sp
                         )
@@ -179,6 +172,49 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
             }
 
             Spacer(Modifier.height(gap))
+
+            // La découverte culturelle du jour, en second plan : la capsule
+            // (poème, proverbe, histoire…) reste à un geste.
+            val capsule = decouverte
+            if (capsule != null) {
+                SankaiGlassCard(
+                    modifier = Modifier.fillMaxWidth().weight(0.55f),
+                    onClick = { onNavigate(Screen.Capsules.route) },
+                    contentPadding = PaddingValues(if (compact) 12.dp else 14.dp)
+                ) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("📖", fontSize = 18.sp)
+                        Spacer(Modifier.width(10.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                stringResource(R.string.home_culture_discovery),
+                                color = colors.textPrimary,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                "${cultureTypeLabel(capsule.type)} · ${capsule.title}",
+                                color = colors.textSecondary,
+                                fontSize = 11.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            tint = colors.accent,
+                            modifier = Modifier.width(16.dp)
+                        )
+                    }
+                }
+                Spacer(Modifier.height(gap))
+            }
 
             // Mini-révision : le plus court des apprentissages, uniquement si
             // des cartes attendent. Rien d'inventé quand tout est à jour.
@@ -258,7 +294,9 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
             // La prochaine découverte : une ligne calme, pas une file
             // d'attente. Une seule chose à venir.
             Text(
-                stringResource(R.string.home_next_discovery),
+                motDemain?.let {
+                    stringResource(R.string.mot_du_jour_tomorrow, it.mot)
+                } ?: stringResource(R.string.home_next_discovery),
                 color = colors.textSecondary,
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center,
