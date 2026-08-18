@@ -265,6 +265,7 @@
     <string name="profile_level_xp">Niveau %1$d · %2$s XP</string>
     <string name="profile_menu_title">Menu</string>
     <string name="profile_menu_export">Exporter mes données</string>
+    <string name="profile_export_done">💾 Sauvegarde écrite (%1$d ko).</string>
     <string name="profile_metric_culture">Culture</string>
     <string name="profile_metric_memos">Mémos</string>
     <string name="profile_metric_rhythm">Rythme 7 j</string>

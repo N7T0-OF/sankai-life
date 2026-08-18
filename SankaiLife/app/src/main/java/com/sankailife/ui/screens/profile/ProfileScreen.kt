@@ -1,5 +1,7 @@
 package com.sankailife.ui.screens.profile
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,12 +25,18 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -36,10 +44,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sankailife.R
+import com.sankailife.SankaiApplication
+import com.sankailife.core.data.sauvegarde.SauvegardeRepository
 import com.sankailife.ui.navigation.Screen
+import com.sankailife.ui.theme.DangerRed
 import com.sankailife.ui.theme.ProfileAvatar
+import com.sankailife.ui.theme.SuccessGreen
 import com.sankailife.ui.theme.sankaiColors
 import java.text.NumberFormat
+import kotlinx.coroutines.launch
 
 /**
  * Profil, structure de la maquette « Swann » : avatar, niveau, trois cartes
@@ -64,6 +77,45 @@ fun ProfileScreen(viewModel: ProfileViewModel, onNavigate: (String) -> Unit) {
     val memosPct = if (memorisation.total > 0) {
         (memorisation.maitrisees * 100 / memorisation.total).coerceIn(0, 100)
     } else 0
+
+    // Export direct depuis le profil : le sélecteur Android choisit la
+    // destination, l'application n'écrit jamais où elle veut. Le format est le
+    // même que dans Paramètres — ZIP contenant du JSON, lisible après migration.
+    val contexte = LocalContext.current
+    val app = contexte.applicationContext as SankaiApplication
+    val portee = rememberCoroutineScope()
+    val depot = remember { SauvegardeRepository(contexte, app.database) }
+    var messageExport by remember { mutableStateOf<String?>(null) }
+    var exportReussi by remember { mutableStateOf(false) }
+
+    val creerExport = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/zip")
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        portee.launch {
+            runCatching { depot.exporter(uri) }
+                .onSuccess { octets ->
+                    exportReussi = true
+                    messageExport = contexte.getString(
+                        R.string.profile_export_done, octets / 1024
+                    )
+                }
+                .onFailure {
+                    exportReussi = false
+                    messageExport = contexte.getString(
+                        R.string.settings_backup_failed, it.message
+                    )
+                }
+        }
+    }
+
+    // Un message qui s'efface seul : le confirmer, puis rendre la main à la vie.
+    LaunchedEffect(messageExport) {
+        if (messageExport != null) {
+            kotlinx.coroutines.delay(5_000)
+            messageExport = null
+        }
+    }
 
     Column(
         Modifier
@@ -158,7 +210,15 @@ fun ProfileScreen(viewModel: ProfileViewModel, onNavigate: (String) -> Unit) {
             emoji = "💾",
             fond = Color(0x297EA88A),
             libelle = stringResource(R.string.profile_menu_export)
-        ) { onNavigate(Screen.Settings.route) }
+        ) { creerExport.launch(SauvegardeRepository.nomProposé()) }
+        messageExport?.let { texte ->
+            Spacer(Modifier.height(6.dp))
+            Text(
+                texte,
+                color = if (exportReussi) SuccessGreen else DangerRed,
+                fontSize = 12.sp
+            )
+        }
 
         // ── Progression réelle : cinq dimensions, aucune obligation ──────
         Spacer(Modifier.height(22.dp))

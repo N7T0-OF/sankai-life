@@ -248,6 +248,7 @@
     <string name="profile_level_xp">Nível %1$d · %2$s XP</string>
     <string name="profile_menu_title">Menu</string>
     <string name="profile_menu_export">Exportar os meus dados</string>
+    <string name="profile_export_done">💾 Backup gravado (%1$d kB).</string>
     <string name="profile_metric_culture">Cultura</string>
     <string name="profile_metric_memos">Memorandos</string>
     <string name="profile_metric_rhythm">Ritmo de 7 dias</string>
