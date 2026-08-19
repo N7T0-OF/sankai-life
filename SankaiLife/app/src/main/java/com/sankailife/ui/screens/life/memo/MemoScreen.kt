@@ -93,13 +93,21 @@ import com.sankailife.ui.theme.sankaiColors
 import kotlinx.coroutines.launch
 import java.util.Locale
 
-private val memoAccents = listOf(
-    Color(0xFF63B8FF),
-    Color(0xFF9B8AFB),
-    Color(0xFF58C98B),
-    Color(0xFFFFB84D),
-    Color(0xFFE77DA8)
-)
+/**
+ * Accent d'une carte de module, tiré du thème actif.
+ *
+ * C'était cinq pastels codés en dur : chaque carte avait sa propre couleur,
+ * ignorait la palette du téléphone et ne disait rien du module. Les trois
+ * rôles du thème (primary, secondary, tertiary) tournent à la place — un
+ * téléphone jaune donne des cartes jaunes, un téléphone violet des cartes
+ * violettes, en clair comme en sombre.
+ */
+@Composable
+private fun accentMemo(id: Long): Color {
+    val schema = MaterialTheme.colorScheme
+    val roles = listOf(schema.primary, schema.secondary, schema.tertiary)
+    return roles[Math.floorMod(id.toInt(), roles.size)]
+}
 
 /**
  * Bibliothèque d'apprentissage : chaque Mémo est traité comme un module de
@@ -326,7 +334,7 @@ private fun MemoTopBar(profileCount: Int, onBack: () -> Unit, onAdd: () -> Unit)
             onClick = onAdd,
             modifier = Modifier.size(48.dp)
         ) {
-            Icon(Icons.Filled.Add, null, tint = RewardGold)
+            Icon(Icons.Filled.Add, null, tint = colors.textPrimary)
         }
     }
 }
@@ -334,6 +342,7 @@ private fun MemoTopBar(profileCount: Int, onBack: () -> Unit, onAdd: () -> Unit)
 @Composable
 private fun MemoOverview(profileCount: Int, totalCards: Int, dueCards: Int) {
     val colors = MaterialTheme.sankaiColors
+    val secondaire = MaterialTheme.colorScheme.secondary
     LiquidGlassSurface(
         modifier = Modifier.fillMaxWidth(),
         forme = RoundedCornerShape(SankaiRadius.Large),
@@ -345,10 +354,10 @@ private fun MemoOverview(profileCount: Int, totalCards: Int, dueCards: Int) {
                     Modifier
                         .size(48.dp)
                         .clip(RoundedCornerShape(SankaiRadius.Medium))
-                        .background(AccentViolet.copy(alpha = 0.22f)),
+                        .background(secondaire.copy(alpha = 0.16f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Filled.AutoStories, null, tint = AccentViolet)
+                    Icon(Icons.Filled.AutoStories, null, tint = secondaire)
                 }
                 Spacer(Modifier.width(SankaiSpacing.Md))
                 Column(Modifier.weight(1f)) {
@@ -369,17 +378,14 @@ private fun MemoOverview(profileCount: Int, totalCards: Int, dueCards: Int) {
             Row(horizontalArrangement = Arrangement.spacedBy(SankaiSpacing.Sm)) {
                 MemoSummaryChip(
                     text = stringResource(R.string.memo_summary_modules, profileCount),
-                    color = AccentViolet,
                     modifier = Modifier.weight(1f)
                 )
                 MemoSummaryChip(
                     text = stringResource(R.string.memo_summary_cards, totalCards),
-                    color = AccentCyan,
                     modifier = Modifier.weight(1f)
                 )
                 MemoSummaryChip(
                     text = stringResource(R.string.memo_summary_due, dueCards),
-                    color = if (dueCards > 0) RewardGold else SuccessGreen,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -388,19 +394,20 @@ private fun MemoOverview(profileCount: Int, totalCards: Int, dueCards: Int) {
 }
 
 @Composable
-private fun MemoSummaryChip(text: String, color: Color, modifier: Modifier = Modifier) {
+private fun MemoSummaryChip(text: String, modifier: Modifier = Modifier) {
+    val c = MaterialTheme.sankaiColors
     Box(
         modifier
             .heightIn(min = 48.dp)
             .clip(RoundedCornerShape(SankaiRadius.Medium))
-            .background(color.copy(alpha = 0.13f))
-            .border(1.dp, color.copy(alpha = 0.28f), RoundedCornerShape(SankaiRadius.Medium))
+            .background(c.surface3.copy(alpha = 0.6f))
+            .border(1.dp, c.border, RoundedCornerShape(SankaiRadius.Medium))
             .padding(horizontal = SankaiSpacing.Sm, vertical = SankaiSpacing.Sm),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text,
-            color = color,
+            color = c.textPrimary,
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
@@ -519,7 +526,7 @@ fun MemoProfileListCard(
     onShare: () -> Unit
 ) {
     val colors = MaterialTheme.sankaiColors
-    val accent = memoAccents[Math.floorMod(profile.id.toInt(), memoAccents.size)]
+    val accent = accentMemo(profile.id)
     var showDelete by remember(profile.id) { mutableStateOf(false) }
     val total = stats?.total ?: 0
     val due = stats?.dues ?: 0
