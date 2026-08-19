@@ -168,7 +168,18 @@ fun SankaiNavGraph(
             }
             composable(Screen.Academy.route) {
                 val vm: AcademieViewModel = viewModel(factory = AcademieViewModel.factory(app))
-                AcademieScreen(viewModel = vm, onNavigate = { navController.navigate(it) })
+                val memoVm: MemoViewModel = viewModel(factory = MemoViewModel.factory(app))
+                AcademieScreen(
+                    viewModel = vm,
+                    memoViewModel = memoVm,
+                    onNavigate = { navController.navigate(it) },
+                    onEdit = { id -> navController.navigate(Screen.MemoEditor.createRoute(id)) },
+                    onReviserErreurs = {
+                        navController.navigate(
+                            Screen.Flashcards.createRoute(FlashcardsViewModel.PROFIL_ERREURS)
+                        )
+                    }
+                )
             }
             composable(Screen.Life.route) {
                 val vieVm: ModeVieViewModel =

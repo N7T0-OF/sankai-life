@@ -1,9 +1,13 @@
 package com.sankailife.ui.screens.academie
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,465 +15,746 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.ui.draw.clip
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sankailife.R
+import com.sankailife.core.data.db.dao.StatsModule
+import com.sankailife.core.data.db.entities.MemoProfileEntity
+import com.sankailife.core.learning.domain.GroupementEngine
 import com.sankailife.ui.components.SankaiButton
 import com.sankailife.ui.components.SankaiCard
-import com.sankailife.ui.components.SectionTitle
+import com.sankailife.ui.components.SankaiFloatingButton
 import com.sankailife.ui.navigation.Screen
+import com.sankailife.ui.screens.life.flashcards.FlashcardsViewModel
+import com.sankailife.ui.screens.life.memo.CarteMesErreurs
+import com.sankailife.ui.screens.life.memo.ImportModuleBouton
+import com.sankailife.ui.screens.life.memo.MemoViewModel
 import com.sankailife.ui.theme.Drawxsouanpt
+import com.sankailife.ui.theme.SankaiRadius
+import com.sankailife.ui.theme.SankaiSpacing
 import com.sankailife.ui.theme.sankaiColors
 
 /**
- * L'accueil de l'Académie.
+ * L'onglet Apprendre, devenu la bibliothèque d'apprentissage.
  *
- * **Une seule action passe devant.** L'écran qu'il remplace montrait Focus,
- * objectifs, mémos, slots de module et boutique côte à côte, tous de la même
- * taille : on y lisait ce qu'on *pouvait* faire, jamais ce qu'on *devait*
- * faire, et le premier réflexe devant six portes équivalentes est de n'en
- * ouvrir aucune.
+ * La maquette rassemblait deux écrans : l'entrée « Académie » (decks) et la
+ * bibliothèque « Mémos » (stats, modules, erreurs, import). L'application n'a
+ * qu'un onglet — il porte donc les deux : la bibliothèque d'abord, et la
+ * révision express comme action la plus courte, juste après les chiffres.
  *
- * Le reste n'est pas supprimé pour autant — il descend simplement en dessous
- * de la recommandation. Retirer des outils que quelqu'un utilise déjà pour
- * « simplifier » serait décider à sa place.
+ * Un parcours est une carte-dossier : pourcentage, drapeau, niveaux, barre de
+ * maîtrise, « Continuer → » vers là où on s'est arrêté, et les niveaux
+ * s'ouvrent à l'intérieur. Un module seul tient dans une carte compacte, en
+ * grille de deux, comme la maquette.
+ *
+ * La suppression ne se déclenche jamais au simple appui : il faut maintenir
+ * (« HOLD TO DELETE »), puis confirmer. Rien ne disparaît sans un geste
+ * explicite et un décompte de ce qu'on perd.
  */
 @Composable
 fun AcademieScreen(
     viewModel: AcademieViewModel,
-    onNavigate: (String) -> Unit
+    memoViewModel: MemoViewModel,
+    onNavigate: (String) -> Unit,
+    onEdit: (Long) -> Unit,
+    onReviserErreurs: () -> Unit
 ) {
     val etat by viewModel.etat.collectAsStateWithLifecycle()
-    val message by viewModel.message.collectAsStateWithLifecycle()
-    val deplies by viewModel.deplies.collectAsStateWithLifecycle()
+    val messageAcademie by viewModel.message.collectAsStateWithLifecycle()
+    val profiles by memoViewModel.profiles.collectAsState()
+    val groupes by memoViewModel.groupes.collectAsState()
+    val deplies by memoViewModel.deplies.collectAsState()
+    val aDesinstaller by memoViewModel.aDesinstaller.collectAsState()
+    val message by memoViewModel.message.collectAsState()
+    val stats by memoViewModel.statsParModule.collectAsState()
     val c = MaterialTheme.sankaiColors
     val snackbar = remember { SnackbarHostState() }
 
-    LaunchedEffect(message) {
-        if (message.isNotBlank()) {
-            snackbar.showSnackbar(message)
-            viewModel.messageAffiche()
+    // Ouvre le parcours en cours à l'arrivée, une seule fois : « Continuer »
+    // doit être visible sans avoir à deviner qu'il faut déplier.
+    LaunchedEffect(Unit) { memoViewModel.ouvertureInitiale() }
+
+    LaunchedEffect(message, messageAcademie) {
+        val texte = message.ifBlank { messageAcademie }
+        if (texte.isNotBlank()) {
+            snackbar.showSnackbar(texte)
+            if (message.isNotBlank()) memoViewModel.messageAffiche()
+            if (messageAcademie.isNotBlank()) viewModel.messageAffiche()
         }
     }
+
+    var aSupprimer by remember { mutableStateOf<MemoProfileEntity?>(null) }
+
+    val totalCards = stats.values.sumOf { it.total }
+    val dueCards = stats.values.sumOf { it.dues }
 
     Box(Modifier.fillMaxSize().background(c.background)) {
         Column(Modifier.fillMaxSize()) {
-            if (etat.chargement) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = c.accent)
-                }
-                return@Column
-            }
+            EnTeteMemos(
+                profileCount = profiles.size,
+                onAjouter = { memoViewModel.createNewProfile(onCreated = onEdit) }
+            )
 
-            Column(
-                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    start = SankaiSpacing.Lg,
+                    top = SankaiSpacing.Sm,
+                    end = SankaiSpacing.Lg,
+                    bottom = SankaiSpacing.Xl
+                ),
+                verticalArrangement = Arrangement.spacedBy(SankaiSpacing.Md)
             ) {
-                Text(
-                    stringResource(R.string.academy_title), color = c.textPrimary,
-                    fontSize = 26.sp, fontWeight = FontWeight.Normal,
-                    fontFamily = Drawxsouanpt
-                )
-                Text(
-                    stringResource(R.string.academy_subtitle),
-                    color = c.textSecondary, fontSize = 13.sp
-                )
-                Spacer(Modifier.height(18.dp))
-
-                // La suite du parcours passe avant tout : c'est l'action la
-                // plus longue à voir et la plus utile — « continuer » là où
-                // on s'est arrêté. La découverte culturelle vit dans sa propre
-                // section, pas ici.
-                when {
-                    etat.suite != null -> CarteSuite(etat.suite!!, onNavigate)
-                    etat.modulesDisponibles.isNotEmpty() -> RienAFaire()
-                    else -> PremierPas(onNavigate)
+                item {
+                    CarteBibliotheque(
+                        profileCount = profiles.size,
+                        totalCards = totalCards,
+                        dueCards = dueCards
+                    )
                 }
-                Spacer(Modifier.height(10.dp))
 
-                // La révision express : l'action la plus courte et la plus
-                // utile quand on a deux minutes. Elle se compose toute seule
-                // (deux difficiles, une ancienne, une nouvelle) et se termine
-                // seule — on n'est jamais invité à « continuer pour gagner ».
-                CarteRevisionExpress(onNavigate)
-
-                if (etat.cartesDues > 0) {
-                    Spacer(Modifier.height(20.dp))
-                    SectionTitle(stringResource(R.string.academy_revisions))
-                    Spacer(Modifier.height(8.dp))
-                    SankaiCard(onClick = {
+                // La révision express : l'action la plus courte passe devant.
+                // Elle se compose toute seule et se termine seule — on n'est
+                // jamais invité à « continuer pour gagner ».
+                item {
+                    CarteRevisionExpress(onReviser = {
                         onNavigate(
-                            Screen.Flashcards.createRoute(
-                                com.sankailife.ui.screens.life.flashcards
-                                    .FlashcardsViewModel.PROFIL_ERREURS
-                            )
+                            Screen.Flashcards.createRoute(FlashcardsViewModel.PROFIL_EXPRESS)
                         )
-                    }) {
-                        Text(
-                            pluralStringResource(
-                                R.plurals.academy_due_cards, etat.cartesDues, etat.cartesDues
-                            ),
-                            color = c.textPrimary, fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            // On dit d'où vient la liste : une révision dont on
-                            // comprend la raison se fait, une révision
-                            // arbitraire s'évite.
-                            stringResource(R.string.academy_due_reason),
-                            color = c.textSecondary, fontSize = 12.sp
-                        )
-                    }
+                    })
                 }
 
-                if (etat.semaine.isNotEmpty()) {
-                    Spacer(Modifier.height(20.dp))
-                    SectionTitle(stringResource(R.string.academy_regularity))
-                    Spacer(Modifier.height(8.dp))
-                    SankaiCard {
-                        Text(
-                            pluralStringResource(
-                                R.plurals.academy_days_week, etat.joursActifs, etat.joursActifs
-                            ),
-                            color = c.textPrimary, fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        // Une pastille par jour : lire sa semaine en un coup
-                        // d'œil, sans compteur à faire grossir. Le jour actif
-                        // est rempli, le jour sans session reste sobre.
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            etat.semaine.forEach { jour ->
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Box(
-                                        Modifier
-                                            .size(30.dp)
-                                            .clip(androidx.compose.foundation.shape.CircleShape)
-                                            .background(
-                                                when {
-                                                    jour.actif -> c.accent
-                                                    jour.aujourdHui -> c.surface3
-                                                    else -> c.surface2
-                                                }
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            jour.libelle,
-                                            color = if (jour.actif) {
-                                                if (c.isDark) androidx.compose.ui.graphics.Color.White
-                                                else c.background
-                                            } else c.textSecondary,
-                                            fontSize = 13.sp,
-                                            fontWeight = if (jour.actif) FontWeight.Bold else FontWeight.Medium
-                                        )
-                                    }
-                                    Spacer(Modifier.height(4.dp))
-                                    if (jour.aujourdHui) {
-                                        Text(
-                                            stringResource(R.string.academy_today),
-                                            color = c.textSecondary, fontSize = 9.sp
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                        Spacer(Modifier.height(10.dp))
-                        Text(
-                            // Compté en jours, pas en sessions : trois sessions
-                            // le même soir ne font pas trois jours de
-                            // régularité, et prétendre le contraire serait
-                            // flatteur et faux.
-                            stringResource(R.string.academy_days_distinct),
-                            color = c.textSecondary, fontSize = 12.sp
-                        )
+                if (groupes.isEmpty()) {
+                    item {
+                        CarteVide(onCreer = { memoViewModel.createNewProfile(onCreated = onEdit) })
                     }
-                }
+                } else {
+                    item { TitreSection(stringResource(R.string.academy_my_modules)) }
 
-                if (etat.modulesDisponibles.isNotEmpty()) {
-                    Spacer(Modifier.height(20.dp))
-                    SectionTitle(stringResource(R.string.academy_my_modules))
-                    Spacer(Modifier.height(8.dp))
-                    // Un dossier par parcours, pas six cartes identiques.
-                    //
-                    // « Mes modules » affichait A1 a C2 comme six entrees de
-                    // meme poids, melangees aux pense-betes : on ne distinguait
-                    // plus un parcours complet d'une liste de courses.
-                    etat.groupes.forEach { groupe ->
-                        val ouvert = groupe.id in deplies
-                        if (!groupe.estParcours) {
-                            val membre = groupe.modules.first()
-                            LigneModule(
-                                titre = membre.nom.ifBlank {
-                                    stringResource(R.string.academy_module_unnamed)
+                    // Un parcours tient dans une carte-dossier pleine largeur :
+                    // pas six cartes identiques alignées, mais un dossier qui
+                    // s'ouvre sur ses niveaux — les niveaux vivent À l'intérieur
+                    // de la carte (CarteParcours), pas dans des items séparés :
+                    // les afficher deux fois les aurait dupliqués.
+                    groupes.filter { it.estParcours }.forEach { groupe ->
+                        item(key = "parcours_${groupe.id}") {
+                            CarteParcours(
+                                groupe = groupe,
+                                ouvert = groupe.id in deplies,
+                                suite = etat.suite,
+                                emoji = emojiDuGroupe(groupe, profiles),
+                                stats = stats,
+                                onBasculer = { memoViewModel.basculerGroupe(groupe.id) },
+                                onContinuer = { profileId ->
+                                    onNavigate(Screen.Parcours.createRoute(profileId))
                                 },
-                                details = pluralStringResource(
-                                    R.plurals.academy_cards_count, membre.cartes, membre.cartes
-                                ),
-                                onClick = {
-                                    onNavigate(Screen.Parcours.createRoute(membre.profileId))
+                                onDesinstaller = { memoViewModel.demanderDesinstallation(groupe) },
+                                onOuvrirNiveau = { profileId ->
+                                    onNavigate(Screen.Parcours.createRoute(profileId))
                                 }
                             )
-                        } else {
-                            SankaiCard(
-                                modifier = Modifier.padding(bottom = 8.dp),
-                                onClick = { viewModel.basculerGroupe(groupe.id) }
-                            ) {
-                                Row(
-                                    Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column(Modifier.fillMaxWidth(0.84f)) {
-                                        Text(
-                                            groupe.titre, color = c.textPrimary,
-                                            fontSize = 16.sp, fontWeight = FontWeight.Bold
-                                        )
-                                        Text(
-                                            groupe.resume,
-                                            color = c.textSecondary, fontSize = 12.sp
-                                        )
-                                        Spacer(Modifier.height(6.dp))
-                                        LinearProgressIndicator(
-                                            progress = { groupe.progression },
-                                            modifier = Modifier.fillMaxWidth(),
-                                            color = c.accent,
-                                            trackColor = c.surface3
-                                        )
-                                    }
-                                    Text(
-                                        if (ouvert) "⌃" else "⌄",
-                                        color = c.textSecondary, fontSize = 20.sp
-                                    )
-                                }
-                            }
-                            if (ouvert) {
-                                groupe.modules.forEach { membre ->
-                                    Box(Modifier.padding(start = 14.dp)) {
-                                        LigneModule(
-                                            titre = membre.nom,
-                                            details = buildList {
-                                                if (membre.niveau.isNotBlank()) add(membre.niveau)
-                                                add(
-                                                    pluralStringResource(
-                                                        R.plurals.academy_cards_count,
-                                                        membre.cartes, membre.cartes
-                                                    )
-                                                )
-                                                add("${(membre.progression * 100).toInt()} %")
-                                            }.joinToString(" · "),
+                        }
+                    }
+
+                    // Les modules seuls tiennent dans des cartes compactes, en
+                    // grille de deux, avec « Nouveau dossier » pour compléter —
+                    // comme la maquette.
+                    val seuls = groupes.filterNot { it.estParcours }
+                    val cellules: List<Long> =
+                        seuls.map { it.modules.first().profileId } + listOf(NOUVEAU_DOSSIER)
+                    cellules.chunked(2).forEach { rangee ->
+                        item {
+                            Row(horizontalArrangement = Arrangement.spacedBy(SankaiSpacing.Md)) {
+                                rangee.forEach { profileId ->
+                                    if (profileId == NOUVEAU_DOSSIER) {
+                                        CarteNouveauDossier(
                                             onClick = {
-                                                onNavigate(
-                                                    Screen.Parcours.createRoute(membre.profileId)
-                                                )
-                                            }
+                                                memoViewModel.createNewProfile(onCreated = onEdit)
+                                            },
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    } else {
+                                        val groupe = seuls.first {
+                                            it.modules.first().profileId == profileId
+                                        }
+                                        CarteModuleSeul(
+                                            groupe = groupe,
+                                            stats = stats[profileId],
+                                            emoji = emojiDuGroupe(groupe, profiles),
+                                            onOuvrir = {
+                                                onNavigate(Screen.Parcours.createRoute(profileId))
+                                            },
+                                            onSupprimer = {
+                                                aSupprimer = profiles.firstOrNull {
+                                                    it.id == profileId
+                                                }
+                                            },
+                                            modifier = Modifier.weight(1f)
                                         )
                                     }
                                 }
+                                if (rangee.size == 1) Spacer(Modifier.weight(1f))
                             }
                         }
                     }
+
+                    item {
+                        CarteMesErreurs(memoViewModel, onReviser = onReviserErreurs)
+                    }
                 }
 
-                // Le contenu, accessible d'un geste : créer un module.
-                //
-                // Focus et Objectifs ont été retirés : le téléphone a déjà un
-                // minuteur et un gestionnaire de tâches, et le calendrier
-                // Android (lecture seule) valorise désormais les événements
-                // terminés depuis la section Vie.
-                Spacer(Modifier.height(20.dp))
-                SectionTitle(stringResource(R.string.academy_content))
-                Spacer(Modifier.height(8.dp))
-                SankaiButton(
-                    stringResource(R.string.academy_create_module),
-                    onClick = { onNavigate(Screen.Memo.route) },
-                    secondary = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(Modifier.height(28.dp))
+                item { ImportModuleBouton() }
             }
         }
 
-        SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(16.dp))
+        aDesinstaller?.let { cible ->
+            AlertDialog(
+                onDismissRequest = { memoViewModel.annulerDesinstallation() },
+                title = { Text(stringResource(R.string.memo_uninstall_title, cible.titre)) },
+                text = {
+                    Text(
+                        stringResource(
+                            R.string.memo_uninstall_body,
+                            cible.profileIds.size,
+                            cible.cartes
+                        )
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = { memoViewModel.confirmerDesinstallation() }) {
+                        Text(stringResource(R.string.memo_uninstall_action))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { memoViewModel.annulerDesinstallation() }) {
+                        Text(stringResource(R.string.action_cancel))
+                    }
+                }
+            )
+        }
+
+        aSupprimer?.let { profil ->
+            AlertDialog(
+                onDismissRequest = { aSupprimer = null },
+                title = { Text(stringResource(R.string.memo_delete_title)) },
+                text = {
+                    Text(
+                        stringResource(
+                            R.string.memo_delete_confirmation,
+                            profil.name.ifBlank {
+                                stringResource(R.string.memo_default_name)
+                            }
+                        )
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        memoViewModel.deleteProfile(profil.id)
+                        aSupprimer = null
+                    }) {
+                        Text(stringResource(R.string.memo_delete))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { aSupprimer = null }) {
+                        Text(stringResource(R.string.action_cancel))
+                    }
+                }
+            )
+        }
+
+        SnackbarHost(
+            hostState = snackbar,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(SankaiSpacing.Lg)
+        )
     }
 }
 
-/**
- * La révision express : cinq notions choisies par le moteur, en deux minutes.
- *
- * Toujours visible, même quand tout est à jour : s'il n'y a rien à réviser,
- * la session le dit et se termine. Le bouton n'est jamais grisé — griser un
- * point d'entrée utile serait dire « il n'y a rien à faire », ce qui est
- * exactement le contraire de ce qu'une session courte doit dire.
- */
+/** Identifiant de la cellule « Nouveau dossier » dans la grille de decks. */
+private const val NOUVEAU_DOSSIER = -1L
+
 @Composable
-private fun CarteRevisionExpress(onNavigate: (String) -> Unit) {
+private fun EnTeteMemos(profileCount: Int, onAjouter: () -> Unit) {
     val c = MaterialTheme.sankaiColors
-    SankaiCard(onClick = {
-        onNavigate(
-            Screen.Flashcards.createRoute(
-                com.sankailife.ui.screens.life.flashcards
-                    .FlashcardsViewModel.PROFIL_EXPRESS
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = SankaiSpacing.Lg, vertical = SankaiSpacing.Sm),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                stringResource(R.string.memo_title),
+                color = c.textPrimary,
+                fontSize = 26.sp,
+                fontFamily = Drawxsouanpt
             )
+            Text(
+                stringResource(R.string.memo_profile_count, profileCount),
+                color = c.textSecondary, fontSize = 13.sp
+            )
+        }
+        SankaiFloatingButton(
+            contentDescription = stringResource(R.string.memo_create),
+            onClick = onAjouter,
+            // Sans taille fixe, le bouton s'étend à tout l'espace offert par la
+            // ligne (sizeIn ne plafonne pas et son contenu est fillMaxSize) :
+            // il recouvrait l'écran et masquait le reste de la bibliothèque.
+            modifier = Modifier.size(48.dp)
+        ) {
+            Icon(Icons.Filled.Add, null, tint = c.textPrimary)
+        }
+    }
+}
+
+/** « Ta bibliothèque » : les trois chiffres à lire d'un coup d'œil. */
+@Composable
+private fun CarteBibliotheque(profileCount: Int, totalCards: Int, dueCards: Int) {
+    val c = MaterialTheme.sankaiColors
+    SankaiCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("📚", fontSize = 30.sp)
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    stringResource(R.string.memo_library_title),
+                    color = c.textPrimary, fontSize = 17.sp, fontWeight = FontWeight.Bold
+                )
+                Text(
+                    stringResource(R.string.memo_library_hint),
+                    color = c.textSecondary, fontSize = 12.sp
+                )
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            StatMini(
+                stringResource(R.string.memo_stat_modules),
+                formatCount(profileCount),
+                Modifier.weight(1f)
+            )
+            StatMini(
+                stringResource(R.string.memo_stat_cards),
+                formatCount(totalCards),
+                Modifier.weight(1f)
+            )
+            StatMini(
+                stringResource(R.string.memo_stat_due),
+                formatCount(dueCards),
+                Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatMini(label: String, value: String, modifier: Modifier = Modifier) {
+    val c = MaterialTheme.sankaiColors
+    Column(
+        modifier
+            .clip(RoundedCornerShape(SankaiRadius.Medium))
+            .background(c.surface3.copy(alpha = 0.55f))
+            .padding(vertical = 10.dp, horizontal = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            label.uppercase(),
+            color = c.textSecondary, fontSize = 8.sp, letterSpacing = 0.4.sp
         )
-    }) {
+        Text(value, color = c.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+/** La révision express : cinq notions choisies par le moteur, en deux minutes. */
+@Composable
+private fun CarteRevisionExpress(onReviser: () -> Unit) {
+    val c = MaterialTheme.sankaiColors
+    SankaiCard(onClick = onReviser) {
         Row(
             Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("⚡", color = c.accent, fontSize = 24.sp)
+            Text("⚡", fontSize = 24.sp)
             Column(Modifier.weight(1f)) {
                 Text(
                     stringResource(R.string.academy_express_title),
-                    color = c.textPrimary, fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold
+                    color = c.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold
                 )
                 Text(
                     stringResource(R.string.academy_express_desc),
                     color = c.textSecondary, fontSize = 12.sp
                 )
             }
-            Text("›", color = c.textSecondary, fontSize = 24.sp)
+            Text("›", color = c.textSecondary, fontSize = 22.sp)
         }
     }
 }
 
-/** La recommandation du jour. Le seul élément mis en avant. */
+/** La carte-dossier d'un parcours : progression, « Continuer », niveaux. */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-private fun CarteSuite(
-    suite: AcademieViewModel.Suite,
-    onNavigate: (String) -> Unit
+private fun CarteParcours(
+    groupe: GroupementEngine.Groupe,
+    ouvert: Boolean,
+    suite: AcademieViewModel.Suite?,
+    emoji: String,
+    stats: Map<Long, StatsModule>,
+    onBasculer: () -> Unit,
+    onContinuer: (Long) -> Unit,
+    onDesinstaller: () -> Unit,
+    onOuvrirNiveau: (Long) -> Unit
 ) {
     val c = MaterialTheme.sankaiColors
-    SankaiCard {
-        Text(
-            stringResource(R.string.academy_continue_badge),
-            color = c.accent, fontSize = 11.sp, fontWeight = FontWeight.Bold
-        )
-        Spacer(Modifier.height(6.dp))
-        Text(
-            suite.module.nom.ifBlank {
-                stringResource(R.string.academy_module_unnamed)
-            } + if (suite.module.niveau.isNotBlank()) " ${suite.module.niveau}" else "",
-            color = c.textPrimary, fontSize = 19.sp, fontWeight = FontWeight.Bold
-        )
-        Text(suite.unite.titre, color = c.textSecondary, fontSize = 13.sp)
-        Spacer(Modifier.height(10.dp))
+    val pct = (groupe.progression.coerceIn(0f, 1f) * 100).toInt()
+    val continueIci = suite != null &&
+        groupe.modules.any { it.profileId == suite.module.memoProfileId }
 
-        LinearProgressIndicator(
-            progress = { suite.progression },
-            modifier = Modifier.fillMaxWidth(),
-            color = c.accent,
-            trackColor = c.surface3
+    SankaiCard(
+        modifier = Modifier.combinedClickable(
+            onClick = onBasculer,
+            onLongClick = onDesinstaller
         )
-        Spacer(Modifier.height(6.dp))
-        Text(
-            stringResource(
-                R.string.academy_unit_progress, (suite.progression * 100).toInt()
-            ),
-            color = c.textSecondary, fontSize = 12.sp
-        )
-
-        Spacer(Modifier.height(10.dp))
-        Text(
-            // Annoncer la composition évite le sentiment de tirage au sort et
-            // permet de refuser une session dont on n'a pas le temps.
-            stringResource(
-                R.string.academy_session_estimate, suite.minutes, suite.resume
-            ),
-            color = c.textSecondary, fontSize = 12.sp
-        )
-        Spacer(Modifier.height(14.dp))
-        SankaiButton(
-            stringResource(R.string.academy_start),
-            onClick = {
-                onNavigate(Screen.Parcours.createRoute(suite.module.memoProfileId))
-            },
-            modifier = Modifier.fillMaxWidth()
-        )
-    }
-}
-
-/** Tout est à jour : on le dit, sans inventer une tâche pour meubler. */
-@Composable
-private fun RienAFaire() {
-    val c = MaterialTheme.sankaiColors
-    SankaiCard {
-        Text(stringResource(R.string.academy_all_caught_up), color = c.textPrimary,
-            fontSize = 17.sp, fontWeight = FontWeight.Bold)
-        Text(
-            stringResource(R.string.academy_all_caught_up_desc),
-            color = c.textSecondary, fontSize = 13.sp
-        )
-    }
-}
-
-/** Aucun contenu : on explique quoi faire, une seule chose. */
-@Composable
-private fun PremierPas(onNavigate: (String) -> Unit) {
-    val c = MaterialTheme.sankaiColors
-    SankaiCard {
-        Text(stringResource(R.string.academy_where_to_start), color = c.textPrimary,
-            fontSize = 17.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(4.dp))
-        Text(
-            stringResource(R.string.academy_where_to_start_desc),
-            color = c.textSecondary, fontSize = 13.sp
-        )
-        Spacer(Modifier.height(14.dp))
-        SankaiButton(
-            stringResource(R.string.academy_first_module),
-            onClick = { onNavigate(Screen.Memo.route) },
-            modifier = Modifier.fillMaxWidth()
-        )
-    }
-}
-
-/** Une ligne de module, au premier niveau ou sous son parcours. */
-@Composable
-private fun LigneModule(
-    titre: String,
-    details: String,
-    onClick: () -> Unit
-) {
-    val c = MaterialTheme.sankaiColors
-    SankaiCard(modifier = Modifier.padding(bottom = 8.dp), onClick = onClick) {
+    ) {
         Row(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text(titre, color = c.textPrimary, fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold)
-                Text(details, color = c.textSecondary, fontSize = 12.sp)
+            Text(emoji, fontSize = 28.sp)
+            Text(
+                "$pct%",
+                fontFamily = Drawxsouanpt, fontSize = 20.sp, color = c.accent
+            )
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            groupe.titre, color = c.textPrimary, fontSize = 16.sp,
+            fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis
+        )
+        Text(
+            resumeDuGroupe(groupe), color = c.textSecondary, fontSize = 11.5.sp
+        )
+        Spacer(Modifier.height(8.dp))
+        LinearProgressIndicator(
+            progress = { groupe.progression.coerceIn(0f, 1f) },
+            modifier = Modifier.fillMaxWidth(),
+            color = c.accent,
+            trackColor = c.surface3
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            stringResource(R.string.memo_mastery_percent, pct),
+            color = c.textSecondary, fontSize = 11.sp
+        )
+
+        if (continueIci) {
+            val suiteLocale = suite
+            Spacer(Modifier.height(12.dp))
+            HorizontalDivider(color = c.border.copy(alpha = 0.7f))
+            Spacer(Modifier.height(10.dp))
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clickable(role = Role.Button) {
+                        onContinuer(suiteLocale.module.memoProfileId)
+                    }
+                    .padding(vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        stringResource(R.string.memo_last_session),
+                        color = c.textSecondary, fontSize = 10.sp
+                    )
+                    Text(
+                        buildList {
+                            suiteLocale.module.niveau.takeIf { it.isNotBlank() }?.let { add(it) }
+                            add(suiteLocale.unite.titre)
+                        }.joinToString(" · "),
+                        color = c.textPrimary, fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Text(
+                    "${stringResource(R.string.memo_continue)} →",
+                    color = c.accent, fontSize = 14.sp, fontWeight = FontWeight.Bold
+                )
             }
-            Text("›", color = c.textSecondary, fontSize = 22.sp)
+        }
+
+        Spacer(Modifier.height(10.dp))
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                Modifier.clickable(role = Role.Button, onClick = onDesinstaller),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("🗑", fontSize = 12.sp)
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    stringResource(R.string.memo_hold_to_delete),
+                    color = c.textDisabled, fontSize = 8.5.sp, letterSpacing = 0.4.sp
+                )
+            }
+            Text(
+                if (ouvert) "⌃" else "⌄",
+                color = c.textSecondary, fontSize = 20.sp
+            )
+        }
+
+        if (ouvert) {
+            Spacer(Modifier.height(10.dp))
+            HorizontalDivider(color = c.border.copy(alpha = 0.7f))
+            Spacer(Modifier.height(6.dp))
+            groupe.modules.forEach { membre ->
+                LigneNiveau(
+                    membre = membre,
+                    stats = stats[membre.profileId],
+                    onClick = { onOuvrirNiveau(membre.profileId) }
+                )
+            }
         }
     }
+}
+
+/** Un module seul, en carte compacte de la grille. */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+@Composable
+private fun CarteModuleSeul(
+    groupe: GroupementEngine.Groupe,
+    stats: StatsModule?,
+    emoji: String,
+    onOuvrir: () -> Unit,
+    onSupprimer: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val c = MaterialTheme.sankaiColors
+    val membre = groupe.modules.first()
+    val total = stats?.total ?: 0
+    val dues = stats?.dues ?: 0
+    val pct = (membre.progression.coerceIn(0f, 1f) * 100).toInt()
+
+    SankaiCard(
+        modifier = modifier.combinedClickable(
+            onClick = onOuvrir,
+            onLongClick = onSupprimer
+        )
+    ) {
+        Column {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(emoji, fontSize = 26.sp)
+                Text("$pct%", fontFamily = Drawxsouanpt, fontSize = 17.sp, color = c.accent)
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                membre.nom.ifBlank { stringResource(R.string.academy_module_unnamed) },
+                color = c.textPrimary, fontSize = 13.5.sp, fontWeight = FontWeight.Bold,
+                maxLines = 2, overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                buildList {
+                    add("${formatCount(total)} ${stringResource(R.string.memo_cards_label).lowercase()}")
+                    add(
+                        if (dues > 0) stringResource(R.string.memo_summary_due, dues)
+                        else stringResource(R.string.memo_up_to_date)
+                    )
+                }.joinToString(" · "),
+                color = c.textSecondary, fontSize = 10.5.sp,
+                maxLines = 2, overflow = TextOverflow.Ellipsis
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "🗑  ${stringResource(R.string.memo_hold_to_delete)}",
+                    color = c.textDisabled, fontSize = 8.5.sp, letterSpacing = 0.4.sp
+                )
+                Text("›", color = c.textSecondary, fontSize = 18.sp)
+            }
+        }
+    }
+}
+
+/** Une ligne de niveau, sous la carte-dossier ouverte. */
+@Composable
+private fun LigneNiveau(
+    membre: GroupementEngine.Module,
+    stats: StatsModule?,
+    onClick: () -> Unit
+) {
+    val c = MaterialTheme.sankaiColors
+    val pct = (membre.progression.coerceIn(0f, 1f) * 100).toInt()
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(SankaiRadius.Small))
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                membre.nom, color = c.textPrimary, fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                buildList {
+                    add("${formatCount(membre.cartes)} cartes")
+                    add("$pct%")
+                }.joinToString(" · "),
+                color = c.textSecondary, fontSize = 11.sp
+            )
+        }
+        Text("›", color = c.textSecondary, fontSize = 18.sp)
+    }
+}
+
+/** « ＋ Nouveau dossier — Crée un thème », dernière cellule de la grille. */
+@Composable
+private fun CarteNouveauDossier(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val c = MaterialTheme.sankaiColors
+    Box(
+        modifier
+            .clip(RoundedCornerShape(SankaiRadius.Medium))
+            .background(c.surface2.copy(alpha = 0.5f))
+            .border(1.dp, c.border, RoundedCornerShape(SankaiRadius.Medium))
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(14.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("＋", color = c.textSecondary, fontSize = 22.sp)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                stringResource(R.string.memo_new_folder),
+                color = c.textSecondary, fontSize = 13.sp, fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+            Text(
+                stringResource(R.string.memo_new_folder_hint),
+                color = c.textDisabled, fontSize = 10.5.sp, textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+/** Aucun module : on explique quoi faire, sans chiffres à zéro. */
+@Composable
+private fun CarteVide(onCreer: () -> Unit) {
+    val c = MaterialTheme.sankaiColors
+    SankaiCard {
+        Column(
+            Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text("📚", fontSize = 34.sp)
+            Spacer(Modifier.height(10.dp))
+            Text(
+                stringResource(R.string.memo_empty_title),
+                color = c.textPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                stringResource(R.string.memo_empty_hint),
+                color = c.textSecondary, fontSize = 12.sp, textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(14.dp))
+            SankaiButton(
+                stringResource(R.string.memo_create_theme),
+                onClick = onCreer,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
+@Composable
+private fun TitreSection(texte: String) {
+    val c = MaterialTheme.sankaiColors
+    Text(
+        texte,
+        color = c.textPrimary, fontSize = 20.sp, fontFamily = Drawxsouanpt,
+        modifier = Modifier.padding(top = 14.dp, bottom = 4.dp)
+    )
+}
+
+/** « 6 niveaux · 1 240 cartes », sans inventer de libellé. */
+private fun resumeDuGroupe(groupe: GroupementEngine.Groupe): String = buildList {
+    add("${groupe.modules.size} niveaux")
+    add("${formatCount(groupe.cartes)} cartes")
+}.joinToString(" · ")
+
+/** Drapeau de la langue du premier module du groupe, sinon une icône neutre. */
+private fun emojiDuGroupe(
+    groupe: GroupementEngine.Groupe,
+    profiles: List<MemoProfileEntity>
+): String {
+    val langue = groupe.modules.firstNotNullOfOrNull { m ->
+        profiles.firstOrNull { it.id == m.profileId }
+            ?.langue?.trim()?.takeIf { it.isNotBlank() }
+    }
+    return when (langue?.lowercase()?.substringBefore('-')) {
+        "fr" -> "🇫🇷"
+        "pt" -> "🇵🇹"
+        "en" -> "🇬🇧"
+        "es" -> "🇪🇸"
+        "it" -> "🇮🇹"
+        "de" -> "🇩🇪"
+        else -> "📚"
+    }
+}
+
+/** 1240 → « 1 240 », sans dépendre de la locale. */
+private fun formatCount(n: Int): String {
+    val s = n.toString()
+    val sb = StringBuilder()
+    s.forEachIndexed { i, ch ->
+        if (i > 0 && (s.length - i) % 3 == 0) sb.append(' ')
+        sb.append(ch)
+    }
+    return sb.toString()
 }

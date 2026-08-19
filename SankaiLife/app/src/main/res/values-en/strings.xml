@@ -32,14 +32,23 @@
     <string name="memo_title">Memos</string>
     <string name="memo_profile_count">%1$d learning modules</string>
     <string name="memo_create">Create a Memo</string>
-    <string name="memo_library_title">Your learning library</string>
-    <string name="memo_library_hint">Turn your notes into short, regular sessions.</string>
+    <string name="memo_library_title">Your library</string>
+    <string name="memo_library_hint">Turn your notes into regular sessions.</string>
     <string name="memo_summary_modules">%1$d modules</string>
     <string name="memo_summary_cards">%1$d cards</string>
     <string name="memo_summary_due">%1$d to review</string>
     <string name="memo_empty_title">Your library is empty</string>
-    <string name="memo_empty_hint">Create a Memo, paste your text, then turn each line into a flashcard.</string>
+    <string name="memo_empty_hint">Create your first learning path or import a module.</string>
     <string name="memo_create_first">Create my first Memo</string>
+    <string name="memo_hold_to_delete">HOLD TO DELETE</string>
+    <string name="memo_new_folder">New folder</string>
+    <string name="memo_new_folder_hint">Create a theme</string>
+    <string name="memo_create_theme">Create a theme</string>
+    <string name="memo_stat_modules">Modules</string>
+    <string name="memo_stat_cards">Cards</string>
+    <string name="memo_stat_due">To review</string>
+    <string name="memo_continue">Continue</string>
+    <string name="memo_last_session">Last session</string>
     <string name="memo_errors_title">My mistakes</string>
     <string name="memo_errors_hint">Targeted practice, with no repeatable reward, for the cards that still need work.</string>
     <string name="memo_review_errors">Practice my mistakes</string>
@@ -277,43 +286,8 @@
     <string name="widget_description">Your day at a glance: cards to review and next reminder.</string>
 
     <!-- Academy -->
-    <string name="academy_title">Academy</string>
-    <string name="academy_subtitle">What you learn, and when</string>
-    <string name="academy_revisions">Reviews</string>
-    <plurals name="academy_due_cards">
-        <item quantity="one">%1$d card to review</item>
-        <item quantity="other">%1$d cards to review</item>
-    </plurals>
-    <string name="academy_due_reason">Their review date has passed.</string>
-    <string name="academy_regularity">Consistency</string>
-    <plurals name="academy_days_week">
-        <item quantity="one">%1$d day worked this week</item>
-        <item quantity="other">%1$d days worked this week</item>
-    </plurals>
-    <string name="academy_today">Today</string>
-    <string name="academy_days_distinct">Counted in distinct days, not sessions.</string>
     <string name="academy_my_modules">My modules</string>
     <string name="academy_module_unnamed">Unnamed module</string>
-    <plurals name="academy_cards_count">
-        <item quantity="one">%1$d card</item>
-        <item quantity="other">%1$d cards</item>
-    </plurals>
-    <string name="academy_tools">Tools</string>
-    <string name="academy_focus">Focus</string>
-    <string name="academy_focus_desc">Focus sessions</string>
-    <string name="academy_objectives">Objectives</string>
-    <string name="academy_objectives_desc">Your personal list</string>
-    <string name="academy_content">Content</string>
-    <string name="academy_create_module">Create or edit a module</string>
-    <string name="academy_continue_badge">CONTINUE</string>
-    <string name="academy_unit_progress">%1$d %% of the unit</string>
-    <string name="academy_session_estimate">≈ %1$d min · %2$s</string>
-    <string name="academy_start">Start</string>
-    <string name="academy_all_caught_up">All caught up</string>
-    <string name="academy_all_caught_up_desc">No card is waiting to be reviewed. Come back later, or add content to a module.</string>
-    <string name="academy_where_to_start">Where to start</string>
-    <string name="academy_where_to_start_desc">The Academy builds a path from your content. Create a module — a language, a subject, a word list — and the path lays itself out.</string>
-    <string name="academy_first_module">Create my first module</string>
     <string name="academy_load_error">Could not load the Academy.</string>
     <string name="academy_units_done">%1$d / %2$d units</string>
     <string name="academy_chapter">Chapter %1$d</string>

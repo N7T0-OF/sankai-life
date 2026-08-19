@@ -32,14 +32,23 @@
     <string name="memo_title">Memos</string>
     <string name="memo_profile_count">%1$d módulos de aprendizagem</string>
     <string name="memo_create">Criar um Memo</string>
-    <string name="memo_library_title">A tua biblioteca de aprendizagem</string>
-    <string name="memo_library_hint">Transforma as tuas notas em sessões curtas e regulares.</string>
+    <string name="memo_library_title">A tua biblioteca</string>
+    <string name="memo_library_hint">Transforma as tuas notas em sessões regulares.</string>
     <string name="memo_summary_modules">%1$d módulos</string>
     <string name="memo_summary_cards">%1$d cartões</string>
     <string name="memo_summary_due">%1$d por rever</string>
     <string name="memo_empty_title">A tua biblioteca está vazia</string>
-    <string name="memo_empty_hint">Cria um Memo, cola o texto e transforma cada linha num flashcard.</string>
+    <string name="memo_empty_hint">Cria o teu primeiro percurso de aprendizagem ou importa um módulo.</string>
     <string name="memo_create_first">Criar o meu primeiro Memo</string>
+    <string name="memo_hold_to_delete">HOLD TO DELETE</string>
+    <string name="memo_new_folder">Nova pasta</string>
+    <string name="memo_new_folder_hint">Cria um tema</string>
+    <string name="memo_create_theme">Criar um tema</string>
+    <string name="memo_stat_modules">Módulos</string>
+    <string name="memo_stat_cards">Cartões</string>
+    <string name="memo_stat_due">A rever</string>
+    <string name="memo_continue">Continuar</string>
+    <string name="memo_last_session">Última sessão</string>
     <string name="memo_errors_title">Os meus erros</string>
     <string name="memo_errors_hint">Treino direcionado, sem recompensa repetível, para os cartões mais difíceis.</string>
     <string name="memo_review_errors">Treinar os meus erros</string>
@@ -281,43 +290,8 @@
     <string name="widget_description">O teu dia de relance: cartões para rever e próximo lembrete.</string>
 
     <!-- Academia -->
-    <string name="academy_title">Academia</string>
-    <string name="academy_subtitle">O que aprendes, e quando</string>
-    <string name="academy_revisions">Revisões</string>
-    <plurals name="academy_due_cards">
-        <item quantity="one">%1$d cartão para rever</item>
-        <item quantity="other">%1$d cartões para rever</item>
-    </plurals>
-    <string name="academy_due_reason">A data de revisão já passou.</string>
-    <string name="academy_regularity">Regularidade</string>
-    <plurals name="academy_days_week">
-        <item quantity="one">%1$d dia trabalhado esta semana</item>
-        <item quantity="other">%1$d dias trabalhados esta semana</item>
-    </plurals>
-    <string name="academy_today">Hoje</string>
-    <string name="academy_days_distinct">Contado em dias distintos, não em sessões.</string>
     <string name="academy_my_modules">Os meus módulos</string>
     <string name="academy_module_unnamed">Módulo sem nome</string>
-    <plurals name="academy_cards_count">
-        <item quantity="one">%1$d cartão</item>
-        <item quantity="other">%1$d cartões</item>
-    </plurals>
-    <string name="academy_tools">Ferramentas</string>
-    <string name="academy_focus">Focus</string>
-    <string name="academy_focus_desc">Sessões de concentração</string>
-    <string name="academy_objectives">Objetivos</string>
-    <string name="academy_objectives_desc">A tua lista pessoal</string>
-    <string name="academy_content">Conteúdo</string>
-    <string name="academy_create_module">Criar ou editar um módulo</string>
-    <string name="academy_continue_badge">CONTINUAR</string>
-    <string name="academy_unit_progress">%1$d %% da unidade</string>
-    <string name="academy_session_estimate">≈ %1$d min · %2$s</string>
-    <string name="academy_start">Começar</string>
-    <string name="academy_all_caught_up">Tudo em dia</string>
-    <string name="academy_all_caught_up_desc">Nenhum cartão espera revisão. Volta mais tarde, ou adiciona conteúdo a um módulo.</string>
-    <string name="academy_where_to_start">Por onde começar</string>
-    <string name="academy_where_to_start_desc">A Academia constrói um percurso a partir do teu conteúdo. Cria um módulo — uma língua, uma matéria, uma lista de palavras — e o percurso organiza-se sozinho.</string>
-    <string name="academy_first_module">Criar o meu primeiro módulo</string>
     <string name="academy_load_error">Não foi possível carregar a Academia.</string>
     <string name="academy_units_done">%1$d / %2$d unidades</string>
     <string name="academy_chapter">Capítulo %1$d</string>
