@@ -135,6 +135,8 @@ class ModeVieViewModel(application: Application) : AndroidViewModel(application)
                     dernierGain = gain,
                     chargement = false
                 )
+            }.onSuccess { etat ->
+                _etat.value = etat
             }.onFailure {
                 _etat.value = _etat.value.copy(chargement = false)
             }
