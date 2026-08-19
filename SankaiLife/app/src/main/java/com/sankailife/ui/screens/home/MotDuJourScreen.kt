@@ -49,6 +49,7 @@ import com.sankailife.core.motdujour.MotDuJour
 import com.sankailife.core.motdujour.drapeau
 import com.sankailife.core.motdujour.libelleLangue
 import com.sankailife.ui.components.SankaiButton
+import com.sankailife.ui.theme.Drawxsouanpt
 import com.sankailife.ui.theme.sankaiColors
 
 /**
@@ -137,13 +138,16 @@ fun MotDuJourScreen(
 
                 Spacer(Modifier.height(22.dp))
 
-                // Le mot lui-même.
+                // Le mot lui-même : l'élément d'identité de l'écran, en
+                // police Sankai. Les caractères manquants (accents hors
+                // couverture) retombent sur la police système, sans casse.
                 Text(
                     mot.mot,
                     color = c.textPrimary,
-                    fontSize = 40.sp,
-                    lineHeight = 46.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontSize = 42.sp,
+                    lineHeight = 48.sp,
+                    fontWeight = FontWeight.Normal,
+                    fontFamily = Drawxsouanpt,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )

@@ -60,7 +60,13 @@ object DailyDiscovery {
     fun duJour(
         context: Context,
         profileId: String = "user-1",
-        history: List<CultureSelectionHistory> = emptyList()
+        history: List<CultureSelectionHistory> = emptyList(),
+        /**
+         * Langues réellement disponibles chez l'utilisateur (codes courts).
+         * Vide = toutes les langues ; renseigné, seule la découverte dans une
+         * de ces langues est proposée.
+         */
+        enabledLanguages: Set<String> = emptySet()
     ): DailyCultureEntry? {
         val cat = catalogue(context)
         if (cat.entries.isEmpty()) return null
@@ -71,6 +77,7 @@ object DailyDiscovery {
                 localDate = LocalDate.now(),
                 packVersion = cat.version,
                 history = history,
+                enabledLanguages = enabledLanguages,
                 // La découverte suit le moment de la journée : mot le matin,
                 // connaissance la journée, poésie le soir. Préférence douce.
                 preferredTypes = MomentCulture.typesPreferees(

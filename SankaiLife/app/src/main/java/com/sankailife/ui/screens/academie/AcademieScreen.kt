@@ -38,6 +38,7 @@ import com.sankailife.ui.components.SankaiButton
 import com.sankailife.ui.components.SankaiCard
 import com.sankailife.ui.components.SectionTitle
 import com.sankailife.ui.navigation.Screen
+import com.sankailife.ui.theme.Drawxsouanpt
 import com.sankailife.ui.theme.sankaiColors
 
 /**
@@ -85,7 +86,8 @@ fun AcademieScreen(
             ) {
                 Text(
                     stringResource(R.string.academy_title), color = c.textPrimary,
-                    fontSize = 24.sp, fontWeight = FontWeight.Bold
+                    fontSize = 26.sp, fontWeight = FontWeight.Normal,
+                    fontFamily = Drawxsouanpt
                 )
                 Text(
                     stringResource(R.string.academy_subtitle),
@@ -93,44 +95,22 @@ fun AcademieScreen(
                 )
                 Spacer(Modifier.height(18.dp))
 
-                // La révision express passe avant tout : c'est l'action la plus
-                // courte et la plus utile quand on a deux minutes. Elle se
-                // compose toute seule (deux difficiles, une ancienne, une
-                // nouvelle) et se termine seule — on n'est jamais invité à
-                // « continuer pour gagner ».
-                CarteRevisionExpress(onNavigate)
-                Spacer(Modifier.height(10.dp))
-
-                // La découverte du jour : une seule idée, impossible d'en
-                // consommer cinquante d'affilée.
-                SankaiCard(onClick = { onNavigate(Screen.Capsules.route) }) {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Text("📖", color = c.accentSecondary, fontSize = 22.sp)
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                stringResource(R.string.academy_discovery_title),
-                                color = c.textPrimary, fontSize = 15.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                stringResource(R.string.academy_discovery_desc),
-                                color = c.textSecondary, fontSize = 12.sp
-                            )
-                        }
-                        Text("›", color = c.textSecondary, fontSize = 24.sp)
-                    }
-                }
-                Spacer(Modifier.height(14.dp))
-
+                // La suite du parcours passe avant tout : c'est l'action la
+                // plus longue à voir et la plus utile — « continuer » là où
+                // on s'est arrêté. La découverte culturelle vit dans sa propre
+                // section, pas ici.
                 when {
                     etat.suite != null -> CarteSuite(etat.suite!!, onNavigate)
                     etat.modulesDisponibles.isNotEmpty() -> RienAFaire()
                     else -> PremierPas(onNavigate)
                 }
+                Spacer(Modifier.height(10.dp))
+
+                // La révision express : l'action la plus courte et la plus
+                // utile quand on a deux minutes. Elle se compose toute seule
+                // (deux difficiles, une ancienne, une nouvelle) et se termine
+                // seule — on n'est jamais invité à « continuer pour gagner ».
+                CarteRevisionExpress(onNavigate)
 
                 if (etat.cartesDues > 0) {
                     Spacer(Modifier.height(20.dp))

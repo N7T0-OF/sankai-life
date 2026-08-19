@@ -5,11 +5,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,7 +19,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -48,6 +45,7 @@ import com.sankailife.SankaiApplication
 import com.sankailife.core.data.sauvegarde.SauvegardeRepository
 import com.sankailife.ui.navigation.Screen
 import com.sankailife.ui.theme.DangerRed
+import com.sankailife.ui.theme.Drawxsouanpt
 import com.sankailife.ui.theme.ProfileAvatar
 import com.sankailife.ui.theme.SuccessGreen
 import com.sankailife.ui.theme.sankaiColors
@@ -55,28 +53,17 @@ import java.text.NumberFormat
 import kotlinx.coroutines.launch
 
 /**
- * Profil, structure de la maquette « Swann » : avatar, niveau, trois cartes
- * de progression et un menu court.
+ * Profil, centré sur l'identité et les accès : avatar, prénom, niveau, XP et
+ * un menu court (personnalisation, statistiques, paramètres, export).
  *
- * La structure vient de la maquette ; les couleurs suivent le thème comme
- * tous les autres écrans — le profil partage le fond de l'application.
+ * La progression détaillée vit dans Statistiques — elle n'a pas sa place ici,
+ * où elle ferait double emploi. Les couleurs suivent le thème comme tous les
+ * autres écrans.
  */
 @Composable
 fun ProfileScreen(viewModel: ProfileViewModel, onNavigate: (String) -> Unit) {
     val c = MaterialTheme.sankaiColors
     val user by viewModel.user.collectAsStateWithLifecycle()
-    val langueProgression by viewModel.languePrincipale.collectAsStateWithLifecycle()
-    val memorisation by viewModel.memorisation.collectAsStateWithLifecycle()
-    val progressionReelle by viewModel.progressionReelle.collectAsStateWithLifecycle()
-
-    // Le pourcentage de Culture : la même borne douce que la progression
-    // réelle (14 découvertes) — une carte dit combien du chemin est parcouru.
-    val culturePct = progressionReelle
-        .firstOrNull { it.libelle == R.string.progression_culture }
-        ?.let { (it.progression * 100).toInt().coerceIn(0, 100) }
-    val memosPct = if (memorisation.total > 0) {
-        (memorisation.maitrisees * 100 / memorisation.total).coerceIn(0, 100)
-    } else 0
 
     // Export direct depuis le profil : le sélecteur Android choisit la
     // destination, l'application n'écrit jamais où elle veut. Le format est le
@@ -142,11 +129,14 @@ fun ProfileScreen(viewModel: ProfileViewModel, onNavigate: (String) -> Unit) {
                 )
             }
             Spacer(Modifier.height(12.dp))
+            // Le prénom est le texte d'identité du profil : la police Sankai
+            // y a sa place.
             Text(
                 user.pseudo,
                 color = c.textPrimary,
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Bold
+                fontSize = 30.sp,
+                fontWeight = FontWeight.Normal,
+                fontFamily = Drawxsouanpt
             )
             Spacer(Modifier.height(4.dp))
             Text(
@@ -160,29 +150,12 @@ fun ProfileScreen(viewModel: ProfileViewModel, onNavigate: (String) -> Unit) {
             )
         }
 
-        Spacer(Modifier.height(18.dp))
-
-        // ── Trois cartes de progression ─────────────────────────────────
-        val langue = langueProgression
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            if (langue != null) {
-                CarteMetrique("${langue.pourcentage}%", langue.libelle)
-            }
-            if (culturePct != null) {
-                CarteMetrique(
-                    "$culturePct%",
-                    stringResource(R.string.profile_metric_culture)
-                )
-            }
-            CarteMetrique("$memosPct%", stringResource(R.string.profile_metric_memos))
-        }
-
         Spacer(Modifier.height(22.dp))
 
         // ── Menu ─────────────────────────────────────────────────────────
+        // Le profil reste centré sur l'identité et les accès ; la progression
+        // vit dans Statistiques, où elle ne fait pas double emploi.
+
         Text(
             stringResource(R.string.profile_menu_title).uppercase(),
             color = c.textSecondary,
@@ -191,24 +164,28 @@ fun ProfileScreen(viewModel: ProfileViewModel, onNavigate: (String) -> Unit) {
             letterSpacing = 1.2.sp,
             modifier = Modifier.padding(bottom = 10.dp)
         )
+        // Les pastilles du menu suivent le thème : les trois rôles d'accent
+        // (primary, secondary, tertiary) en transparence, jamais une couleur
+        // figée qui détonnerait sur une palette dynamique.
+        val scheme = MaterialTheme.colorScheme
         MenuItemProfil(
             emoji = "🎨",
-            fond = Color(0x24C77D5E),
+            fond = scheme.secondary.copy(alpha = 0.14f),
             libelle = stringResource(R.string.profile_customization)
         ) { onNavigate(Screen.Customization.route) }
         MenuItemProfil(
             emoji = "📊",
-            fond = Color(0x246E86B8),
+            fond = scheme.tertiary.copy(alpha = 0.14f),
             libelle = stringResource(R.string.stats_title)
         ) { onNavigate(Screen.AllStats.route) }
         MenuItemProfil(
             emoji = "⚙️",
-            fond = Color(0x1F2E5A48),
+            fond = scheme.primary.copy(alpha = 0.12f),
             libelle = stringResource(R.string.settings_title)
         ) { onNavigate(Screen.Settings.route) }
         MenuItemProfil(
             emoji = "💾",
-            fond = Color(0x297EA88A),
+            fond = scheme.tertiary.copy(alpha = 0.10f),
             libelle = stringResource(R.string.profile_menu_export)
         ) { creerExport.launch(SauvegardeRepository.nomProposé()) }
         messageExport?.let { texte ->
@@ -220,84 +197,7 @@ fun ProfileScreen(viewModel: ProfileViewModel, onNavigate: (String) -> Unit) {
             )
         }
 
-        // ── Progression réelle : cinq dimensions, aucune obligation ──────
-        Spacer(Modifier.height(22.dp))
-        Text(
-            stringResource(R.string.progression_title).uppercase(),
-            color = c.textSecondary,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.SemiBold,
-            letterSpacing = 1.2.sp,
-            modifier = Modifier.padding(bottom = 10.dp)
-        )
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(c.surface2)
-                .border(1.dp, c.border, RoundedCornerShape(16.dp))
-                .padding(14.dp)
-        ) {
-            progressionReelle.forEach { dim ->
-                Row(
-                    Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        "${dim.emoji}  ${stringResource(dim.libelle)}",
-                        color = c.textPrimary,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(dim.valeur, color = c.textSecondary, fontSize = 12.sp)
-                }
-                LinearProgressIndicator(
-                    progress = { dim.progression },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(5.dp)
-                        .clip(RoundedCornerShape(3.dp)),
-                    color = c.accent,
-                    trackColor = c.surface3
-                )
-                Spacer(Modifier.height(6.dp))
-            }
-            Text(
-                stringResource(R.string.progression_hint),
-                color = c.textDisabled,
-                fontSize = 11.sp
-            )
-        }
-
         Spacer(Modifier.height(24.dp))
-    }
-}
-
-@Composable
-private fun RowScope.CarteMetrique(valeur: String, libelle: String) {
-    val c = MaterialTheme.sankaiColors
-    Column(
-        Modifier
-            .weight(1f)
-            .clip(RoundedCornerShape(16.dp))
-            .background(c.surface2)
-            .border(1.dp, c.border, RoundedCornerShape(16.dp))
-            .padding(vertical = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            valeur,
-            color = c.textPrimary,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(Modifier.height(3.dp))
-        Text(
-            libelle,
-            color = c.textSecondary,
-            fontSize = 10.5.sp,
-            maxLines = 1
-        )
     }
 }
 

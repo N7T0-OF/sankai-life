@@ -32,6 +32,7 @@ import com.sankailife.ui.components.SankaiButton
 import com.sankailife.ui.components.SankaiCard
 import com.sankailife.ui.navigation.Screen
 import com.sankailife.ui.theme.SuccessGreen
+import com.sankailife.ui.theme.Drawxsouanpt
 import com.sankailife.ui.theme.sankaiColors
 
 private data class OutilVie(
@@ -82,8 +83,9 @@ fun ModeVieScreen(
             Text(
                 stringResource(R.string.mode_life_title),
                 color = c.textPrimary,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Normal,
+                fontFamily = Drawxsouanpt
             )
             Text(
                 stringResource(R.string.mode_life_subtitle),

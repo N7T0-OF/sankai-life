@@ -159,8 +159,7 @@
     <string name="focus_continue_freely">Continue freely</string>
     <string name="flashcards_training_complete">Practice complete · progress saved</string>
     <!-- Culture capsules: one offline reading each day -->
-    <string name="culture_title">Sankai Capsules</string>
-    <string name="culture_subtitle">One idea, no infinite feed</string>
+    <string name="culture_title">Culture</string>
     <string name="culture_today_label">TODAY’S CAPSULE</string>
     <string name="culture_loading">Preparing your capsule…</string>
     <string name="culture_error_title">Capsule unavailable</string>
@@ -324,8 +323,6 @@
     <string name="academy_module_empty">This module has no cards yet.</string>
     <string name="academy_express_title">Quick review</string>
     <string name="academy_express_desc">2 hard · 1 old · 1 new · ≈ 2 min</string>
-    <string name="academy_discovery_title">Discovery of the day</string>
-    <string name="academy_discovery_desc">One cultural idea, without an infinite feed.</string>
 
     <!-- Settings: language -->
     <string name="settings_section_language">Language</string>
@@ -728,7 +725,6 @@
     <string name="poesie_du_jour_tomorrow">Tomorrow: %1$s — "%2$s"</string>
     <string name="poesie_du_jour_none">No literary discovery today.</string>
     <string name="home_intro">One small discovery today.</string>
-    <string name="home_discover_title">Discovery of the day</string>
     <string name="home_discover_action">Discover</string>
     <string name="home_discover_none">No discovery available today.</string>
     <string name="home_progress_title">Progress</string>

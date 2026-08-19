@@ -181,10 +181,7 @@ fun SankaiNavGraph(
             }
             composable(Screen.Capsules.route) {
                 val vm: CapsulesViewModel = viewModel(factory = CapsulesViewModel.factory(app))
-                CapsulesScreen(
-                    viewModel = vm,
-                    onBack = { navController.popBackStack() }
-                )
+                CapsulesScreen(viewModel = vm)
             }
             composable(Screen.Parcours.route) { backEntry ->
                 val profileId = backEntry.arguments?.getString("profileId")?.toLongOrNull() ?: -1L

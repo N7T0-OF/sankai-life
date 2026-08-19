@@ -26,8 +26,8 @@ android {
         applicationId = "com.sankailife"
         minSdk = 26
         targetSdk = 35
-        versionCode = 103
-        versionName = "1.103.0"
+        versionCode = 104
+        versionName = "1.104.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
     }

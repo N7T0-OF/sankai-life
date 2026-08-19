@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,6 +43,7 @@ fun AllStatsScreen(viewModel: ProfileViewModel, onBack: () -> Unit) {
     val memo by viewModel.memorisation.collectAsStateWithLifecycle()
     val rhythm by viewModel.regularite.collectAsStateWithLifecycle()
     val dailyMinutes by viewModel.dailyMinutes.collectAsStateWithLifecycle()
+    val progressionReelle by viewModel.progressionReelle.collectAsStateWithLifecycle()
     val colors = MaterialTheme.sankaiColors
 
     Column(Modifier.fillMaxSize().background(colors.background)) {
@@ -70,6 +72,50 @@ fun AllStatsScreen(viewModel: ProfileViewModel, onBack: () -> Unit) {
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp)
         ) {
+            // Progression réelle : cinq dimensions, aucune obligation. C'est
+            // ici qu'elle vit — le profil reste l'identité, pas un tableau de
+            // bord.
+            SectionTitle(stringResource(R.string.progression_title))
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(colors.surface2)
+                    .border(1.dp, colors.border, RoundedCornerShape(16.dp))
+                    .padding(14.dp)
+            ) {
+                progressionReelle.forEach { dim ->
+                    Row(
+                        Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            "${dim.emoji}  ${stringResource(dim.libelle)}",
+                            color = colors.textPrimary,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(dim.valeur, color = colors.textSecondary, fontSize = 12.sp)
+                    }
+                    LinearProgressIndicator(
+                        progress = { dim.progression },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(5.dp)
+                            .clip(RoundedCornerShape(3.dp)),
+                        color = colors.accent,
+                        trackColor = colors.surface3
+                    )
+                    Spacer(Modifier.height(6.dp))
+                }
+                Text(
+                    stringResource(R.string.progression_hint),
+                    color = colors.textDisabled,
+                    fontSize = 11.sp
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+
             SectionTitle(stringResource(R.string.stats_personal_rhythm))
             StatRow(stringResource(R.string.stats_last_7_days), "${rhythm.sept} %")
             StatRow(stringResource(R.string.stats_last_30_days), "${rhythm.trente} %")

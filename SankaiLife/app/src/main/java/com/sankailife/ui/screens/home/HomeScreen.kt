@@ -42,6 +42,7 @@ import com.sankailife.core.poesie.TypeTexte
 import com.sankailife.ui.components.SankaiButton
 import com.sankailife.ui.components.SankaiGlassCard
 import com.sankailife.ui.navigation.Screen
+import com.sankailife.ui.theme.Drawxsouanpt
 import com.sankailife.ui.theme.sankaiColors
 
 /**
@@ -85,11 +86,15 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(Modifier.weight(1f)) {
+                    // Le salut est le texte d'identité de l'Accueil : la
+                    // police manuscrite Sankai y a sa place, le reste de
+                    // l'écran reste lisible.
                     Text(
                         stringResource(R.string.home_greeting),
                         color = colors.textPrimary,
-                        fontSize = if (compact) 22.sp else 26.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontSize = if (compact) 24.sp else 30.sp,
+                        fontWeight = FontWeight.Normal,
+                        fontFamily = Drawxsouanpt,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -143,8 +148,9 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
                         Text(
                             mot.mot,
                             color = colors.textPrimary,
-                            fontSize = if (compact) 26.sp else 30.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontSize = if (compact) 26.sp else 32.sp,
+                            fontWeight = FontWeight.Normal,
+                            fontFamily = Drawxsouanpt,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )

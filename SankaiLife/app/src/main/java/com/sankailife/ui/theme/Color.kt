@@ -59,13 +59,3 @@ val LightTextSecondary = Color(0xFF555555)
 // La structure du profil vient de la maquette ; seuls les accents restent
 // fixes, le reste suit le thème comme les autres écrans.
 val ProfileAvatar    = Color(0xFFD38260) // pastel pêche de l'avatar
-
-// ── CULTURE (maquette 194059 · 194232) ───────────────────────────
-// La lecture culturelle est volontairement lumineuse, même en thème
-// sombre : papier chaud, carte blanche, encre et accent bleu profond.
-val CultureBg       = Color(0xFFF6F2E9)
-val CultureCard     = Color(0xFFFFFFFF)
-val CultureInk      = Color(0xFF2B241E)
-val CultureInkSoft  = Color(0xFF6B625A)
-val CultureBorder   = Color(0xFFE7E0D2)
-val CultureBlue     = Color(0xFF1208CC)

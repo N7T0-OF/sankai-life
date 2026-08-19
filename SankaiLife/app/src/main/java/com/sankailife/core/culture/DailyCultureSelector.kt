@@ -51,7 +51,15 @@ object DailyCultureSelector {
 
         val filtered = entries.asSequence()
             .filter { it.type in request.enabledTypes }
-            .filter { request.enabledLanguages.isEmpty() || it.languageCode in request.enabledLanguages }
+            // La langue est comparée par code court (« pt-BR » et « pt »
+            // comptent pour la même langue) : les langues disponibles chez
+            // l'utilisateur sont stockées ainsi, et le groupement est déjà la
+            // règle ailleurs dans l'application.
+            .filter {
+                request.enabledLanguages.isEmpty() ||
+                    it.languageCode in request.enabledLanguages ||
+                    it.languageCode.substringBefore('-') in request.enabledLanguages
+            }
             .toList()
         require(filtered.map { it.id }.distinct().size == filtered.size) {
             "Les identifiants de capsules doivent être uniques dans le catalogue."

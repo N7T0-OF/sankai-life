@@ -10,6 +10,7 @@ import com.sankailife.R
 import com.sankailife.SankaiApplication
 import com.sankailife.core.data.repository.UserRepository
 import com.sankailife.core.domain.engine.ProgressSourceEngine
+import com.sankailife.core.learning.AvailableLearningLanguages
 import com.sankailife.core.culture.CulturePackStore
 import com.sankailife.core.culture.CultureSelectionHistory
 import com.sankailife.core.culture.DailyCultureEntry
@@ -167,7 +168,17 @@ class CapsulesViewModel(private val app: SankaiApplication) : ViewModel() {
     private suspend fun loadToday(): LoadedCapsule? = withContext(Dispatchers.IO) {
         // Le catalogue partagé : exactement celui que la notification annonce.
         // Une seule source de vérité pour « quelle capsule aujourd'hui ? ».
-        val catalogue = DailyDiscovery.catalogue(app)
+        // Les langues disponibles chez l'utilisateur filtrent le catalogue :
+        // jamais une capsule dans une langue non installée.
+        val langues = AvailableLearningLanguages.pour(app.database)
+        val catalogue = DailyDiscovery.catalogue(app).let { cat ->
+            cat.copy(
+                entries = cat.entries.filter {
+                    it.languageCode in langues ||
+                        it.languageCode.substringBefore('-') in langues
+                }
+            )
+        }
         if (catalogue.entries.isEmpty()) return@withContext null
         val userId = app.database.userDao().getUserOnce()?.id ?: 1L
         profileId = "user-$userId"
@@ -178,7 +189,8 @@ class CapsulesViewModel(private val app: SankaiApplication) : ViewModel() {
         val selected = cached ?: DailyDiscovery.duJour(
             context = app,
             profileId = profileId,
-            history = localState.history(profileId)
+            history = localState.history(profileId),
+            enabledLanguages = langues
         ) ?: return@withContext null
 
         val persisted = if (cached != null) true else {

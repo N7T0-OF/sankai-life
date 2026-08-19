@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.sankailife.SankaiApplication
+import com.sankailife.core.learning.AvailableLearningLanguages
 import com.sankailife.core.motdujour.MotDuJour
 import com.sankailife.core.motdujour.MotDuJourSelector
 import com.sankailife.core.motdujour.MotDuJourStore
@@ -21,10 +22,20 @@ class MotDuJourViewModel(application: Application) : AndroidViewModel(applicatio
 
     private val app = application as SankaiApplication
 
-    /** Le catalogue complet, lu une fois depuis l'asset embarqué. */
+    /**
+     * Le catalogue complet, lu une fois depuis l'asset embarqué, puis filtré
+     * sur les langues réellement disponibles chez l'utilisateur : un mot en
+     * japonais pour quelqu'un qui n'apprend que le français et le portugais
+     * serait un contenu hors de propos.
+     */
     private val catalogue: StateFlow<List<MotDuJour>> = flow {
-        emit(MotDuJourStore.lire(app))
+        emit(lireCatalogueDisponible())
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    private suspend fun lireCatalogueDisponible(): List<MotDuJour> {
+        val langues = AvailableLearningLanguages.pour(app.database)
+        return MotDuJourStore.lire(app).filter { it.codeLangue in langues }
+    }
 
     /** Le mot d'aujourd'hui — stable toute la journée, sans réseau. */
     val motDuJour: StateFlow<MotDuJour?> = catalogue

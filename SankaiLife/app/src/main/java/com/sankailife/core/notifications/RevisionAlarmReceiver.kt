@@ -66,7 +66,12 @@ class RevisionAlarmReceiver : BroadcastReceiver() {
                     com.sankailife.core.culture.DailyDiscovery.duJour(
                         context,
                         profileId = profileId,
-                        history = local.history(profileId)
+                        history = local.history(profileId),
+                        // Même source de langues que l'écran Culture : la
+                        // notification n'annonce jamais une capsule dans une
+                        // langue que l'utilisateur n'a pas.
+                        enabledLanguages = com.sankailife.core.learning
+                            .AvailableLearningLanguages.pour(app.database)
                     )
                 } else null
 

@@ -17,6 +17,7 @@ import com.sankailife.core.poesie.PoesieDuJourSelector
 import com.sankailife.core.poesie.PoesieDuJourStore
 import com.sankailife.core.data.db.entities.MemoProfileEntity
 import com.sankailife.core.data.repository.UserRepository
+import com.sankailife.core.learning.AvailableLearningLanguages
 import com.sankailife.core.domain.model.UserState
 import com.sankailife.core.learning.data.LearningModuleEntity
 import com.sankailife.core.learning.data.LearningRepository
@@ -119,9 +120,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _decouverte = MutableStateFlow<DailyCultureEntry?>(null)
     val decouverte: StateFlow<DailyCultureEntry?> = _decouverte.asStateFlow()
 
-    /** Le catalogue du mot du jour, lu depuis l'asset embarqué. */
+    /**
+     * Le catalogue du mot du jour, lu depuis l'asset embarqué, puis filtré
+     * sur les langues réellement disponibles chez l'utilisateur — la même
+     * source unique que l'écran et la notification.
+     */
     private val motsDuJour: StateFlow<List<MotDuJour>> = flow {
-        emit(MotDuJourStore.lire(app))
+        val langues = AvailableLearningLanguages.pour(app.database)
+        emit(MotDuJourStore.lire(app).filter { it.codeLangue in langues })
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /** Le mot d'aujourd'hui, stable toute la journée, sans réseau. */
@@ -174,7 +180,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 _decouverte.value = DailyDiscovery.duJour(
                     app,
                     profileId = profileId,
-                    history = local.history(profileId)
+                    history = local.history(profileId),
+                    enabledLanguages = AvailableLearningLanguages.pour(app.database)
                 )
             }
         }

@@ -8,6 +8,7 @@ import android.content.Intent
 import android.os.Build
 import com.sankailife.R
 import com.sankailife.SankaiApplication
+import com.sankailife.core.learning.AvailableLearningLanguages
 import com.sankailife.core.motdujour.MotDuJourSelector
 import com.sankailife.core.motdujour.MotDuJourStore
 import com.sankailife.core.motdujour.drapeau
@@ -45,8 +46,11 @@ class MotDuJourAlarmReceiver : BroadcastReceiver() {
                     )
                 ) return@launch
 
+                // Même filtre que l'écran : la notification n'annonce jamais
+                // un mot dans une langue que l'utilisateur n'a pas.
+                val langues = AvailableLearningLanguages.pour(app.database)
                 val mot = MotDuJourSelector.selectionner(
-                    MotDuJourStore.lire(context),
+                    MotDuJourStore.lire(context).filter { it.codeLangue in langues },
                     LocalDate.now()
                 ) ?: return@launch
 

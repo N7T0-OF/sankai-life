@@ -160,8 +160,7 @@
     <string name="focus_continue_freely">Continuar livremente</string>
     <string name="flashcards_training_complete">Treino concluído · progresso guardado</string>
     <!-- Cápsulas culturais: uma leitura offline por dia -->
-    <string name="culture_title">Cápsulas Sankai</string>
-    <string name="culture_subtitle">Uma ideia, sem feed infinito</string>
+    <string name="culture_title">Cultura</string>
     <string name="culture_today_label">CÁPSULA DO DIA</string>
     <string name="culture_loading">A preparar a cápsula…</string>
     <string name="culture_error_title">Cápsula indisponível</string>
@@ -328,8 +327,6 @@
     <string name="academy_module_empty">Este módulo ainda não tem cartões.</string>
     <string name="academy_express_title">Revisão expressa</string>
     <string name="academy_express_desc">2 difíceis · 1 antiga · 1 nova · ≈ 2 min</string>
-    <string name="academy_discovery_title">Descoberta do dia</string>
-    <string name="academy_discovery_desc">Uma ideia cultural, sem feed infinito.</string>
 
     <!-- Configurações: idioma -->
     <string name="settings_section_language">Idioma</string>
@@ -732,7 +729,6 @@
     <string name="poesie_du_jour_tomorrow">Amanhã: %1$s — « %2$s »</string>
     <string name="poesie_du_jour_none">Nenhuma descoberta literária hoje.</string>
     <string name="home_intro">Uma pequena descoberta hoje.</string>
-    <string name="home_discover_title">Descoberta do dia</string>
     <string name="home_discover_action">Descobrir</string>
     <string name="home_discover_none">Nenhuma descoberta disponível hoje.</string>
     <string name="home_progress_title">Progresso</string>
