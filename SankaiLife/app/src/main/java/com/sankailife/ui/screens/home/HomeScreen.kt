@@ -1,6 +1,5 @@
 package com.sankailife.ui.screens.home
 
-import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -14,11 +13,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AutoStories
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,18 +28,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sankailife.R
-import com.sankailife.core.culture.CultureEntryType
 import com.sankailife.core.poesie.TypeTexte
 import com.sankailife.ui.components.SankaiButton
 import com.sankailife.ui.components.SankaiGlassCard
@@ -46,23 +45,20 @@ import com.sankailife.ui.theme.Drawxsouanpt
 import com.sankailife.ui.theme.sankaiColors
 
 /**
- * « Accueil » : une découverte à lire, puis la vraie vie.
+ * « Accueil » : un tableau de bord vivant, jamais un menu.
  *
- * Rien ne retient : un bonjour, la découverte du jour, une mini-révision si
- * des cartes attendent, et une sortie explicite. L'écran tient sur un
- * téléphone sans défilement.
+ * Un bonjour, le niveau réel, le mot du jour, le poème du jour, la
+ * progression d'aujourd'hui — et rien d'autre. Chaque carte ouvre son
+ * contenu directement ; aucune ne change de section. Les paramètres tiennent
+ * dans une icône compacte. Rien n'invite à quitter l'application.
  */
 @Composable
 fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
-    val dueCards by viewModel.dueCards.collectAsStateWithLifecycle()
-    val todayCompleted by viewModel.todayCompleted.collectAsStateWithLifecycle()
+    val user by viewModel.user.collectAsStateWithLifecycle()
     val xpDuJour by viewModel.xpDuJour.collectAsStateWithLifecycle()
-    val decouverte by viewModel.decouverte.collectAsStateWithLifecycle()
     val motDuJour by viewModel.motDuJour.collectAsStateWithLifecycle()
-    val motDemain by viewModel.motDemain.collectAsStateWithLifecycle()
     val poesieDuJour by viewModel.poesieDuJour.collectAsStateWithLifecycle()
     val colors = MaterialTheme.sankaiColors
-    val activity = LocalContext.current as? Activity
 
     // Relu à chaque ouverture : la progression vient de changer après une
     // session, et la découverte du jour peut avoir été consultée.
@@ -80,6 +76,7 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
                 .align(Alignment.TopCenter)
                 .padding(horizontal = outerPadding, vertical = 10.dp)
         ) {
+            // ── En-tête : salut + icône paramètres ────────────────────────
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -104,26 +101,55 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
                         fontSize = 12.sp,
                         maxLines = 1
                     )
-                    // L'XP d'aujourd'hui : ce qui a réellement été fait, pas
-                    // un compteur d'ouverture. Affiché seulement quand il y en
-                    // a — un « +0 XP » serait un reproche, pas une donnée.
-                    if (xpDuJour > 0) {
-                        Text(
-                            stringResource(R.string.today_xp_earned, xpDuJour),
-                            color = colors.accent,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
+                }
+                // Les paramètres restent à un geste, sans jamais prendre
+                // toute la largeur : une icône compacte, en haut à droite.
+                IconButton(onClick = { onNavigate(Screen.Settings.route) }) {
+                    Icon(
+                        Icons.Filled.Settings,
+                        contentDescription = stringResource(R.string.settings_title),
+                        tint = colors.textSecondary
+                    )
                 }
             }
 
+            // ── Niveau réel : une barre, pas un score ─────────────────────
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    stringResource(R.string.profile_level_xp, user.level, user.xp.toString()),
+                    color = colors.textPrimary,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                if (xpDuJour > 0) {
+                    Text(
+                        stringResource(R.string.today_xp_earned, xpDuJour),
+                        color = colors.accent,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            LinearProgressIndicator(
+                progress = {
+                    val total = user.xpNext.coerceAtLeast(1)
+                    (user.xp.toFloat() / total).coerceIn(0f, 1f)
+                },
+                modifier = Modifier.fillMaxWidth().height(7.dp).clip(RoundedCornerShape(4.dp)),
+                color = colors.accent,
+                trackColor = colors.surface3
+            )
+
             Spacer(Modifier.height(gap))
 
-            // Carte principale : le mot du jour. Un mot, une définition, une
-            // sortie — le « Sankai Moment ».
+            // ── Le mot du jour : la découverte principale, lue ici même. ──
             SankaiGlassCard(
-                modifier = Modifier.fillMaxWidth().weight(1.3f),
+                modifier = Modifier.fillMaxWidth().weight(1.25f),
                 onClick = { onNavigate(Screen.MotDuJour.route) },
                 selectionne = motDuJour != null,
                 contentPadding = PaddingValues(if (compact) 12.dp else 16.dp)
@@ -181,12 +207,11 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
 
             Spacer(Modifier.height(gap))
 
-            // Le proverbe ou le poème du jour, en une ligne compacte : la
-            // découverte littéraire reste à un geste, sans alourdir l'écran.
+            // ── Le poème ou le proverbe du jour, en une ligne compacte. ──
             val poesie = poesieDuJour
             if (poesie != null) {
                 SankaiGlassCard(
-                    modifier = Modifier.fillMaxWidth().weight(0.4f),
+                    modifier = Modifier.fillMaxWidth().weight(0.5f),
                     onClick = { onNavigate(Screen.PoesieDuJour.route) },
                     contentPadding = PaddingValues(if (compact) 10.dp else 12.dp)
                 ) {
@@ -230,159 +255,47 @@ fun HomeScreen(viewModel: HomeViewModel, onNavigate: (String) -> Unit) {
                 Spacer(Modifier.height(gap))
             }
 
-            // La découverte culturelle du jour, en second plan : la capsule
-            // (poème, proverbe, histoire…) reste à un geste.
-            val capsule = decouverte
-            if (capsule != null) {
-                SankaiGlassCard(
-                    modifier = Modifier.fillMaxWidth().weight(0.55f),
-                    onClick = { onNavigate(Screen.Capsules.route) },
-                    contentPadding = PaddingValues(if (compact) 12.dp else 14.dp)
+            // ── Ta progression : ce qui a réellement été fait aujourd'hui. ──
+            SankaiGlassCard(
+                modifier = Modifier.fillMaxWidth().weight(0.55f),
+                onClick = { onNavigate(Screen.AllStats.route) },
+                contentPadding = PaddingValues(if (compact) 12.dp else 14.dp)
+            ) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("📖", fontSize = 18.sp)
-                        Spacer(Modifier.width(10.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                stringResource(R.string.home_culture_discovery),
-                                color = colors.textPrimary,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                "${cultureTypeLabel(capsule.type)} · ${capsule.title}",
-                                color = colors.textSecondary,
-                                fontSize = 11.sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = null,
-                            tint = colors.accent,
-                            modifier = Modifier.width(16.dp)
-                        )
-                    }
-                }
-                Spacer(Modifier.height(gap))
-            }
-
-            // Mini-révision : le plus court des apprentissages, uniquement si
-            // des cartes attendent. Rien d'inventé quand tout est à jour.
-            if (!todayCompleted && dueCards > 0) {
-                SankaiGlassCard(
-                    modifier = Modifier.fillMaxWidth().weight(0.6f),
-                    onClick = { onNavigate(Screen.Academy.route) },
-                    contentPadding = PaddingValues(if (compact) 12.dp else 14.dp)
-                ) {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Filled.CheckCircle,
-                            contentDescription = null,
-                            tint = colors.accent,
-                            modifier = Modifier.width(20.dp)
-                        )
-                        Spacer(Modifier.width(10.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                stringResource(R.string.home_mini_review),
-                                color = colors.textPrimary,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                pluralStringResource(
-                                    R.plurals.today_due_cards,
-                                    dueCards,
-                                    dueCards
-                                ),
-                                color = colors.textSecondary,
-                                fontSize = 12.sp
-                            )
-                        }
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = null,
-                            tint = colors.accent,
-                            modifier = Modifier.width(18.dp)
-                        )
-                    }
-                }
-            } else if (todayCompleted) {
-                // Tout est fait : on le dit simplement, sans proposer de
-                // « continuer » pour rien.
-                SankaiGlassCard(
-                    modifier = Modifier.fillMaxWidth().weight(0.6f),
-                    onClick = null,
-                    contentPadding = PaddingValues(if (compact) 12.dp else 14.dp)
-                ) {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Filled.CheckCircle,
-                            contentDescription = null,
-                            tint = colors.accent,
-                            modifier = Modifier.width(20.dp)
-                        )
-                        Spacer(Modifier.width(10.dp))
+                    Text("🌿", fontSize = 18.sp)
+                    Spacer(Modifier.width(10.dp))
+                    Column(Modifier.weight(1f)) {
                         Text(
-                            stringResource(R.string.today_done_title),
+                            stringResource(R.string.home_progression),
                             color = colors.textPrimary,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            if (xpDuJour > 0) {
+                                stringResource(R.string.today_xp_earned, xpDuJour)
+                            } else {
+                                stringResource(R.string.home_progression_none)
+                            },
+                            color = if (xpDuJour > 0) colors.accent else colors.textSecondary,
+                            fontSize = 12.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        tint = colors.accent,
+                        modifier = Modifier.width(16.dp)
+                    )
                 }
             }
-
-            Spacer(Modifier.height(gap))
-
-            // La prochaine découverte : une ligne calme, pas une file
-            // d'attente. Une seule chose à venir.
-            Text(
-                motDemain?.let {
-                    stringResource(R.string.mot_du_jour_tomorrow, it.mot)
-                } ?: stringResource(R.string.home_next_discovery),
-                color = colors.textSecondary,
-                fontSize = 12.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(Modifier.height(gap))
-            SankaiButton(
-                text = if (todayCompleted) stringResource(R.string.today_close_app)
-                else stringResource(R.string.today_finish),
-                onClick = {
-                    if (todayCompleted) activity?.finishAndRemoveTask()
-                    else viewModel.finishToday { activity?.finishAndRemoveTask() }
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
         }
     }
-}
-
-/** Le libellé localisé d'un type de capsule, pour la carte du jour. */
-@Composable
-fun cultureTypeLabel(type: CultureEntryType): String = when (type) {
-    CultureEntryType.POEM -> stringResource(R.string.culture_type_poem)
-    CultureEntryType.QUOTE -> stringResource(R.string.culture_type_quote)
-    CultureEntryType.PROVERB -> stringResource(R.string.culture_type_proverb)
-    CultureEntryType.ARTWORK -> stringResource(R.string.culture_type_artwork)
-    CultureEntryType.HISTORY -> stringResource(R.string.culture_type_history)
-    CultureEntryType.SCIENCE -> stringResource(R.string.culture_type_science)
-    CultureEntryType.WORD -> stringResource(R.string.culture_type_word)
-    CultureEntryType.BIOGRAPHY -> stringResource(R.string.culture_type_biography)
 }

@@ -625,6 +625,8 @@
     <string name="poesie_du_jour_tomorrow">Tomorrow: %1$s — "%2$s"</string>
     <string name="poesie_du_jour_none">No literary discovery today.</string>
     <string name="home_intro">One small discovery today.</string>
+    <string name="home_progression">Your progress</string>
+    <string name="home_progression_none">Nothing yet today — real life first.</string>
     <string name="home_discover_action">Discover</string>
 
     <string name="flashcards_module_gone_title">This module is no longer available.</string>
@@ -643,6 +645,14 @@
         <item quantity="one">%1$d event completed today</item>
         <item quantity="other">%1$d events completed today</item>
     </plurals>
+    <string name="vie_today_title">Your day</string>
+    <string name="vie_today_hint">What you did today — never the time spent in the app.</string>
+    <string name="vie_xp_total">+%1$d XP</string>
+    <string name="vie_xp_zero">Nothing yet today.</string>
+    <string name="vie_activities_title">Activities</string>
+    <string name="source_apprentissage">Learning</string>
+    <string name="source_concentration">Focus</string>
+    <string name="source_decouverte">Discovery</string>
     <plurals name="progression_events">
         <item quantity="one">%1$d event completed</item>
         <item quantity="other">%1$d events completed</item>

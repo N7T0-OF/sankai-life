@@ -198,7 +198,7 @@ private fun Header(
         Text(
             stringResource(R.string.culture_title),
             color = c.textPrimary,
-            fontSize = 22.sp,
+            fontSize = 26.sp,
             fontWeight = FontWeight.Normal,
             fontFamily = Drawxsouanpt,
             textAlign = TextAlign.Center,

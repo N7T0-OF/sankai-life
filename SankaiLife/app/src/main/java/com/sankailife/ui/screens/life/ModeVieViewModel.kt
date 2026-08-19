@@ -9,9 +9,18 @@ import com.sankailife.SankaiApplication
 import com.sankailife.core.calendar.CalendrierIntegration
 import com.sankailife.core.data.repository.UserRepository
 import com.sankailife.core.domain.engine.ProgressSourceEngine
+import com.sankailife.core.time.observedMinutes
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
@@ -23,10 +32,48 @@ import java.time.LocalDate
  * crédité une fois par jour, plafonné et dégressif via [ProgressSourceEngine].
  * Lecture seule, traitement local, jamais une modification du calendrier.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class ModeVieViewModel(application: Application) : AndroidViewModel(application) {
 
     private val app = application as SankaiApplication
     private val userRepo = UserRepository(app.database)
+
+    /** Une source de progression et ce qu'elle a rapporté aujourd'hui. */
+    data class Activite(
+        val source: ProgressSourceEngine.Source,
+        val xp: Int
+    )
+
+    private val observedTime = observedMinutes().shareIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(
+            stopTimeoutMillis = 5_000,
+            replayExpirationMillis = 0
+        ),
+        replay = 1
+    )
+    private val observedDay = observedTime
+        .map { it.localDate }
+        .distinctUntilChanged()
+
+    /** L'XP d'aujourd'hui, toutes sources confondues — jamais du temps passé. */
+    val xpTotalJour: StateFlow<Int> = observedDay
+        .flatMapLatest { jour -> app.preferences.xpSourceTotalJour(jour.toString()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    /** Les activités réellement créditées aujourd'hui, avec leur XP. */
+    val activites: StateFlow<List<Activite>> = observedDay
+        .flatMapLatest { jour ->
+            flow {
+                val auj = jour.toString()
+                emit(
+                    ProgressSourceEngine.Source.entries.map { source ->
+                        Activite(source, app.preferences.xpAccordeSource(source.name, auj))
+                    }.filter { it.xp > 0 }
+                )
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     data class Etat(
         val permissionAccordee: Boolean = false,

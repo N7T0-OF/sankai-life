@@ -5,6 +5,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,11 +29,12 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sankailife.R
 import com.sankailife.SankaiApplication
+import com.sankailife.core.domain.engine.ProgressSourceEngine
 import com.sankailife.ui.components.SankaiButton
 import com.sankailife.ui.components.SankaiCard
 import com.sankailife.ui.navigation.Screen
-import com.sankailife.ui.theme.SuccessGreen
 import com.sankailife.ui.theme.Drawxsouanpt
+import com.sankailife.ui.theme.SuccessGreen
 import com.sankailife.ui.theme.sankaiColors
 
 private data class OutilVie(
@@ -43,11 +45,12 @@ private data class OutilVie(
 )
 
 /**
- * Vie : ce qui accompagne la vraie vie, sans la recréer.
+ * Vie : la vraie vie transformée en progression, jamais recréée.
  *
- * Les minuteurs et les listes de tâches sont déjà dans le téléphone ; Sankai
- * ne les recopie pas. Ici : les mémos, et le calendrier Android — lecture
- * seule — dont les événements terminés deviennent une progression symbolique.
+ * Les minuteurs, réveils et listes de tâches sont déjà dans le téléphone ;
+ * Sankai ne les recopie pas. Ici : la journée d'aujourd'hui (ce qui a
+ * réellement été fait), les activités créditées, le calendrier Android en
+ * lecture seule, et les mémos.
  */
 @Composable
 fun ModeVieScreen(
@@ -57,6 +60,8 @@ fun ModeVieScreen(
 ) {
     val c = MaterialTheme.sankaiColors
     val etat by viewModel.etat.collectAsStateWithLifecycle()
+    val xpTotalJour by viewModel.xpTotalJour.collectAsStateWithLifecycle()
+    val activites by viewModel.activites.collectAsStateWithLifecycle()
 
     val demanderPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -70,13 +75,9 @@ fun ModeVieScreen(
     // visite méritent d'être crédités.
     LaunchedEffect(Unit) { viewModel.rafraichir() }
 
-    val outils = listOf(
-        OutilVie("✦", R.string.mode_life_memos, R.string.mode_life_memos_hint, Screen.Memo.route)
-    )
-
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(c.background),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+        contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item {
@@ -95,8 +96,31 @@ fun ModeVieScreen(
             Spacer(Modifier.height(8.dp))
         }
 
-        items(outils, key = { it.route }) { outil ->
-            CarteOutilVie(outil, onNavigate)
+        // ── Ta journée : ce qui a réellement été fait aujourd'hui ─────────
+        item {
+            CarteTaJournee(
+                xpTotal = xpTotalJour,
+                evenements = if (etat.permissionAccordee) etat.evenementsAujourdhui else 0
+            )
+        }
+
+        // ── Activités créditées aujourd'hui, sources réelles uniquement ──
+        item {
+            Text(
+                stringResource(R.string.vie_activities_title),
+                color = c.textSecondary,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp,
+                modifier = Modifier.padding(top = 6.dp, bottom = 2.dp)
+            )
+        }
+
+        items(
+            activites.filter { it.source != ProgressSourceEngine.Source.CALENDRIER },
+            key = { it.source.name }
+        ) { activite ->
+            CarteActivite(activite)
         }
 
         item {
@@ -106,6 +130,89 @@ fun ModeVieScreen(
                     demanderPermission.launch(android.Manifest.permission.READ_CALENDAR)
                 },
                 onActualiser = { viewModel.rafraichir() }
+            )
+        }
+
+        item {
+            CarteOutilVie(
+                OutilVie("✦", R.string.mode_life_memos, R.string.mode_life_memos_hint, Screen.Memo.route),
+                onNavigate
+            )
+        }
+    }
+}
+
+/**
+ * La carte du jour : un seul chiffre — l'XP réellement gagné — puis les
+ * événements de la vraie vie qui l'ont produit.
+ */
+@Composable
+private fun CarteTaJournee(xpTotal: Int, evenements: Int) {
+    val c = MaterialTheme.sankaiColors
+    SankaiCard(onClick = null) {
+        Column(Modifier.fillMaxWidth()) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("🌱", fontSize = 24.sp)
+                Spacer(Modifier.padding(start = 6.dp))
+                Text(
+                    stringResource(R.string.vie_today_title),
+                    color = c.textPrimary,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            Spacer(Modifier.height(10.dp))
+            Text(
+                if (xpTotal > 0) stringResource(R.string.vie_xp_total, xpTotal)
+                else stringResource(R.string.vie_xp_zero),
+                color = if (xpTotal > 0) c.accent else c.textDisabled,
+                fontSize = 38.sp,
+                fontWeight = FontWeight.Normal,
+                fontFamily = Drawxsouanpt
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                stringResource(R.string.vie_today_hint),
+                color = c.textSecondary,
+                fontSize = 12.sp
+            )
+            if (evenements > 0) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "✓ ${pluralStringResource(R.plurals.mode_life_calendar_done, evenements, evenements)}",
+                    color = SuccessGreen,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    }
+}
+
+/** Une activité créditée aujourd'hui : source réelle, XP réel. */
+@Composable
+private fun CarteActivite(activite: ModeVieViewModel.Activite) {
+    val c = MaterialTheme.sankaiColors
+    SankaiCard(onClick = null) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(emojiPour(activite.source), fontSize = 22.sp)
+            Column(Modifier.weight(1f)) {
+                Text(
+                    stringResource(libellePour(activite.source)),
+                    color = c.textPrimary,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            Text(
+                stringResource(R.string.vie_xp_total, activite.xp),
+                color = c.accent,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
             )
         }
     }
@@ -171,6 +278,14 @@ private fun CarteCalendrier(
                         fontSize = 11.sp
                     )
                 }
+                if (etat.xpCalendrier > 0) {
+                    Text(
+                        stringResource(R.string.vie_xp_total, etat.xpCalendrier),
+                        color = c.accent,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
             Spacer(Modifier.height(10.dp))
 
@@ -209,15 +324,6 @@ private fun CarteCalendrier(
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold
                     )
-                    if (etat.xpCalendrier > 0) {
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            stringResource(R.string.mode_life_calendar_xp, etat.xpCalendrier),
-                            color = c.accent,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
                     if (etat.dernierGain > 0) {
                         Spacer(Modifier.height(4.dp))
                         Text(
@@ -238,4 +344,18 @@ private fun CarteCalendrier(
             }
         }
     }
+}
+
+private fun emojiPour(source: ProgressSourceEngine.Source): String = when (source) {
+    ProgressSourceEngine.Source.CALENDRIER -> "📅"
+    ProgressSourceEngine.Source.CONCENTRATION -> "🧠"
+    ProgressSourceEngine.Source.APPRENTISSAGE -> "📚"
+    ProgressSourceEngine.Source.DECOUVERTE -> "📖"
+}
+
+private fun libellePour(source: ProgressSourceEngine.Source): Int = when (source) {
+    ProgressSourceEngine.Source.CALENDRIER -> R.string.mode_life_calendar_title
+    ProgressSourceEngine.Source.CONCENTRATION -> R.string.source_concentration
+    ProgressSourceEngine.Source.APPRENTISSAGE -> R.string.source_apprentissage
+    ProgressSourceEngine.Source.DECOUVERTE -> R.string.source_decouverte
 }

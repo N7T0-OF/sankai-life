@@ -1,8 +1,8 @@
 package com.sankailife.ui.screens.onboarding
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -89,7 +89,9 @@ fun OnboardingScreen(onTermine: (dailyMinutes: Int) -> Unit) {
         ) {
             AnimatedContent(
                 targetState = topic,
-                transitionSpec = { fadeIn().togetherWith(fadeOut()) },
+                // Changement immédiat, sans fondu : la navigation doit rester
+                // franche, jamais flottante.
+                transitionSpec = { EnterTransition.None togetherWith ExitTransition.None },
                 label = "onboarding_page"
             ) { page ->
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
