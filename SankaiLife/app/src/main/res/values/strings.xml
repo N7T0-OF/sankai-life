@@ -99,39 +99,20 @@
     <string name="nav_home">Accueil</string>
     <string name="nav_learn">Apprendre</string>
     <string name="settings_title">Paramètres</string>
-    <string name="today_greeting">Bonjour %1$s</string>
-    <string name="today_minimal_active">Mode minimal · uniquement l’essentiel</string>
-    <string name="today_intentional_subtitle">Apprendre un peu, puis retourner vivre</string>
     <string name="today_xp_earned">+%1$d XP aujourd\'hui</string>
-    <string name="today_section">AUJOURD’HUI</string>
     <plurals name="today_due_cards">
         <item quantity="one">%1$d carte à revoir</item>
         <item quantity="other">%1$d cartes à revoir</item>
     </plurals>
-    <string name="today_no_due">Aucune carte urgente</string>
-    <string name="today_no_time_goal">Prends le temps qui te convient</string>
-    <string name="today_estimated_minutes">Environ %1$d minutes</string>
     <string name="today_continue">CONTINUER</string>
-    <string name="today_capsule_title">Capsule du jour</string>
-    <string name="today_capsule_hint">Une idée culturelle, sans fil infini.</string>
-    <string name="today_one_minute">1 MINUTE</string>
-    <string name="today_memo_title">Mémo</string>
-    <string name="today_next_memo">Prochain rappel : %1$s</string>
-    <string name="today_no_memo">Aucun rappel programmé</string>
     <string name="today_finish">TERMINER POUR AUJOURD’HUI</string>
     <string name="today_done_title">Tu as terminé pour aujourd’hui.</string>
-    <string name="today_done_hint">Tu peux fermer Sankai Life sans rien perdre.</string>
     <string name="today_close_app">FERMER SANKAI LIFE</string>
 
     <string name="mode_life_title">Mode Vie</string>
     <string name="mode_life_subtitle">Des outils choisis, jamais des obligations.</string>
     <string name="mode_life_memos">Mémos et rappels</string>
     <string name="mode_life_memos_hint">Retrouver tes notes et programmer un rappel utile.</string>
-    <string name="mode_life_focus">Focus Timer</string>
-    <string name="mode_life_focus_hint">Une session choisie, sans prolongation artificielle.</string>
-    <string name="mode_life_objectives">Objectifs personnels</string>
-    <string name="mode_life_objectives_hint">Une liste privée, sans pression quotidienne.</string>
-    <string name="mode_life_more">Outils facultatifs</string>
 
     <string name="wellbeing_title">Temps et tranquillité</string>
     <string name="wellbeing_minimal_mode">Mode minimal</string>
@@ -147,7 +128,6 @@
     <string name="wellbeing_notify_culture">Capsule culturelle</string>
     <string name="settings_notify_word">Mot du jour</string>
     <string name="settings_notify_word_hour">Heure du mot du jour</string>
-    <string name="wellbeing_notify_focus">Focus</string>
     <string name="settings_notifications_active">Notifications actives</string>
     <string name="settings_interface_vibrations">Vibrations de l’interface</string>
     <string name="settings_reset_game_title">Réinitialiser les compteurs de jeu ?</string>
@@ -166,26 +146,6 @@
     <string name="settings_test_notification_title">Notification de test</string>
     <string name="settings_test_notification_body">Si tu vois ce message, les notifications fonctionnent.</string>
     <!-- Focus intentionnel -->
-    <string name="focus_title">Focus</string>
-    <string name="focus_duration">Durée choisie</string>
-    <string name="focus_hours">Heures</string>
-    <string name="focus_minutes">Minutes</string>
-    <string name="focus_running">En cours…</string>
-    <string name="focus_paused">En pause</string>
-    <string name="focus_finished">Terminé</string>
-    <string name="focus_selected_duration">%1$dh %2$dmin</string>
-    <string name="focus_start">Démarrer</string>
-    <string name="focus_pause">Pause</string>
-    <string name="focus_stop">Arrêter</string>
-    <string name="focus_resume">Reprendre</string>
-    <string name="focus_new_session">Nouvelle session</string>
-    <string name="focus_intentional_hint">Le minuteur s’arrête quand le temps choisi est écoulé.</string>
-    <string name="focus_increase">Augmenter : %1$s</string>
-    <string name="focus_decrease">Diminuer : %1$s</string>
-    <string name="focus_done_title">Tu as terminé pour aujourd’hui</string>
-    <string name="focus_done_body">Ta session est finie. Tu peux maintenant retourner à ce qui compte hors écran.</string>
-    <string name="focus_close_app">Fermer Sankai Life</string>
-    <string name="focus_continue_freely">Continuer librement</string>
     <string name="flashcards_training_complete">Entraînement terminé · progression mémorisée</string>
     <!-- Capsules culturelles : une seule lecture quotidienne, hors ligne -->
     <string name="culture_title">Culture</string>
@@ -258,9 +218,6 @@
     <string name="stats_answers">Réponses données</string>
     <string name="stats_success_rate">Bonnes réponses</string>
     <string name="stats_after_answers">Après %d réponses</string>
-    <string name="stats_activity">Activité utile</string>
-    <string name="stats_focus_time">Temps de focus total</string>
-    <string name="stats_hours_minutes">%1$d h %2$d min</string>
     <string name="stats_life_time">Temps rendu à la vraie vie</string>
     <string name="stats_no_time_target">Tu as choisi de ne pas fixer de durée.</string>
     <plurals name="stats_chosen_session">
@@ -268,32 +225,14 @@
         <item quantity="other">Tu as choisi des sessions de %d minutes.</item>
     </plurals>
     <string name="stats_life_time_disclaimer">Sankai affiche ici ton choix, sans prétendre mesurer scientifiquement du temps « économisé ».</string>
-    <string name="profile_rhythm_summary">Rythme personnel · %1$d %% sur 7 jours</string>
-    <string name="profile_level">Niveau %1$d</string>
     <string name="profile_level_xp">Niveau %1$d · %2$s XP</string>
     <string name="profile_menu_title">Menu</string>
     <string name="profile_menu_export">Exporter mes données</string>
     <string name="profile_export_done">💾 Sauvegarde écrite (%1$d ko).</string>
-    <string name="profile_metric_culture">Culture</string>
-    <string name="profile_metric_memos">Mémos</string>
-    <string name="profile_metric_rhythm">Rythme 7 j</string>
-    <string name="profile_metric_focus">Focus</string>
-    <string name="profile_metric_reviews">Révisions</string>
-    <string name="profile_all_stats">Voir toutes les statistiques</string>
     <string name="profile_customization">Personnalisation</string>
-    <string name="profile_equipped_theme">Thème équipé</string>
-    <string name="profile_customize">Personnaliser</string>
-    <string name="profile_unlock_level">Niveau %1$d</string>
-    <string name="profile_equipped">Équipé</string>
-    <string name="profile_apply">Appliquer</string>
     <string name="notif_culture_title">Capsule du jour</string>
     <string name="notif_culture_discovery_title">Découverte du jour · %1$s</string>
     <string name="notif_culture_body">Ta capsule est prête. Une minute de découverte, sans fil infini.</string>
-    <string name="notif_focus_title">Session Focus terminée</string>
-    <plurals name="notif_focus_body">
-        <item quantity="one">%1$d minute terminée. Tu peux revenir quand tu veux.</item>
-        <item quantity="other">%1$d minutes terminées. Tu peux revenir quand tu veux.</item>
-    </plurals>
     <string name="notif_daily_combined">%1$s · Tes révisions sont prêtes. Environ 4 minutes.</string>
     <string name="culture_import_pack">Importer un pack culturel</string>
     <!-- Extensions locales -->
@@ -626,16 +565,6 @@
     <string name="flashcards_review_now">revient en fin de session</string>
 
     <!-- Objectifs -->
-    <string name="objectives_title">🎯 Objectifs</string>
-    <string name="objectives_summary">%1$d en cours • %2$s</string>
-    <plurals name="objectives_done">
-        <item quantity="one">%1$d terminé</item>
-        <item quantity="other">%1$d terminés</item>
-    </plurals>
-    <string name="objectives_todo">À faire</string>
-    <string name="objectives_done_section">Terminés</string>
-    <string name="objectives_done_cd">Terminé</string>
-    <string name="objectives_clear_done">Effacer les objectifs terminés</string>
 
     <!-- Exercice d'association -->
     <string name="exercise_associate_instruction">Associe chaque mot à son équivalent</string>
@@ -678,10 +607,6 @@
         <item quantity="one">%1$d langue</item>
         <item quantity="other">%1$d langues</item>
     </plurals>
-    <plurals name="progression_objectives">
-        <item quantity="one">%1$d objectif terminé</item>
-        <item quantity="other">%1$d objectifs terminés</item>
-    </plurals>
     <plurals name="progression_days">
         <item quantity="one">%1$d jour actif</item>
         <item quantity="other">%1$d jours actifs</item>
@@ -721,14 +646,6 @@
     <string name="poesie_du_jour_none">Aucune découverte littéraire aujourd\'hui.</string>
     <string name="home_intro">Une petite découverte aujourd\'hui.</string>
     <string name="home_discover_action">Découvrir</string>
-    <string name="home_discover_none">Aucune découverte disponible aujourd\'hui.</string>
-    <string name="home_progress_title">Progression</string>
-    <string name="home_continue">Continuer</string>
-    <string name="home_progress_none">Aucun parcours en cours</string>
-    <string name="home_progress_cta">Aller à Apprendre</string>
-    <string name="home_activity_title">Aujourd\'hui</string>
-    <string name="home_activity_learned">Tu as appris quelque chose aujourd\'hui.</string>
-    <string name="home_activity_nothing">Rien de prévu — profite de ta journée.</string>
 
     <string name="flashcards_module_gone_title">Ce module n\'est plus disponible.</string>
     <string name="flashcards_module_gone_body">Il a peut-être été supprimé ou déplacé. Tu peux l\'importer à nouveau.</string>
