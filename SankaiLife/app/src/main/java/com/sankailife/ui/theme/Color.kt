@@ -20,31 +20,11 @@ val AccentGold      = Color(0xFFF5A623)
 val AccentViolet    = Color(0xFF7B6CF6)
 val AccentCyan      = Color(0xFF22D3EE)
 
-// Intentions propres au jeu. Elles évitent que chaque écran invente son bleu,
-// son vert d'action ou son or de récompense.
-val GameNavyTop     = Color(0xFF0B2A44)
-val GameNavyBottom  = Color(0xFF04111C)
-val GameBlue        = Color(0xFF2A8FD5)
-val GardenGreen     = Color(0xFF55B85A)
-val RewardGold      = Color(0xFFFFC247)
-val RewardGoldDark  = Color(0xFFB86708)
-
 // Status
 val SuccessGreen    = Color(0xFF4ADE80)
 val WarningAmber    = Color(0xFFF59E0B)
 val DangerRed       = Color(0xFFF87171)
 val InfoBlue        = Color(0xFF60A5FA)
-
-// Currencies
-val CoinColor       = Color(0xFFF5A623)
-val GemColor        = Color(0xFFA78BFA)
-
-// Chests
-val ChestCommon     = Color(0xFF6B7280)
-val ChestRare       = Color(0xFF3B82F6)
-val ChestEpic       = Color(0xFF8B5CF6)
-val ChestLegendary  = Color(0xFFF59E0B)
-val ChestDaily      = Color(0xFF4ADE80)
 
 // ── LIGHT ────────────────────────────────────────────────────────
 val LightBackground = Color(0xFFF5F5F5)

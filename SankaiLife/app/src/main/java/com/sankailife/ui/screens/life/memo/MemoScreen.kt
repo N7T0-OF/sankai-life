@@ -85,7 +85,7 @@ import com.sankailife.ui.components.SankaiFloatingButton
 import com.sankailife.ui.theme.AccentCyan
 import com.sankailife.ui.theme.AccentViolet
 import com.sankailife.ui.theme.DangerRed
-import com.sankailife.ui.theme.RewardGold
+import com.sankailife.ui.theme.WarningAmber
 import com.sankailife.ui.theme.SankaiRadius
 import com.sankailife.ui.theme.SankaiSpacing
 import com.sankailife.ui.theme.SuccessGreen
@@ -658,7 +658,7 @@ fun MemoProfileListCard(
                         due > 0 -> stringResource(R.string.memo_due_count, due)
                         else -> stringResource(R.string.memo_up_to_date)
                     },
-                    color = if (due > 0) RewardGold else colors.textSecondary,
+                    color = if (due > 0) WarningAmber else colors.textSecondary,
                     style = MaterialTheme.typography.bodySmall
                 )
 

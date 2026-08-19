@@ -418,6 +418,7 @@
     <string name="customization_none_obtained">No theme obtained yet</string>
     <string name="customization_all_unlocked">All themes are unlocked</string>
     <string name="customization_equipped">Equipped</string>
+    <string name="customization_active">Active</string>
     <string name="customization_locked">Locked</string>
     <string name="customization_tap_to_equip">Tap to equip</string>
     <string name="customization_unlock_level">Level %1$d</string>

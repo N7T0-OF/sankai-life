@@ -438,6 +438,7 @@
     <string name="customization_none_obtained">Aucun thème obtenu pour l’instant</string>
     <string name="customization_all_unlocked">Tous les thèmes sont débloqués</string>
     <string name="customization_equipped">Équipé</string>
+    <string name="customization_active">Actif</string>
     <string name="customization_locked">Verrouillé</string>
     <string name="customization_tap_to_equip">Appuie pour équiper</string>
     <string name="customization_unlock_level">Niveau %1$d</string>

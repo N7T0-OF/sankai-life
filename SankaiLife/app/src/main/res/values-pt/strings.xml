@@ -422,6 +422,7 @@
     <string name="customization_none_obtained">Nenhum tema obtido por enquanto</string>
     <string name="customization_all_unlocked">Todos os temas estão desbloqueados</string>
     <string name="customization_equipped">Equipado</string>
+    <string name="customization_active">Ativo</string>
     <string name="customization_locked">Bloqueado</string>
     <string name="customization_tap_to_equip">Toque para equipar</string>
     <string name="customization_unlock_level">Nível %1$d</string>

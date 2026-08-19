@@ -198,7 +198,7 @@ private fun CartePalette(
         Text(ui.badge, color = c.textSecondary, fontSize = 11.sp)
         if (ui.active) {
             Spacer(Modifier.height(4.dp))
-            Text("Active", color = c.accent, fontSize = 11.sp,
+            Text(stringResource(R.string.customization_active), color = c.accent, fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold)
         }
     }
